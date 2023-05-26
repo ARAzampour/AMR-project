@@ -1,0 +1,293 @@
+%%%% Power plants' dynamics: Alireza and Maija
+
+%%% let's start with only one technology, I assume that after 100 period a
+%%% plant would for sure adopt a new technology meaning that we should have
+%%% the policy of the plant for a set of [0 age_num] years * [a_l a_L] where small
+%%% a's are the demeaned A's
+
+
+clear
+close
+clc
+
+%%
+a_bar   = 80;
+beta    = 0.97;
+c_of_a  = 100;  %%%% we should think more about how to enforce the fix cost
+                %%%% right now it's compared with the value of adoption
+                %%%% which can get really high so we need compare it to
+                %%%% some notion of contemporaneous profit
+
+max_iter    = 10000;
+v_tol       = 10^-5;
+dist_tol    = 10^-7;
+
+alpha   = 0.7; 
+p_e     = 1;
+a_lamb  = 0.5;
+a_num_g = 50;
+age_num = 200;
+
+
+tr_len  = 50;
+
+C_ent_newtech = 0.30;
+%% old tech ss
+a_grow_old = 0.01;
+
+[policy_choice_old,v_new_old,v_new_resh_old,dist_old,...
+    trans_matrix_old,age_g,a_grid,~,pi_contemp] = ...
+One_tech_ss(a_grow_old,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
+v_tol,dist_tol);
+
+figure(1)
+surf(1+a_grid,age_g,v_new_resh_old);
+xlabel('productivity'), ylabel('age')
+title('value of firm in each state')
+set(gca,'Fontsize',32)
+
+
+dist_resh = (reshape(dist_old',a_num_g,age_num))';
+figure(2)
+surf(1+a_grid,age_g,log(dist_resh));
+xlabel('productivity'), ylabel('age')
+title('log of mass of firms in each state ')
+set(gca,'Fontsize',32)
+%%
+figure(6)
+surface(age_g,1+a_grid,reshape(policy_choice_old(:,50)...
+    +policy_choice_old(:,49)+policy_choice_old(:,48),a_num_g,age_num),'edgecolor','none')
+map_color = [1.0,1.0,1.0;0.75,0.0,0.0;0.0,0.75,0.0;0.0,0.0,0.75];
+colormap(map_color)
+shading("interp")
+xlabel("age")
+ylabel("productivity")
+set(gca, 'FontSize', 24);
+% annotation('textarrow',[1,10],'String','y = x ')
+%% new tech ss
+a_grow_new = 0.03;
+
+[policy_choice_new,v_new_newtech,v_new_resh_new,dist_new_tech,...
+    trans_matrix_ne,age_g,a_grid,a_prob,pi_contemp_new] = ...
+One_tech_ss(a_grow_new,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
+v_tol,dist_tol);
+%%
+figure(1)
+surf(1+a_grid,age_g,v_new_resh_new);
+xlabel('productivity'), ylabel('age')
+title('value of firm in each state')
+set(gca,'Fontsize',32)
+
+
+dist_resh = (reshape(dist_new_tech',a_num_g,age_num))';
+figure(2)
+surf(1+a_grid,age_g,log(dist_resh));
+xlabel('productivity'), ylabel('age')
+title('log of mass of firms in each state ')
+set(gca,'Fontsize',32)
+
+figure(6)
+surface(age_g,a_grid,reshape(policy_choice_new(:,50)...
+    +policy_choice_new(:,49)+policy_choice_new(:,48),a_num_g,age_num),'edgecolor','none')
+map_color = [1.0,1.0,1.0;0.75,0.0,0.0;0.0,0.75,0.0;0.0,0.0,0.75];
+colormap(map_color)
+shading("interp")
+xlabel("age")
+ylabel("productivity")
+set(gca, 'FontSize', 32);
+% annotation('textarrow',[1,10],'String','y = x ')
+
+%%
+%%%% MIT transition 
+%%% In the transition each frim has firm on the old tech has would
+%%% eventually in the transition but it can still update its facility in
+%%% the path.
+
+a_gr_p      = a_grow_new - a_grow_old;
+
+
+v_of_old    = zeros(age_num,a_num_g,tr_len);
+p_of_old    = sparse(age_num*a_num_g,a_num_g*tr_len);
+old_rem     = sparse(age_num*a_num_g,a_num_g*tr_len);
+v_out_opt   = a_prob*v_new_newtech(1:50)*(1-C_ent_newtech); %%% here the idea 
+                    %%% is that each plant would compare its value of
+                    %%% continuation with the expected value of closing and
+                    %%% opening a new plant in the new tech
+
+
+
+for ii=tr_len:-1:1
+    pi_transition       = ((1+a_grid).*(alpha/p_e)^alpha.*(1/(1+a_grow_old)).^age_g/((1+a_gr_p)^ii))...
+    .^(1/(1-alpha))*(1-alpha);
+
+    if ii==tr_len
+        v_of_old(:,:,ii)    = pi_transition + beta*v_out_opt;
+    else
+        v   = v_of_old(:,:,ii+1);
+        v_p = v';
+        v_p(:,1:age_num-1)  = v_p(:,2:age_num);
+        v_p(:,age_num)      = 0;            %%% setting the
+                                            %%% value of those who don't adopt
+                                            %%% at the highest age to zero; it
+                                            %%% should also be noted that if a
+                                            %%% firm is not adopting, in the
+                                            %%% next period it would get the
+                                            %%% value of v(age+1,a_i)
+    
+    
+    
+        v_p_vec     = (v_p(:));
+        v_p_expand  = kron(v_p_vec,ones(a_num_g,1));
+        v_adopt     = kron(ones(age_num,a_num_g),v(1,:));
+        v_adopt_p   = v_adopt';
+        v_adopt_vec = v_adopt_p(:);        
+    
+    
+        v_best      = max(v_adopt_vec-c_of_a*(1+(kron([1:age_num],ones(1,a_num_g^2)))'/a_bar)...
+            ,v_p_expand);
+        v_best_resh = (reshape(v_best,a_num_g,age_num*a_num_g))';
+    
+         
+        policy_choice   = 1-(v_best_resh==v_p_vec);
+        V_best_i_o      = max(v_best_resh,v_out_opt);
+        remain_dec      = 1-(V_best_i_o==v_out_opt);
+    
+        v_new       = V_best_i_o*a_prob';
+        v_new_resh  = (reshape(v_new,a_num_g,age_num))';
+        v_new_resh  = pi_contemp_new + beta*v_new_resh;
+
+        v_of_old(:,:,ii) = v_new_resh;
+        p_of_old(:,(ii-1)*a_num_g+1:ii*a_num_g) = sparse(policy_choice);
+        old_rem (:,(ii-1)*a_num_g+1:ii*a_num_g) = sparse(remain_dec);
+    end
+
+
+end
+
+%%
+figure(7)
+sbpl1   = subplot(2,2,2);
+ii = 20;
+policy_choice   = p_of_old(:,(ii-1)*a_num_g+1:ii*a_num_g);
+% remain_dec      = 1-old_rem (:,(ii-1)*a_num_g+1:ii*a_num_g);
+surface(age_g,1+a_grid,reshape(policy_choice(:,50)...
+    +policy_choice(:,49)+policy_choice(:,48),a_num_g,age_num)...
+    ,'edgecolor','none');
+map_color = [1.0,1.0,1.0;0.75,0.0,0.0;0.0,0.75,0.0;0.0,0.0,0.75];
+colormap(map_color)
+shading("interp")
+xlabel("age")
+ylabel("productivity")
+set(gca, 'FontSize', 16);
+title("Adoption Decisions of firms in 20th period of transition")
+
+sbpl2   = subplot(2,2,1);
+ii = 20;
+% policy_choice   = p_of_old(:,(ii-1)*a_num_g+1:ii*a_num_g);
+remain_dec      = old_rem (:,(ii-1)*a_num_g+1:ii*a_num_g);
+surface(age_g,1+a_grid,reshape(remain_dec(:,50)...
+    +remain_dec(:,49)+remain_dec(:,48),a_num_g,age_num)...
+    ,'edgecolor','none');
+map_color = [1.0,1.0,1.0;0.75,0.0,0.0;0.0,0.75,0.0;0.0,0.0,0.75];
+colormap(map_color)
+shading("interp")
+xlabel("age")
+ylabel("productivity")
+set(gca, 'FontSize', 16);
+title("Remain Decisions of firms in 20th period of transition")
+
+
+% sbpl2.Position = [0.05,0.1,.40,.8];
+% sbpl1.Position = [0.51,0.1,0.40,0.8];
+subplot(2,2,4)
+ii = 40;
+policy_choice   = p_of_old(:,(ii-1)*a_num_g+1:ii*a_num_g);
+% remain_dec      = 1-old_rem (:,(ii-1)*a_num_g+1:ii*a_num_g);
+surface(age_g,1+a_grid,reshape(policy_choice(:,50)...
+    +policy_choice(:,49)+policy_choice(:,48),a_num_g,age_num)...
+    ,'edgecolor','none')
+map_color = [1.0,1.0,1.0;0.75,0.0,0.0;0.0,0.75,0.0;0.0,0.0,0.75];
+colormap(map_color)
+shading("interp")
+xlabel("age")
+ylabel("productivity")
+set(gca, 'FontSize', 16);
+title("Adoption Decisions of firms in 40th period of transition")
+
+subplot(2,2,3)
+ii = 40;
+% policy_choice   = p_of_old(:,(ii-1)*a_num_g+1:ii*a_num_g);
+remain_dec      = old_rem (:,(ii-1)*a_num_g+1:ii*a_num_g);
+surface(age_g,1+a_grid,reshape(remain_dec(:,50)...
+    +remain_dec(:,49)+remain_dec(:,48),a_num_g,age_num)...
+    ,'edgecolor','none')
+map_color = [1.0,1.0,1.0;0.75,0.0,0.0;0.0,0.75,0.0;0.0,0.0,0.75];
+colormap(map_color)
+shading("interp")
+xlabel("age")
+ylabel("productivity")  
+set(gca, 'FontSize', 16);
+title("Remain Decisions of firms in 40th period of transition")
+%%
+%%% transition to the new technology
+%%%% Here the measure of the plants with the old technology would
+%%%% constantly decline till everyone has the new tech set
+
+dist        = dist_old;
+dist_ent    = zeros(1,age_num*a_num_g);
+dist_of_new = zeros(1,age_num*a_num_g);
+dist_ent(1:a_num_g) = 1/a_num_g;
+
+cap_transition = zeros(1,tr_len+1);
+cap_transition(1) = 1;
+
+for jj=1:1:tr_len
+
+    cap_contemp_old = (((1+a_grid).*(alpha/p_e)^alpha.*(1/(1+a_grow_old)).^age_g...
+        /((1+a_gr_p)^jj)).^(1/(1-alpha)))';
+    cap_contemp_new = (((1+a_grid).*(alpha/p_e)^alpha.*(1/(1+a_grow_new)).^age_g)...
+    .^(1/(1-alpha)))';
+
+    policy_choice   = p_of_old(:,(jj-1)*a_num_g+1:jj*a_num_g);
+    remain_dec      = old_rem (:,(jj-1)*a_num_g+1:jj*a_num_g);
+
+    trans_matrix    = zeros(a_num_g*age_num,a_num_g*age_num);
+    trans_matrix(:,1:a_num_g) = remain_dec.*policy_choice.*repmat(a_prob,age_num*a_num_g,1);
+    prob_of_naot    = sum((1-policy_choice).*remain_dec.*repmat(a_prob,age_num*a_num_g,1),2);
+    state_if_naot   =  kron([1:age_num-1],ones(1,a_num_g))*age_num*a_num_g^2+...
+        [1:(age_num-1)*a_num_g]+kron(ones(1,age_num-1),[0:a_num_g-1])*age_num*a_num_g;
+    trans_matrix(state_if_naot) = 1*prob_of_naot(1:(age_num-1)*a_num_g);
+    
+    
+    trans_matrix((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = repmat(a_prob,a_num_g,1);
+    trans_matrix = sparse(trans_matrix);
+    
+
+    dist_new    = dist *trans_matrix ;
+    dist_of_new = (sum(dist)- sum(dist_new)) * dist_ent + dist_of_new*trans_matrix_ne ;
+    error       = max(abs(dist_new-dist));
+
+    cap_old     = dist_new * cap_contemp_old(:);
+    cap_new     = dist_of_new * cap_contemp_new(:);
+
+    cap_transition(jj+1) = cap_old/(cap_old+cap_new);
+    if error<dist_tol
+        fprintf("MIT distribution converged\n");
+        break;
+    end
+    dist        = dist_new;
+
+end
+%%
+dist_reshaped = (reshape(dist_of_new',a_num_g,age_num))';
+figure(3)
+surf(1+a_grid,age_g,log(dist_reshaped));
+xlabel('productivity'), ylabel('age')
+title('log of mass of firms in each state ')
+set(gca, 'FontSize', 24);
+
+figure(8)
+plot(cap_transition,LineWidth=2)
+ylabel('Share of capacity produced by old'), xlabel('years in to transition')
+title('Capacity transition pattern ')
+set(gca, 'FontSize', 24);
