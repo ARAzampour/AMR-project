@@ -13,7 +13,7 @@ clc
 %%
 a_bar   = 80;
 beta    = 0.97;
-c_of_a  = 10;  %%%% we should think more about how to enforce the fix cost
+c_of_a  = 100;  %%%% we should think more about how to enforce the fix cost
                 %%%% right now it's compared with the value of adoption
                 %%%% which can get really high so we need compare it to
                 %%%% some notion of contemporaneous profit
@@ -32,10 +32,6 @@ fco     = 0.1;
 e_p     = 0.1;    %%% this demand elasticity is estimated around 0.1 but more 
                 %%% papers should be read about it (in the long run it's 1
                 %%% but I think we should use the short run estimate)
-
-d_0     = 10;   %%% what should this value be?? it has profound effect on 
-                %%% the final distribution of the firms due to low
-                %%% elacticity of demand
 c_of_e  = 5;
 dem_tol = 0.01;
 
@@ -44,11 +40,11 @@ tr_len  = 50;
 
 C_ent_newtech = 0.30;
 %% old tech ss
-a_grow = 0.01;
+a_grow_old = 0.01;
 
 [policy_choice_old,v_new_old,v_new_resh_old,dist_old,...
     trans_matrix_old,age_g,a_grid,~,pi_contemp] = ...
-One_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
+One_tech_ss(a_grow_old,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
 v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol);
 
 figure(1)
@@ -75,15 +71,13 @@ xlabel("age")
 ylabel("productivity")
 set(gca, 'FontSize', 24);
 % annotation('textarrow',[1,10],'String','y = x ')
-%% new tech ss (with two techs)
-a_grow_new  = 0.02;
-tech_dist   = ((1+a_grow_new)/(1+a_grow))^20;
+%% new tech ss
+a_grow_new = 0.03;
 
-[policy_choice_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,...
-    policy_choice_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,...
-    age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new] = ...
-    Two_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
-    v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol,tech_dist);
+[policy_choice_new,v_new_newtech,v_new_resh_new,dist_new_tech,...
+    trans_matrix_ne,age_g,a_grid,a_prob,pi_contemp_new] = ...
+One_tech_ss(a_grow_new,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
+v_tol,dist_tol);
 %%
 figure(1)
 surf(1+a_grid,age_g,v_new_resh_new);
@@ -116,7 +110,7 @@ set(gca, 'FontSize', 32);
 %%% eventually in the transition but it can still update its facility in
 %%% the path.
 
-a_gr_p      = a_grow_new - a_grow;
+a_gr_p      = a_grow_new - a_grow_old;
 
 
 v_of_old    = zeros(age_num,a_num_g,tr_len);
@@ -130,7 +124,7 @@ v_out_opt   = a_prob*v_new_newtech(1:50)*(1-C_ent_newtech); %%% here the idea
 
 
 for ii=tr_len:-1:1
-    pi_transition       = ((1+a_grid).*(alpha/p_e)^alpha.*(1/(1+a_grow)).^age_g/((1+a_gr_p)^ii))...
+    pi_transition       = ((1+a_grid).*(alpha/p_e)^alpha.*(1/(1+a_grow_old)).^age_g/((1+a_gr_p)^ii))...
     .^(1/(1-alpha))*(1-alpha);
 
     if ii==tr_len
@@ -256,7 +250,7 @@ cap_transition(1) = 1;
 
 for jj=1:1:tr_len
 
-    cap_contemp_old = (((1+a_grid).*(alpha/p_e)^alpha.*(1/(1+a_grow)).^age_g...
+    cap_contemp_old = (((1+a_grid).*(alpha/p_e)^alpha.*(1/(1+a_grow_old)).^age_g...
         /((1+a_gr_p)^jj)).^(1/(1-alpha)))';
     cap_contemp_new = (((1+a_grid).*(alpha/p_e)^alpha.*(1/(1+a_grow_new)).^age_g)...
     .^(1/(1-alpha)))';

@@ -171,23 +171,17 @@ for h=1:1:max_iter_measure
         demand_err  = suply_price - p_E;
         
         if abs(demand_err)<dem_tol
-            fprintf("demand and supply has converged and the prices is ..." + ...
-                "%2.4f in %2.1f periods\n",p_E,k);
+            fprintf("demand and supply has converged and the prices is %2.4f",p_E);
             break;
         end
         
-        p_E     = p_E + 0.2*demand_err/(ceil(k/10));
+        p_E     = p_E + 0.2*demand_err/(k);
     end
-    value_err   = a_prob*(v_new_resh(1,:))'-c_of_e;
+    value_err   = dist*v_new/(sum(dist))-c_of_e;
     if abs(value_err)<dem_tol
-        fprintf("entry and exit have converged and E(v) is %2.4f in %2.1f periods \n"...
-            ,value_err,h);
+        fprintf("entry and exit have converged and E(v) is %2.4f",value_err);
         break;
     end
-    if value_err>-5
-        m_of_firms = m_of_firms*(1+0.1*value_err);
-    else
-        m_of_firms = m_of_firms*(1+0.05*value_err);
-    end
+    m_of_firms = m_of_firms+0.1*value_err;
 end
 end
