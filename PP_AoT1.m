@@ -33,21 +33,23 @@ e_p     = 0.1;    %%% this demand elasticity is estimated around 0.1 but more
                 %%% papers should be read about it (in the long run it's 1
                 %%% but I think we should use the short run estimate)
 
-d_0     = 10;   %%% what should this value be?? it has profound effect on 
+d_0     = 15;   %%% what should this value be?? it has profound effect on 
                 %%% the final distribution of the firms due to low
                 %%% elacticity of demand
 c_of_e  = 5;
 dem_tol = 0.01;
 
 
-tr_len  = 50;
+trans_t  = 50;
 
-C_ent_newtech = 0.30;
+C_ent_newtech   = 0.30;
+diff_gr_t       = 20;
+diff_gr         = 0.01;
 %% old tech ss
 a_grow = 0.01;
 
 [policy_choice_old,v_new_old,v_new_resh_old,dist_old,...
-    trans_matrix_old,age_g,a_grid,~,pi_contemp] = ...
+    trans_matrix_old,age_g,a_grid,~,pi_contemp,p_E_old,m_of_firms_old] = ...
 One_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
 v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol);
 
@@ -76,14 +78,13 @@ ylabel("productivity")
 set(gca, 'FontSize', 24);
 % annotation('textarrow',[1,10],'String','y = x ')
 %% new tech ss (with two techs)
-a_grow_new  = 0.02;
-tech_dist   = ((1+a_grow_new)/(1+a_grow))^20;
+tech_dist   = (1+diff_gr)^diff_gr_t;
 
 [policy_choice_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,...
     policy_choice_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,...
-    age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new] = ...
+    age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old] = ...
     Two_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
-    v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol,tech_dist);
+    v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,dem_tol,tech_dist);
 %%
 figure(1)
 surf(1+a_grid,age_g,v_new_resh_new);
@@ -115,6 +116,24 @@ set(gca, 'FontSize', 32);
 %%% In the transition each frim has firm on the old tech has would
 %%% eventually in the transition but it can still update its facility in
 %%% the path.
+final_dist_o    = dist_o;
+final_dist_n    = dist_n;
+final_p_E       = p_E;
+init_p_E        = p_E_old;
+final_val2      = v_new_resh_n;
+final_val1      = v_new_resh_o;
+init_dist       = dist_old;
+
+
+[policy_choice_o_all,v_new_resh_o_all,dist_o_all,...
+    policy_choice_n_all,v_new_resh_n_all,dist_n_all,...
+    age_g,a_grid,a_prob,pi_contemp_new,p_E_vec,m_of_firms_new] =...
+    MIT_transition(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
+    v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol,init_dist,final_val1,final_val2,...
+    diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o);
+
+
+
 
 a_gr_p      = a_grow_new - a_grow;
 

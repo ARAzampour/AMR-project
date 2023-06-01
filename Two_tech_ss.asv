@@ -1,6 +1,6 @@
 function [policy_choice_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,...
     policy_choice_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,...
-    age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new] = ...
+    age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old] = ...
     Two_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol,tech_dist)
 
@@ -222,12 +222,12 @@ for h=1:1:max_iter_measure
         trans_matrix_n = sparse(trans_matrix_n);
 
         trans_matrix_o((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = repmat(a_prob,a_num_g,1);
-        trans_matrix_o = trans_matrix_o.*(1-exit_vec_n);
+        trans_matrix_o = trans_matrix_o.*(1-exit_vec_o);
         trans_matrix_o = sparse(trans_matrix_o);
         
-        dist_n        = m_of_firms_new*ones(1,age_num*a_num_g)/(age_num*a_num_g);
-        dist_o        = m_of_firms_new*ones(1,age_num*a_num_g)/(age_num*a_num_g);
-        dist_ent    = zeros(1,age_num*a_num_g);
+        dist_n          = m_of_firms_new*ones(1,age_num*a_num_g)/(age_num*a_num_g);
+        dist_o          = m_of_firms_old*ones(1,age_num*a_num_g)/(age_num*a_num_g);
+        dist_ent        = zeros(1,age_num*a_num_g);
         dist_ent(1:a_num_g) = 1/a_num_g;
 
         
@@ -244,8 +244,8 @@ for h=1:1:max_iter_measure
         end
 
         for j=1:1:max_iter
-            dist_new_o    = dist_o *trans_matrix_n;
-            dist_new_o    = dist_new_o + (m_of_firms_new-sum(dist_new_o))*dist_ent;
+            dist_new_o    = dist_o *trans_matrix_o;
+            dist_new_o    = dist_new_o + (m_of_firms_old-sum(dist_new_o))*dist_ent;
             error       = max(abs(dist_new_o-dist_o));
             if error<dist_tol
                 fprintf("distribution of old converged in %4.1f periods\n",j);
@@ -271,7 +271,8 @@ for h=1:1:max_iter_measure
     end
     value_err_n   = a_prob*(v_new_resh_n(1,:))'-c_of_e;
     value_err_o   = a_prob*(v_new_resh_o(1,:))'-c_of_e;
-    if (abs(value_err_n)<dem_tol||m_of_firms_new<v_tol) && (abs(value_err_n)<dem_tol||m_of_firms_new<v_tol)
+    if (abs(value_err_n)<dem_tol||m_of_firms_new<v_tol) && ...
+            (abs(value_err_o)<dem_tol||m_of_firms_old<v_tol)
         fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
             "is %2.4f and %2.4f in %2.1f periods \n"...
             ,value_err_n,value_err_o,h);
