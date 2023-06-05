@@ -17,6 +17,7 @@ c_of_a  = 10;  %%%% we should think more about how to enforce the fix cost
                 %%%% right now it's compared with the value of adoption
                 %%%% which can get really high so we need compare it to
                 %%%% some notion of contemporaneous profit
+c_a_new =   
 
 max_iter    = 10000;
 v_tol       = 10^-5;
@@ -40,23 +41,28 @@ c_of_e  = 5;
 dem_tol = 0.01;
 
 
-trans_t  = 50;
+trans_t  = 200;
 
-C_ent_newtech = 0.30;
+C_ent_newtech   = 0.30;
+diff_gr_t       = 20;
+diff_gr         = 0.01;
 %% old tech ss
 a_grow = 0.01;
 
-[policy_choice_old,v_new_old,v_new_resh_old,dist_old,...
-    trans_matrix_old,age_g,a_grid,~,pi_contemp,,p_E,m_of_firms_old] = ...
+[trans_prob_old,v_new_old,v_new_resh_old,dist_old,...
+    trans_matrix_old,age_g,a_grid,~,pi_contemp,p_E_old,m_of_firms_old] = ...
 One_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
 v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol);
+%%
+
+ScSz = get(0, 'ScreenSize');
 
 figure(1)
 surf(1+a_grid,age_g,v_new_resh_old);
 xlabel('productivity'), ylabel('age')
 title('value of firm in each state')
 set(gca,'Fontsize',32)
-
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 
 dist_resh = (reshape(dist_old',a_num_g,age_num))';
 figure(2)
@@ -64,52 +70,86 @@ surf(1+a_grid,age_g,log(dist_resh));
 xlabel('productivity'), ylabel('age')
 title('log of mass of firms in each state ')
 set(gca,'Fontsize',32)
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 %%
 figure(6)
-surface(age_g,1+a_grid,reshape(policy_choice_old(:,45)...
-    +policy_choice_old(:,30)+policy_choice_old(:,20),a_num_g,age_num),'edgecolor','none')
-map_color = [1.0,1.0,1.0;0.75,0.0,0.0;0.0,0.75,0.0;0.0,0.0,0.75];
-colormap(map_color)
-shading("interp")
+temp            = reshape(trans_prob_old,a_num_g,age_num);
+temp(temp==0)   = NaN;
+surface(age_g,1+a_grid,temp,'edgecolor','none')
+% colormap(map_color)
+% shading("interp")
+colorbar
 xlabel("age")
 ylabel("productivity")
 set(gca, 'FontSize', 24);
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+title("probability of tech adoption");
+address = 'D:\AMR_github\graphs\transition_prob.png';
+saveas(gcf,address)
 % annotation('textarrow',[1,10],'String','y = x ')
 %% new tech ss (with two techs)
-a_grow_new  = 0.02;
-tech_dist   = ((1+a_grow_new)/(1+a_grow))^20;
+tech_dist   = (1+diff_gr)^diff_gr_t;
 
-[policy_choice_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,...
-    policy_choice_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,...
+[trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,...
+    trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,...
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old] = ...
     Two_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,dem_tol,tech_dist);
 %%
 figure(1)
-surf(1+a_grid,age_g,v_new_resh_new);
+surf(1+a_grid,age_g,v_new_resh_n);
 xlabel('productivity'), ylabel('age')
 title('value of firm in each state')
 set(gca,'Fontsize',32)
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 
-
-dist_resh = (reshape(dist_new_tech',a_num_g,age_num))';
+dist_resh = (reshape(dist_n',a_num_g,age_num))';
 figure(2)
 surf(1+a_grid,age_g,log(dist_resh));
 xlabel('productivity'), ylabel('age')
 title('log of mass of firms in each state ')
 set(gca,'Fontsize',32)
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 
+%%
 figure(6)
-surface(age_g,a_grid,reshape(policy_choice_new(:,50)...
-    +policy_choice_new(:,49)+policy_choice_new(:,48),a_num_g,age_num),'edgecolor','none')
-map_color = [1.0,1.0,1.0;0.75,0.0,0.0;0.0,0.75,0.0;0.0,0.0,0.75];
-colormap(map_color)
-shading("interp")
+temp            = reshape(trans_prob_n,a_num_g,age_num);
+temp(temp==0)   = NaN;
+surface(age_g,a_grid,reshape(temp,a_num_g,age_num),'edgecolor','none')
+% colormap(map_color)
+% shading("interp")
 xlabel("age")
 ylabel("productivity")
 set(gca, 'FontSize', 32);
+colorbar
+title("probability of tech adoption for new-tech generators")
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+address = 'D:\AMR_github\graphs\transition_prob_n.png';
+saveas(gcf,address)
+%%
+figure(7)
+temp            = reshape(trans_prob_o,a_num_g,age_num);
+temp(temp==0)   = NaN;
+surface(age_g,a_grid,reshape(temp,a_num_g,age_num),'edgecolor','none')
+% colormap(map_color)
+% shading("interp")
+xlabel("age")
+ylabel("productivity")
+set(gca, 'FontSize', 32);
+title("probability of tech adoption for old")
+colorbar
 % annotation('textarrow',[1,10],'String','y = x ')
+title("probability of tech adoption for old-tech generators")
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+address = 'D:\AMR_github\graphs\transition_prob_o.png';
+saveas(gcf,address)
 
+figure(1)
+surf(1+a_grid,age_g,v_new_resh_o);
+xlabel('productivity'), ylabel('age')
+title('value of firm in each state')
+set(gca,'Fontsize',32)
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 %%
 %%%% MIT transition 
 %%% In the transition each frim has firm on the old tech has would
@@ -117,11 +157,16 @@ set(gca, 'FontSize', 32);
 %%% the path.
 final_dist_o    = dist_o;
 final_dist_n    = dist_n;
-final_p_E       = 
+final_p_E       = p_E;
+init_p_E        = p_E_old;
+final_val2      = v_new_resh_n;
+final_val1      = v_new_resh_o;
+init_dist       = dist_old;
 
-[policy_choice_o_all,v_new_resh_o_all,dist_o_all,...
-    policy_choice_n_all,v_new_resh_n_all,dist_n_all,...
-    age_g,a_grid,a_prob,pi_contemp_new,p_E_vec,m_of_firms_new] =...
+
+[trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,...
+    trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,...
+    age_g,a_grid,a_prob,p_E_vec,cap_old,cap_new] =...
     MIT_transition(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol,init_dist,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o);
@@ -129,66 +174,6 @@ final_p_E       =
 
 
 
-a_gr_p      = a_grow_new - a_grow;
-
-
-v_of_old    = zeros(age_num,a_num_g,tr_len);
-p_of_old    = sparse(age_num*a_num_g,a_num_g*tr_len);
-old_rem     = sparse(age_num*a_num_g,a_num_g*tr_len);
-v_out_opt   = a_prob*v_new_newtech(1:50)*(1-C_ent_newtech); %%% here the idea 
-                    %%% is that each plant would compare its value of
-                    %%% continuation with the expected value of closing and
-                    %%% opening a new plant in the new tech
-
-
-
-for ii=tr_len:-1:1
-    pi_transition       = ((1+a_grid).*(alpha/p_e)^alpha.*(1/(1+a_grow)).^age_g/((1+a_gr_p)^ii))...
-    .^(1/(1-alpha))*(1-alpha);
-
-    if ii==tr_len
-        v_of_old(:,:,ii)    = pi_transition + beta*v_out_opt;
-    else
-        v   = v_of_old(:,:,ii+1);
-        v_p = v';
-        v_p(:,1:age_num-1)  = v_p(:,2:age_num);
-        v_p(:,age_num)      = 0;            %%% setting the
-                                            %%% value of those who don't adopt
-                                            %%% at the highest age to zero; it
-                                            %%% should also be noted that if a
-                                            %%% firm is not adopting, in the
-                                            %%% next period it would get the
-                                            %%% value of v(age+1,a_i)
-    
-    
-    
-        v_p_vec     = (v_p(:));
-        v_p_expand  = kron(v_p_vec,ones(a_num_g,1));
-        v_adopt     = kron(ones(age_num,a_num_g),v(1,:));
-        v_adopt_p   = v_adopt';
-        v_adopt_vec = v_adopt_p(:);        
-    
-    
-        v_best      = max(v_adopt_vec-c_of_a*(1+(kron([1:age_num],ones(1,a_num_g^2)))'/a_bar)...
-            ,v_p_expand);
-        v_best_resh = (reshape(v_best,a_num_g,age_num*a_num_g))';
-    
-         
-        policy_choice   = 1-(v_best_resh==v_p_vec);
-        V_best_i_o      = max(v_best_resh,v_out_opt);
-        remain_dec      = 1-(V_best_i_o==v_out_opt);
-    
-        v_new       = V_best_i_o*a_prob';
-        v_new_resh  = (reshape(v_new,a_num_g,age_num))';
-        v_new_resh  = pi_contemp_new + beta*v_new_resh;
-
-        v_of_old(:,:,ii) = v_new_resh;
-        p_of_old(:,(ii-1)*a_num_g+1:ii*a_num_g) = sparse(policy_choice);
-        old_rem (:,(ii-1)*a_num_g+1:ii*a_num_g) = sparse(remain_dec);
-    end
-
-
-end
 
 %%
 figure(7)
@@ -254,56 +239,7 @@ xlabel("age")
 ylabel("productivity")  
 set(gca, 'FontSize', 16);
 title("Remain Decisions of firms in 40th period of transition")
-%%
-%%% transition to the new technology
-%%%% Here the measure of the plants with the old technology would
-%%%% constantly decline till everyone has the new tech set
 
-dist        = dist_old;
-dist_ent    = zeros(1,age_num*a_num_g);
-dist_of_new = zeros(1,age_num*a_num_g);
-dist_ent(1:a_num_g) = 1/a_num_g;
-
-cap_transition = zeros(1,tr_len+1);
-cap_transition(1) = 1;
-
-for jj=1:1:tr_len
-
-    cap_contemp_old = (((1+a_grid).*(alpha/p_e)^alpha.*(1/(1+a_grow)).^age_g...
-        /((1+a_gr_p)^jj)).^(1/(1-alpha)))';
-    cap_contemp_new = (((1+a_grid).*(alpha/p_e)^alpha.*(1/(1+a_grow_new)).^age_g)...
-    .^(1/(1-alpha)))';
-
-    policy_choice   = p_of_old(:,(jj-1)*a_num_g+1:jj*a_num_g);
-    remain_dec      = old_rem (:,(jj-1)*a_num_g+1:jj*a_num_g);
-
-    trans_matrix    = zeros(a_num_g*age_num,a_num_g*age_num);
-    trans_matrix(:,1:a_num_g) = remain_dec.*policy_choice.*repmat(a_prob,age_num*a_num_g,1);
-    prob_of_naot    = sum((1-policy_choice).*remain_dec.*repmat(a_prob,age_num*a_num_g,1),2);
-    state_if_naot   =  kron([1:age_num-1],ones(1,a_num_g))*age_num*a_num_g^2+...
-        [1:(age_num-1)*a_num_g]+kron(ones(1,age_num-1),[0:a_num_g-1])*age_num*a_num_g;
-    trans_matrix(state_if_naot) = 1*prob_of_naot(1:(age_num-1)*a_num_g);
-    
-    
-    trans_matrix((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = repmat(a_prob,a_num_g,1);
-    trans_matrix = sparse(trans_matrix);
-    
-
-    dist_new    = dist *trans_matrix ;
-    dist_of_new = (sum(dist)- sum(dist_new)) * dist_ent + dist_of_new*trans_matrix_ne ;
-    error       = max(abs(dist_new-dist));
-
-    cap_old     = dist_new * cap_contemp_old(:);
-    cap_new     = dist_of_new * cap_contemp_new(:);
-
-    cap_transition(jj+1) = cap_old/(cap_old+cap_new);
-    if error<dist_tol
-        fprintf("MIT distribution converged\n");
-        break;
-    end
-    dist        = dist_new;
-
-end
 %%
 dist_reshaped = (reshape(dist_of_new',a_num_g,age_num))';
 figure(3)

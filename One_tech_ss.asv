@@ -12,15 +12,9 @@ max_iter_measure    = max_iter_price;
  
 age_g   = (linspace(0,age_num-1,age_num))';
 
-%%%%% these should be predefined for mex purposes
 
-trans_matrix    = sparse(age_num*a_num_g,age_num*a_num_g);
-dist            = zeros(1,age_num*a_num_g);
-v_new           = zeros(age_num*a_num_g,1);
-v_new_resh      = zeros(age_num,a_num_g);
-exit_vec = zeros(age_num*a_num_g,'logical');
 
-%%%%%
+
 policy_choice   = zeros(age_num*a_num_g,a_num_g);
 
 
@@ -137,25 +131,21 @@ for h=1:1:max_iter_measure
         %%% the same technology state with a higher age, those who adopt go the
         %%% technology they adopt with the age zero meaning we have:
         
-        trans_matrix                  = sparse(a_num_g*age_num,a_num_g*age_num);
-        trans_matrix(:,1:a_num_g)     = policy_choice.*repmat(a_prob,age_num*a_num_g,1).*(1-exit_vec);
-        prob_of_naot                  = sum((1-policy_choice).*repmat(a_prob,age_num*a_num_g,1),2);
-        state_if_naot                 =  kron([1:age_num-1],ones(1,a_num_g))*age_num*a_num_g^2+...
+        trans_matrix    = zeros(a_num_g*age_num,a_num_g*age_num);
+        trans_matrix(:,1:a_num_g) = policy_choice.*repmat(a_prob,age_num*a_num_g,1);
+        prob_of_naot    = sum((1-policy_choice).*repmat(a_prob,age_num*a_num_g,1),2);
+        state_if_naot   =  kron([1:age_num-1],ones(1,a_num_g))*age_num*a_num_g^2+...
             [1:(age_num-1)*a_num_g]+kron(ones(1,age_num-1),[0:a_num_g-1])*age_num*a_num_g;
-        trans_matrix(state_if_naot) = 1*prob_of_naot(1:(age_num-1)*a_num_g)...
-            .*(1-exit_vec(1:(age_num-1)*a_num_g));
-            
-            
-    
-
+        trans_matrix(state_if_naot) = 1*prob_of_naot(1:(age_num-1)*a_num_g);
         
         %%% also those who are at the last period would die if they don't adopt to
         %%% any technology and a new firm would enter with a random technology
         %%% meaning for those states with the highest age the transition would be
         %%% randomly to age 0 and tech in [0, a_max]
         
-        trans_matrix((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = ...
-                repmat(a_prob,a_num_g,1).*(1-exit_vec((age_num-1)*a_num_g+1:(age_num)*a_num_g));
+        trans_matrix((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = repmat(a_prob,a_num_g,1);
+        trans_matrix = trans_matrix.*repmat(1-exit_vec,1,age_num*a_num_g);
+        trans_matrix = sparse(trans_matrix);
         
         dist        = m_of_firms*ones(1,age_num*a_num_g)/(age_num*a_num_g);
         dist_ent    = zeros(1,age_num*a_num_g);
