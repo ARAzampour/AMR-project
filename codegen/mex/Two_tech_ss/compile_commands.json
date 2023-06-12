@@ -1,0 +1,200 @@
+[
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  Two_tech_ss_data.cpp /Fobuild\\win64\\Two_tech_ss_data.obj",
+    "file": "Two_tech_ss_data.cpp",
+    "output": "build/win64/Two_tech_ss_data.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  rt_nonfinite.cpp /Fobuild\\win64\\rt_nonfinite.obj",
+    "file": "rt_nonfinite.cpp",
+    "output": "build/win64/rt_nonfinite.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  Two_tech_ss_initialize.cpp /Fobuild\\win64\\Two_tech_ss_initialize.obj",
+    "file": "Two_tech_ss_initialize.cpp",
+    "output": "build/win64/Two_tech_ss_initialize.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  Two_tech_ss_terminate.cpp /Fobuild\\win64\\Two_tech_ss_terminate.obj",
+    "file": "Two_tech_ss_terminate.cpp",
+    "output": "build/win64/Two_tech_ss_terminate.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  Two_tech_ss.cpp /Fobuild\\win64\\Two_tech_ss.obj",
+    "file": "Two_tech_ss.cpp",
+    "output": "build/win64/Two_tech_ss.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  linspace.cpp /Fobuild\\win64\\linspace.obj",
+    "file": "linspace.cpp",
+    "output": "build/win64/linspace.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  expinv.cpp /Fobuild\\win64\\expinv.obj",
+    "file": "expinv.cpp",
+    "output": "build/win64/expinv.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  expcdf.cpp /Fobuild\\win64\\expcdf.obj",
+    "file": "expcdf.cpp",
+    "output": "build/win64/expcdf.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  sparse.cpp /Fobuild\\win64\\sparse.obj",
+    "file": "sparse.cpp",
+    "output": "build/win64/sparse.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  assertValidSizeArg.cpp /Fobuild\\win64\\assertValidSizeArg.obj",
+    "file": "assertValidSizeArg.cpp",
+    "output": "build/win64/assertValidSizeArg.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  mpower.cpp /Fobuild\\win64\\mpower.obj",
+    "file": "mpower.cpp",
+    "output": "build/win64/mpower.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  power.cpp /Fobuild\\win64\\power.obj",
+    "file": "power.cpp",
+    "output": "build/win64/power.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  kron.cpp /Fobuild\\win64\\kron.obj",
+    "file": "kron.cpp",
+    "output": "build/win64/kron.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  ixfun.cpp /Fobuild\\win64\\ixfun.obj",
+    "file": "ixfun.cpp",
+    "output": "build/win64/ixfun.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  eml_mtimes_helper.cpp /Fobuild\\win64\\eml_mtimes_helper.obj",
+    "file": "eml_mtimes_helper.cpp",
+    "output": "build/win64/eml_mtimes_helper.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  mtimes.cpp /Fobuild\\win64\\mtimes.obj",
+    "file": "mtimes.cpp",
+    "output": "build/win64/mtimes.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  abs.cpp /Fobuild\\win64\\abs.obj",
+    "file": "abs.cpp",
+    "output": "build/win64/abs.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  applyToMultipleDims.cpp /Fobuild\\win64\\applyToMultipleDims.obj",
+    "file": "applyToMultipleDims.cpp",
+    "output": "build/win64/applyToMultipleDims.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  repmat.cpp /Fobuild\\win64\\repmat.obj",
+    "file": "repmat.cpp",
+    "output": "build/win64/repmat.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  sum.cpp /Fobuild\\win64\\sum.obj",
+    "file": "sum.cpp",
+    "output": "build/win64/sum.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  indexShapeCheck.cpp /Fobuild\\win64\\indexShapeCheck.obj",
+    "file": "indexShapeCheck.cpp",
+    "output": "build/win64/indexShapeCheck.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  validateNumericIndex.cpp /Fobuild\\win64\\validateNumericIndex.obj",
+    "file": "validateNumericIndex.cpp",
+    "output": "build/win64/validateNumericIndex.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  bigProduct.cpp /Fobuild\\win64\\bigProduct.obj",
+    "file": "bigProduct.cpp",
+    "output": "build/win64/bigProduct.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  locBsearch.cpp /Fobuild\\win64\\locBsearch.obj",
+    "file": "locBsearch.cpp",
+    "output": "build/win64/locBsearch.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  colon.cpp /Fobuild\\win64\\colon.obj",
+    "file": "colon.cpp",
+    "output": "build/win64/colon.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  interface\\_coder_Two_tech_ss_api.cpp /Fobuild\\win64\\_coder_Two_tech_ss_api.obj",
+    "file": "interface/_coder_Two_tech_ss_api.cpp",
+    "output": "build/win64/_coder_Two_tech_ss_api.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  interface\\_coder_Two_tech_ss_mex.cpp /Fobuild\\win64\\_coder_Two_tech_ss_mex.obj",
+    "file": "interface/_coder_Two_tech_ss_mex.cpp",
+    "output": "build/win64/_coder_Two_tech_ss_mex.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  eml_int_forloop_overflow_check.cpp /Fobuild\\win64\\eml_int_forloop_overflow_check.obj",
+    "file": "eml_int_forloop_overflow_check.cpp",
+    "output": "build/win64/eml_int_forloop_overflow_check.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  sumMatrixIncludeNaN.cpp /Fobuild\\win64\\sumMatrixIncludeNaN.obj",
+    "file": "sumMatrixIncludeNaN.cpp",
+    "output": "build/win64/sumMatrixIncludeNaN.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  sparse1.cpp /Fobuild\\win64\\sparse1.obj",
+    "file": "sparse1.cpp",
+    "output": "build/win64/sparse1.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  Two_tech_ss_mexutil.cpp /Fobuild\\win64\\Two_tech_ss_mexutil.obj",
+    "file": "Two_tech_ss_mexutil.cpp",
+    "output": "build/win64/Two_tech_ss_mexutil.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  interface\\_coder_Two_tech_ss_info.cpp /Fobuild\\win64\\_coder_Two_tech_ss_info.obj",
+    "file": "interface/_coder_Two_tech_ss_info.cpp",
+    "output": "build/win64/_coder_Two_tech_ss_info.obj"
+  },
+  {
+    "directory": "D:\\AMR_github\\codegen\\mex\\Two_tech_ss",
+    "command": "cl /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I \".\" /I \"D:\\AMR_github\" /I \".\\interface\" /I \"D:\\Program Files\\MATLAB\\R2021b\\extern\\include\" /I \".\" -DMODEL=Two_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251  \"D:\\Program Files\\MATLAB\\R2021b\\extern\\version\\cpp_mexapi_version.cpp\" /Fobuild\\win64\\cpp_mexapi_version.obj",
+    "file": "D:/Program Files/MATLAB/R2021b/extern/version/cpp_mexapi_version.cpp",
+    "output": "build/win64/cpp_mexapi_version.obj"
+  }
+]

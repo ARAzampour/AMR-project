@@ -30,7 +30,12 @@ policy_choice   = zeros(age_num*a_num_g,a_num_g);
 %%% equilibrium price satisfying this condition; first I start with p_E = 1
 
 
-p_E = 1;
+p_E         = 1;
+p_E_prev    = 1;
+dem_err_pre = 0;
+
+
+
 
 pi_contemp      = ((1+a_grid).*(alpha*p_E/p_e)^alpha.*(1/(1+a_grow)).^age_g)...
     .^(1/(1-alpha))*(1-alpha);
@@ -58,7 +63,9 @@ v = pi_contemp;
 %%%% also to have the entry and exit equal to each other the measure of the
 %%%% firms should be the correct number
 
-m_of_firms  = 1;
+m_of_firms      = 1;
+value_err_pre   = 0;
+m_of_firm_pre   = 1;
 
 
 for h=1:1:max_iter_measure
@@ -136,14 +143,18 @@ for h=1:1:max_iter_measure
         %%% Here I derive the transition matrix; first those who don't adopt go to
         %%% the same technology state with a higher age, those who adopt go the
         %%% technology they adopt with the age zero meaning we have:
+
+%         p_of_naot_besideold           = zeros((age_num-1)*a_num_g,1);
+        temp                          = exit_vec(1:(age_num-1)*a_num_g,1);
         
         trans_matrix                  = sparse(a_num_g*age_num,a_num_g*age_num);
         trans_matrix(:,1:a_num_g)     = policy_choice.*repmat(a_prob,age_num*a_num_g,1).*(1-exit_vec);
         prob_of_naot                  = sum((1-policy_choice).*repmat(a_prob,age_num*a_num_g,1),2);
         state_if_naot                 =  kron([1:age_num-1],ones(1,a_num_g))*age_num*a_num_g^2+...
             [1:(age_num-1)*a_num_g]+kron(ones(1,age_num-1),[0:a_num_g-1])*age_num*a_num_g;
-        trans_matrix(state_if_naot) = 1*prob_of_naot(1:(age_num-1)*a_num_g)...
-            .*(1-exit_vec(1:(age_num-1)*a_num_g));
+        p_of_naot_besideold           = ones((age_num-1)*a_num_g,1).*prob_of_naot(1:(age_num-1)*a_num_g);
+        stay_alive_besideold          = (ones((age_num-1)*a_num_g,1)-temp);
+        trans_matrix(state_if_naot)   = p_of_naot_besideold.*stay_alive_besideold;
             
             
     
@@ -155,7 +166,7 @@ for h=1:1:max_iter_measure
         %%% randomly to age 0 and tech in [0, a_max]
         
         trans_matrix((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = ...
-                repmat(a_prob,a_num_g,1).*(1-exit_vec((age_num-1)*a_num_g+1:(age_num)*a_num_g));
+                repmat(a_prob,a_num_g,1).*(1-exit_vec((age_num-1)*a_num_g+1:(age_num)*a_num_g,1));
         
         dist        = m_of_firms*ones(1,age_num*a_num_g)/(age_num*a_num_g);
         dist_ent    = zeros(1,age_num*a_num_g);
@@ -187,6 +198,13 @@ for h=1:1:max_iter_measure
         end
         
         p_E     = p_E + 0.2*demand_err/(ceil(k/10));
+
+        if sign(dem_err_pre)~=sign(demand_err)
+            p_E = (p_E_prev + p_E)/2;
+        end
+
+        p_E_prev    = p_E;
+        dem_err_pre = demand_err;
     end
     value_err   = a_prob*(v_new_resh(1,:))'-c_of_e;
     if abs(value_err)<dem_tol
@@ -199,6 +217,13 @@ for h=1:1:max_iter_measure
     else
         m_of_firms = m_of_firms*(1+0.05*value_err);
     end
+
+    if sign(value_err_pre) ~= sign(value_err)
+        m_of_firms_old = (m_of_firms_old+m_of_firm_pre)/2;
+    end
+
+    value_err_pre   = value_err;
+    m_of_firm_pre   = m_of_firms;
 end
 trans_prob  = policy_choice*a_prob';
 end

@@ -1,0 +1,74 @@
+# CompilerName=msvcpp160
+# Mode=optim
+ninja_required_version = 1.3
+
+# Basic folders
+root = .
+builddir = $root\build\win64
+matlabdir = D:\Program Files\MATLAB\R2021b
+startdir = D:\AMR_github
+
+# Toolchain information
+cc = cl
+cxx = cl
+linker = link
+linkerxx = link
+
+cflags =  /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I "$root" /I "$startdir" /I "$root\interface" /I "$matlabdir\extern\include" /I "." -DMODEL=One_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251 
+
+cxxflags =   /c /Zc:__cplusplus /Zp8 /GR /W3 /EHs /nologo /MD /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0   /DMATLAB_MEX_FILE  /DMATLAB_MEX_FILE /O2 /Oy- /DNDEBUG /fp:strict /source-charset:utf-8 /I "$root" /I "$startdir" /I "$root\interface" /I "$matlabdir\extern\include" /I "." -DMODEL=One_tech_ss_mex -DMW_NEEDS_VERSION_H /wd4251 
+
+ldflags =  /nologo /manifest   /DLL /LIBPATH:"$matlabdir\extern\lib\win64\microsoft" libmx.lib libmex.lib libmat.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib libMatlabDataArray.lib libMatlabEngine.lib  /out:"One_tech_ss_mex.mexw64" /LIBPATH:"$matlabdir\extern\lib\win64\microsoft" libmwblas.lib libemlrt.lib libcovrt.lib libut.lib libmwmathutil.lib 
+
+# Build Rules
+rule cc
+    command = $cc $cflags $in /Fo$out
+
+rule cxx
+    command = $cxx $cxxflags $in /Fo$out
+
+rule link
+    command = $linker @$out.rsp $ldflags
+    rspfile = $out.rsp
+    rspfile_content = $in
+
+rule linkxx
+    command = $linkerxx $in $ldflags
+
+# Build
+build $builddir\One_tech_ss_data.obj : cxx $root\One_tech_ss_data.cpp
+build $builddir\rt_nonfinite.obj : cxx $root\rt_nonfinite.cpp
+build $builddir\One_tech_ss_initialize.obj : cxx $root\One_tech_ss_initialize.cpp
+build $builddir\One_tech_ss_terminate.obj : cxx $root\One_tech_ss_terminate.cpp
+build $builddir\One_tech_ss.obj : cxx $root\One_tech_ss.cpp
+build $builddir\linspace.obj : cxx $root\linspace.cpp
+build $builddir\expinv.obj : cxx $root\expinv.cpp
+build $builddir\expcdf.obj : cxx $root\expcdf.cpp
+build $builddir\sparse.obj : cxx $root\sparse.cpp
+build $builddir\assertValidSizeArg.obj : cxx $root\assertValidSizeArg.cpp
+build $builddir\mpower.obj : cxx $root\mpower.cpp
+build $builddir\power.obj : cxx $root\power.cpp
+build $builddir\kron.obj : cxx $root\kron.cpp
+build $builddir\ixfun.obj : cxx $root\ixfun.cpp
+build $builddir\repmat.obj : cxx $root\repmat.cpp
+build $builddir\eml_mtimes_helper.obj : cxx $root\eml_mtimes_helper.cpp
+build $builddir\mtimes.obj : cxx $root\mtimes.cpp
+build $builddir\abs.obj : cxx $root\abs.cpp
+build $builddir\applyToMultipleDims.obj : cxx $root\applyToMultipleDims.cpp
+build $builddir\sum.obj : cxx $root\sum.cpp
+build $builddir\indexShapeCheck.obj : cxx $root\indexShapeCheck.cpp
+build $builddir\validateNumericIndex.obj : cxx $root\validateNumericIndex.cpp
+build $builddir\bigProduct.obj : cxx $root\bigProduct.cpp
+build $builddir\locBsearch.obj : cxx $root\locBsearch.cpp
+build $builddir\colon.obj : cxx $root\colon.cpp
+build $builddir\_coder_One_tech_ss_api.obj : cxx $root\interface\_coder_One_tech_ss_api.cpp
+build $builddir\_coder_One_tech_ss_mex.obj : cxx $root\interface\_coder_One_tech_ss_mex.cpp
+build $builddir\eml_int_forloop_overflow_check.obj : cxx $root\eml_int_forloop_overflow_check.cpp
+build $builddir\sumMatrixIncludeNaN.obj : cxx $root\sumMatrixIncludeNaN.cpp
+build $builddir\sparse1.obj : cxx $root\sparse1.cpp
+build $builddir\One_tech_ss_mexutil.obj : cxx $root\One_tech_ss_mexutil.cpp
+build $builddir\_coder_One_tech_ss_info.obj : cxx $root\interface\_coder_One_tech_ss_info.cpp
+build $builddir\cpp_mexapi_version.obj : cxx $matlabdir\extern\version\cpp_mexapi_version.cpp
+
+# Link
+build $root\One_tech_ss_mex.mexw64 : linkxx $builddir\One_tech_ss_data.obj $builddir\rt_nonfinite.obj $builddir\One_tech_ss_initialize.obj $builddir\One_tech_ss_terminate.obj $builddir\One_tech_ss.obj $builddir\linspace.obj $builddir\expinv.obj $builddir\expcdf.obj $builddir\sparse.obj $builddir\assertValidSizeArg.obj $builddir\mpower.obj $builddir\power.obj $builddir\kron.obj $builddir\ixfun.obj $builddir\repmat.obj $builddir\eml_mtimes_helper.obj $builddir\mtimes.obj $builddir\abs.obj $builddir\applyToMultipleDims.obj $builddir\sum.obj $builddir\indexShapeCheck.obj $builddir\validateNumericIndex.obj $builddir\bigProduct.obj $builddir\locBsearch.obj $builddir\colon.obj $builddir\_coder_One_tech_ss_api.obj $builddir\_coder_One_tech_ss_mex.obj $builddir\eml_int_forloop_overflow_check.obj $builddir\sumMatrixIncludeNaN.obj $builddir\sparse1.obj $builddir\One_tech_ss_mexutil.obj $builddir\_coder_One_tech_ss_info.obj $builddir\cpp_mexapi_version.obj 
