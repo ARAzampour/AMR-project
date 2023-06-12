@@ -48,10 +48,13 @@ dem_tol = 0.01;
 
 trans_t  = 200;
 
-C_ent_newtech   = 0.30;
-diff_gr_t       = 20;
-diff_gr         = 0.01;
+%%% there can be also an efficiency wedge that has been there without any
+%%% growth; this would be the case for solar and gas
+diff_gr_t       = 10;
+diff_gr         = 0.02;
 a_grow          = 0.01;
+% diff_gr_cons    = (1+0.4)^diff_gr_t;    %%% to be used for solar case
+diff_gr_cons    = 1;                    %%% to be used for gas and coal
 
 
 %%% let's define a supply curve for the effort used in different techs
@@ -63,12 +66,12 @@ e_o_eps = 0.1;
 %%% let's define a high fixed cost a starting point for the new_tech guys
 %%% and it's transition in a declining exponential phase; in this case
 %%% e0_n_vec would be a constant.
-c_a_new_1st     = 40;
-c_e_new_1st     = 20;
-
-c_a_new_vec     = c_a_new + (c_a_new_1st-c_a_new)*exp(linspace(0,-10,trans_t));
-c_e_new_vec     = c_e_new + (c_e_new_1st-c_e_new)*exp(linspace(0,-10,trans_t));
-e0_n_vec        = e0_n*ones(1,trans_t);
+% c_a_new_1st     = 40;
+% c_e_new_1st     = 20;
+% 
+% c_a_new_vec     = c_a_new + (c_a_new_1st-c_a_new)*exp(linspace(0,-20,trans_t));
+% c_e_new_vec     = c_e_new + (c_e_new_1st-c_e_new)*exp(linspace(0,-20,trans_t));
+% e0_n_vec        = e0_n*ones(1,trans_t);
 
 %%% if the tech transition combined with supply expansion (for gas
 %%% transition) is in mind then the fix cost vectors are a constant and the
@@ -78,27 +81,29 @@ c_a_new_vec     = c_a_new*ones(1,trans_t);
 c_e_new_vec     = c_e_new*ones(1,trans_t);
 
 e0_n_1st        = 0.8;
-e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-10,trans_t));
+e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-20,trans_t));
 
 %% old tech ss
 
 
-[trans_prob_old,v_new_old,v_new_resh_old,dist_old,...
-    trans_matrix_old,age_g,a_grid,~,pi_contemp,p_E_old,m_of_firms_old] = ...
-One_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
-v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol);
+% [trans_prob_old,v_new_old,v_new_resh_old,dist_old,...
+%     trans_matrix_old,age_g,a_grid,~,pi_contemp,p_E_old,m_of_firms_old] = ...
+% One_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
+% v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol);
 
 %%%%% or the old tech ss for the transition of solar introduction can be a
 %%%%% two tech ss where c_a_new and c_e_new are high numbers leading to
 %%%%% a near zero measure of the new_tech firms. In this setting the reduction in
 %%%%% the fixed costs of new-tech would lead to the increase in their share
+%%%%% Or also use the two-tech system for a case when coal and gas
+%%%%% transition is happening 
 
-% [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
-%     trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
-%     age_g,a_grid,a_prob,pi_contemp_new_1st,p_E,m_of_firms_new_1st,m_of_firms_old_1st] = ...
-%     Two_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
-%     v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
-%     e0_n,e0_o,e_n_eps,e_o_eps);
+[trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
+    trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
+    age_g,a_grid,a_prob,pi_contemp_new_1st,p_E,m_of_firms_new_1st,m_of_firms_old_1st] = ...
+    Two_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
+    v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
+    e0_n_1st,e0_o,e_n_eps,e_o_eps);
 
 %%
 
@@ -229,7 +234,7 @@ init_dist       = dist_old;
     MIT_transition(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
-    e0_n_vec,e0_o,e_n_eps,e_o_eps);
+    e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons);
 
 
 
