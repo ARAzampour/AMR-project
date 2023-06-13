@@ -10,8 +10,8 @@ a_grid  =  expinv(linspace(0,0.999,a_num_g),a_lamb);
 a_cdf   = expcdf(a_grid,a_lamb);
 a_prob  = [a_cdf(2:a_num_g) 1]-a_cdf;
 
-max_iter_price      = floor(max_iter/100);
-max_iter_measure    = max_iter_price;
+max_iter_price      = floor(max_iter/10);
+max_iter_measure    = max_iter_price*10;
  
 age_g   = (linspace(0,age_num-1,age_num))';
 
@@ -25,8 +25,11 @@ trans_prob_n_all    = zeros(age_num*a_num_g,trans_t);
 trans_prob_o_all    = zeros(age_num*a_num_g,trans_t);
 
 p_E_vec         = linspace(init_p_E,final_p_E,trans_t);
+p_E_prev        = linspace(init_p_E,final_p_E,trans_t);
 p_e_n_vec       = ones(1,trans_t);
 p_e_o_vec       = ones(1,trans_t);
+dem_err_pre     = 1;
+demand_err      = 1;
 
 growth_t_line   = 20*ones(1,trans_t);
 growth_t_line(1:diff_gr_t) = linspace(1,diff_gr_t,diff_gr_t);
@@ -53,6 +56,9 @@ m_of_entry_n        = m_of_entry_n/(sum(m_of_entry_n))*...
 m_of_entry_o        = exp(linspace(0,-10,trans_t));
 m_of_entry_o        = m_of_entry_o/(sum(m_of_entry_o))*...
     (sum(final_dist_o,'all')-sum(init_dist_o,'all'));
+
+m_of_entry_n(m_of_entry_n<0)    = 0;
+m_of_entry_o(m_of_entry_o<0)    = 0;
 
 value_err_n_pre     = zeros(trans_t,1);
 value_err_o_pre     = zeros(trans_t,1);
@@ -197,7 +203,7 @@ for h=1:1:max_iter_measure
 
 %         m_of_firms_old  = sum(init_dist,'all');
         m_of_firms_new  = 0;
-        dist_n          = m_of_firms_new*ones(1,age_num*a_num_g)/(age_num*a_num_g);
+        dist_n          = init_dist_n;
         dist_o          = init_dist_o;
 
         cap_old         = ones(1,trans_t);
@@ -323,7 +329,7 @@ for h=1:1:max_iter_measure
         
     end
     temp          = sum(a_prob.*v_new_resh_n_all(1,:,:),2);
-    value_err_n   = temp(:)-c_e_new_vec;
+    value_err_n   = reshape(temp(:),trans_t,1)-c_e_new_vec';
     temp          = sum(a_prob.*v_new_resh_o_all(1,:,:),2);
     value_err_o   = temp(:)-c_of_e;
     if (max(abs(value_err_n))<dem_tol||max(m_of_entry_n)<v_tol) && ...

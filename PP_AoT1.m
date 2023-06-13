@@ -77,6 +77,9 @@ e_o_eps = 0.1;
 %%% transition) is in mind then the fix cost vectors are a constant and the
 %%% supply side would increase from on level to another one
 
+c_a_new_1st     = c_a_new;
+c_e_new_1st     = c_e_new;
+
 c_a_new_vec     = c_a_new*ones(1,trans_t);
 c_e_new_vec     = c_e_new*ones(1,trans_t);
 
@@ -98,9 +101,11 @@ e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-40,trans_t));
 %%%%% Or also use the two-tech system for a case when coal and gas
 %%%%% transition is happening 
 
+tech_dist   = 1;
+
 [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
     trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
-    age_g,a_grid,a_prob,pi_contemp_new_1st,p_E,m_of_firms_new_1st,m_of_firms_old_1st] = ...
+    age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st] = ...
     Two_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
     e0_n_1st,e0_o,e_n_eps,e_o_eps);
@@ -225,7 +230,9 @@ final_p_E       = p_E;
 init_p_E        = p_E_old;
 final_val2      = v_new_resh_n;
 final_val1      = v_new_resh_o;
-init_dist       = dist_old;
+init_dist_o     = dist_old;
+init_dist_n     = dist_n_1st; %%% be aware of the necessary changes when 
+                            %%% a one-tech ss
 
 
 [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,...

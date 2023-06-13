@@ -326,13 +326,8 @@ for h=1:1:max_iter_measure
     value_err_n   = a_prob*(v_new_resh_n(1,:))'-c_e_new; %%% let's try 
                                 %%%% different entry cost for techs
     value_err_o   = a_prob*(v_new_resh_o(1,:))'-c_of_e;
-    if (abs(value_err_n)<dem_tol||m_of_firms_new<v_tol) && ...
-            (abs(value_err_o)<dem_tol||m_of_firms_old<v_tol)
-        fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
-            "is %2.4f and %2.4f in %2.1f periods \n"...
-            ,value_err_n,value_err_o,h);
-        break;
-    end
+
+
     if abs(value_err_n)>0.5
         m_of_firms_new = m_of_firms_new*(1+0.05*value_err_n/ceil(h/10));
     else
@@ -351,6 +346,18 @@ for h=1:1:max_iter_measure
     if sign(value_err_o_pre) ~= sign(value_err_o)
         m_of_firms_old = (m_of_firms_old+m_of_old_pre)/2;
     end
+
+    if ((abs(value_err_n)<dem_tol||m_of_firms_new<v_tol) && ...
+            (abs(value_err_o)<dem_tol||m_of_firms_old<v_tol))||...
+            (abs(1-m_of_new_pre/m_of_firms_new)<10*v_tol && ...
+            abs(1-m_of_old_pre/m_of_firms_old)<10*v_tol...
+            && h>100)
+        fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
+            "is %2.4f and %2.4f in %2.1f periods \n"...
+            ,value_err_n,value_err_o,h);
+        break;
+    end
+    
 
     value_err_n_pre = value_err_n;
     value_err_o_pre = value_err_o;
