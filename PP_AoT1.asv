@@ -58,9 +58,9 @@ diff_gr_cons    = 1;                    %%% to be used for gas and coal
 
 
 %%% let's define a supply curve for the effort used in different techs
-e0_n    = 1;
+e0_n    = 1.2;
 e0_o    = 1;
-e_n_eps = 0.1;
+e_n_eps = 0.15;
 e_o_eps = 0.1;
 
 %%% let's define a high fixed cost a starting point for the new_tech guys
@@ -105,7 +105,7 @@ tech_dist   = 1;
 
 [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
     trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
-    age_g,a_grid,a_prob,pi_contemp_new_1st,p_E,m_of_firms_new_1st,m_of_firms_old_1st] = ...
+    age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st] = ...
     Two_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
     e0_n_1st,e0_o,e_n_eps,e_o_eps);
@@ -231,7 +231,8 @@ init_p_E        = p_E_old;
 final_val2      = v_new_resh_n;
 final_val1      = v_new_resh_o;
 init_dist_o     = dist_old;
-init_dist_n     = dist_old;
+init_dist_n     = dist_n_1st; %%% be aware of the necessary changes when 
+                            %%% a one-tech ss
 
 
 [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,...
@@ -240,7 +241,7 @@ init_dist_n     = dist_old;
     MIT_transition(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
-    e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons);
+    e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_1st,p_e_o,p_e_o_1st);
 
 
 

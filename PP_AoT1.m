@@ -58,9 +58,9 @@ diff_gr_cons    = 1;                    %%% to be used for gas and coal
 
 
 %%% let's define a supply curve for the effort used in different techs
-e0_n    = 1;
+e0_n    = 1.2;
 e0_o    = 1;
-e_n_eps = 0.1;
+e_n_eps = 0.15;
 e_o_eps = 0.1;
 
 %%% let's define a high fixed cost a starting point for the new_tech guys
@@ -241,7 +241,7 @@ init_dist_n     = dist_n_1st; %%% be aware of the necessary changes when
     MIT_transition(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
-    e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons);
+    e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_1st,p_e_o,p_e_o_1st);
 
 
 

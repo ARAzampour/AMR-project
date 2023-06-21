@@ -4,7 +4,7 @@ function [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,.
     MIT_transition(a_grow,alpha,~,beta,c_of_a,c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,~,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
-    e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons)
+    e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,fin_p_e_n,init_p_e_n,fin_p_e_o,init_p_e_o)
 
 a_grid  =  expinv(linspace(0,0.999,a_num_g),a_lamb);
 a_cdf   = expcdf(a_grid,a_lamb);
@@ -26,17 +26,17 @@ trans_prob_o_all    = zeros(age_num*a_num_g,trans_t);
 
 p_E_vec         = linspace(init_p_E,final_p_E,trans_t);
 p_E_prev        = linspace(init_p_E,final_p_E,trans_t);
-p_e_n_vec       = ones(1,trans_t);
-p_e_o_vec       = ones(1,trans_t);
+p_e_n_vec       = linspace(init_p_e_n,fin_p_e_n,trans_t);
+p_e_o_vec       = linspace(init_p_e_o,fin_p_e_o,trans_t);
 dem_err_pre     = 1;
 demand_err      = 1;
 
-growth_t_line   = 20*ones(1,trans_t);
+growth_t_line   = diff_gr_t*ones(1,trans_t);
 growth_t_line(1:diff_gr_t) = linspace(1,diff_gr_t,diff_gr_t);
 tech_dist_vec   = (1+diff_gr).^growth_t_line*diff_gr_cons;
 
-v_of_new    = final_val2;
-v_of_old    = final_val1;
+% v_of_new    = final_val2;
+% v_of_old    = final_val1;
 
 v_new_resh_n_all    = zeros(age_num,a_num_g,trans_t);
 v_new_resh_o_all    = zeros(age_num,a_num_g,trans_t);
@@ -67,11 +67,16 @@ entry_new_pre       = m_of_entry_n/(sum(m_of_entry_n))*...
 entry_old_pre       = m_of_entry_o/(sum(m_of_entry_o))*...
     (sum(final_dist_o,'all')-sum(init_dist_o,'all'));
 
+entry_old_pre(isnan(entry_old_pre)) = 0;
+
 
 
 for h=1:1:max_iter_measure
     for k=1:1:max_iter_price
-        
+
+        v_of_new    = final_val2;
+        v_of_old    = final_val1;
+
         for i1=trans_t:-1:1
 
             
@@ -317,13 +322,16 @@ for h=1:1:max_iter_measure
             break;
         end
         
-        p_E_vec     = p_E_vec + 0.04*demand_err/(ceil(k/10));
+        p_E_vec     = p_E_vec + 0.01*demand_err/((ceil(k/10)));
 
         p_E_vec     = p_E_vec.*(sign(demand_err)==sign(dem_err_pre)) +...
             (p_E_vec+p_E_prev)/2.*(sign(demand_err)~=sign(dem_err_pre));
 
+%         p_E_vec(end) = final_p_E;
+
         p_E_prev    = p_E_vec;
         dem_err_pre = demand_err;
+        
 
         
         
@@ -340,17 +348,17 @@ for h=1:1:max_iter_measure
         break;
     end
 
-    m_of_entry_n    = m_of_entry_n.*(1+0.04*value_err_n').*(value_err_n>0)...
-        + m_of_entry_n.*(1+0.01*value_err_n').*(value_err_n<0);
+    m_of_entry_n    = m_of_entry_n.*(1+0.04*value_err_n').*(value_err_n'>0)...
+        + m_of_entry_n.*(1+0.01*value_err_n').*(value_err_n'<0);
 
-    m_of_entry_o    = m_of_entry_o.*(1+0.04*value_err_o').*(value_err_o>0)...
-        + m_of_entry_o.*(1+0.01*value_err_o').*(value_err_o<0);
+    m_of_entry_o    = m_of_entry_o.*(1+0.04*value_err_o').*(value_err_o'>0)...
+        + m_of_entry_o.*(1+0.01*value_err_o').*(value_err_o'<0);
 
     
-    m_of_entry_n    = m_of_entry_n.*(sign(value_err_n)==value_err_n_pre)+...
-        (m_of_entry_n+entry_new_pre)/2.*(sign(value_err_n)~=value_err_n_pre);
-    m_of_entry_o    = m_of_entry_o.*(sign(value_err_o)==value_err_o_pre)+...
-        (m_of_entry_o+entry_old_pre)/2.*(sign(value_err_o)~=value_err_o_pre);
+    m_of_entry_n    = m_of_entry_n.*(sign(value_err_n')==value_err_n_pre')+...
+        (m_of_entry_n+entry_new_pre)/2.*(sign(value_err_n')~=value_err_n_pre');
+    m_of_entry_o    = m_of_entry_o.*(sign(value_err_o')==value_err_o_pre')+...
+        (m_of_entry_o+entry_old_pre)/2.*(sign(value_err_o')~=value_err_o_pre');
 
     value_err_n_pre = value_err_n;
     value_err_o_pre = value_err_o;
