@@ -120,9 +120,9 @@ xlabel('productivity'), ylabel('age')
 title('value of firm in each state')
 set(gca,'Fontsize',32)
 set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-
+%%
 dist_resh = (reshape(dist_old',a_num_g,age_num))';
-figure(2)
+figure(22)
 surf(1+a_grid,age_g,log(dist_resh));
 xlabel('productivity'), ylabel('age')
 title('log of mass of firms in each state ')
