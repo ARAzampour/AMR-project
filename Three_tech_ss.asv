@@ -1,10 +1,11 @@
 function [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,...
     trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,...
     trans_prob_m,v_new_m,v_new_resh_m,dist_m,trans_matrix_m,p_e_m,...
-    age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old] = ...
+    age_g,a_grid,a_prob,p_E,m_of_firms_new,m_of_firms_old,m_of_firms_mix,...
+    pi_contemp_new,pi_contemp_old,pi_contemp_mix] = ...
     Three_tech_ss(a_grow,alpha,~,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new,dem_tol,tech_dist,...
-    e0_n,e0_o,e_n_eps,e_o_eps)
+    e0_n,e0_o,e_n_eps,e_o_eps,gamma,rho,c_a_mix,c_e_mix)
 
 a_grid  =  expinv(linspace(0,0.999,a_num_g),a_lamb);
 a_cdf   = expcdf(a_grid,a_lamb);
@@ -64,7 +65,7 @@ p_e_n   = 1;
 p_e_o   = 1;
 p_e_m   = 1;
 
-m_coice = 0.5;
+m_coice = ((1-gamma)*p_e_n/(p_e_o*gamma))^(1/(1-rho));  %%% the ratio of coal to gas use by the mixed ones
 
 % eff_n_vec   = zeros(age_num,a_num_g);
 % eff_o_vec   = zeros(age_num,a_num_g); if mex gives error I'll pre define
@@ -82,7 +83,8 @@ pi_contemp_old      = ((1+a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_gr
 %%% there can also be generators that can use both 
 
 pi_contemp_mix      = ((1+a_grid)/((tech_dist+1)/2).*(alpha*p_E/p_e_m)^alpha.*(1/(1+a_grow)).^age_g)...
-    .^(1/(1-alpha))*(1-alpha);
+    .^(1/(1-alpha))*(1-alpha);   %%% this function is temporary, it changes in
+                                %%% the main body of the code
 
 
 %%% here I'm adding fixed cost of operation to implement exit decision: it
@@ -159,18 +161,28 @@ for h=1:1:max_iter_measure
 
 
 
-        pi_contemp_mix      = ((1+a_grid)/((tech_dist+1)/2).*(alpha*p_E/p_e_m)^alpha.*(1/(1+a_grow)).^age_g)...
-            .^(1/(1-alpha))*(1-alpha);
+        eff_m_vec           = (((1+a_grid)/((tech_dist+1)/2).*alpha*p_E*(p_e_o*gamma)^((1-alpha)/(1-rho))/...
+            (p_e_o*p_e_n).*(1/(1+a_grow)).^age_g*...
+            ((p_e_o^rho*gamma)^(1/(1-rho))+(p_e_n^rho*(1-gamma))^(1/(1-rho)))^((alpha-rho)/rho)).^(1/(1-alpha)))';
+        %%% this is the amount of new effort used by the mix generators
+
+        cap_contemp_mix     = (((1+a_grid)/((tech_dist+1)/2)*p_E*(p_e_o*gamma)...
+            ^(-alpha/(1-rho)).*(1/(1+a_grow)).^age_g*...
+            ((p_e_o^rho*gamma)^(1/(1-rho))+(p_e_n^rho*(1-gamma))^(1/(1-rho)))^(alpha/rho)).*eff_m_vec')';
+
+
+        pi_contemp_mix      = cap_contemp_mix'*p_E - eff_m_vec'*(p_e_o*p_e_n)...
+            *(p_e_o*gamma)^(-1/(1-rho)) * ...
+            ((p_e_o^rho*gamma)^(1/(1-rho))+(p_e_n^rho*(1-gamma))^(1/(1-rho)));
+
         pi_contemp_mix      = pi_contemp_mix - fco;
 
         pi_contemp_neg_mix  = pi_contemp_mix<0;
         pi_contemp_mix(pi_contemp_neg_mix) = 0;
 
-        eff_m_vec           = (((1+a_grid)/((tech_dist+1)/2).*alpha*p_E/p_e_m.*(1/(1+a_grow)).^age_g)...
-            .^(1/(1-alpha)))';
         
-        cap_contemp_mix     = (((1+a_grid)/((tech_dist+1)/2).*(alpha*p_E/p_e_m)^alpha.*(1/(1+a_grow)).^age_g)...
-            .^(1/(1-alpha)))';
+        
+        
 
 
         for i1=1:1:max_iter
@@ -291,7 +303,7 @@ for h=1:1:max_iter_measure
             v_m_adopt_p   = v_m_adopt';
             v_m_adopt_vec = v_m_adopt_p(:);        
         
-            v_m_best      = max(v_m_adopt_vec-c_of_a*(1)...
+            v_m_best      = max(v_m_adopt_vec-c_a_mix*(1)...
                 ,v_p_m_expand);
         
             v_m_best_resh = (reshape(v_m_best,a_num_g,age_num*a_num_g))';
@@ -407,7 +419,7 @@ for h=1:1:max_iter_measure
         end
         
         total_cap   = dist_n * cap_contemp_new(:) + dist_o * cap_contemp_old(:)...
-            + dist_o * cap_contemp_old(:);
+            + dist_m * cap_contemp_mix(:);
         
         suply_price = (d_0/total_cap)^(1/e_p);
         
@@ -430,11 +442,12 @@ for h=1:1:max_iter_measure
         p_E_prev    = p_E;
         dem_err_pre = demand_err;
 
-        p_e_n       = ((dist_n * eff_n_vec(:)+m_coice*dist_m * eff_m_vec(:))/e0_n).^e_n_eps;
-        p_e_o       = ((dist_o * eff_o_vec(:)+(1-m_coice)*dist_m * eff_m_vec(:))/e0_o).^e_o_eps;
+        p_e_n       = ((dist_n * eff_n_vec(:)+dist_m * eff_m_vec(:))/e0_n).^e_n_eps;
+        p_e_o       = ((dist_o * eff_o_vec(:)+m_coice*dist_m * eff_m_vec(:))/e0_o).^e_o_eps;
 
-        p_e_m       = max(p_e_o,p_e_n);
-        m_coice     = p_e_m == p_e_n;
+        p_e_m       = ((m_coice*p_e_o+p_e_n)*dist_m * eff_m_vec(:))/...
+            (dist_m *(gamma*(eff_m_vec(:)).^rho+(1-gamma)*(m_coice*eff_m_vec(:)).^rho).^(1/rho));
+        m_coice     = ((1-gamma)*p_e_n/(p_e_o*gamma))^(1/(1-rho));
         
 
     end
@@ -442,6 +455,9 @@ for h=1:1:max_iter_measure
                                 %%%% different entry cost for techs
     value_err_o   = a_prob*(v_new_resh_o(1,:))'-c_of_e;
 
+    value_err_m   = a_prob*(v_new_resh_m(1,:))'-c_e_mix;
+
+    
 
     if abs(value_err_n)>0.5
         m_of_firms_new = m_of_firms_new*(1+0.05*value_err_n/ceil(h/10));
@@ -453,6 +469,11 @@ for h=1:1:max_iter_measure
     else
         m_of_firms_old = m_of_firms_old*(1+0.1*value_err_o/ceil(h/10));
     end
+    if abs(value_err_m)>0.5
+        m_of_firms_mix = m_of_firms_mix*(1+0.05*value_err_m/ceil(h/10));
+    else
+        m_of_firms_mix = m_of_firms_mix*(1+0.1*value_err_m/ceil(h/10));
+    end
 
 
     if sign(value_err_n_pre) ~= sign(value_err_n)
@@ -461,12 +482,16 @@ for h=1:1:max_iter_measure
     if sign(value_err_o_pre) ~= sign(value_err_o)
         m_of_firms_old = (m_of_firms_old+m_of_old_pre)/2;
     end
+    if sign(value_err_m_pre) ~= sign(value_err_m)
+        m_of_firms_mix = (m_of_firms_mix+m_of_mix_pre)/2;
+    end
 
     if ((abs(value_err_n)<dem_tol||m_of_firms_new<v_tol) && ...
-            (abs(value_err_o)<dem_tol||m_of_firms_old<v_tol))||...
+            (abs(value_err_o)<dem_tol||m_of_firms_old<v_tol) && ...
+            (abs(value_err_m)<dem_tol||m_of_firms_mix<v_tol))||...
             (abs(1-m_of_new_pre/m_of_firms_new)<10*v_tol && ...
             abs(1-m_of_old_pre/m_of_firms_old)<10*v_tol...
-            && h>100)
+            && abs(1-m_of_mix_pre/m_of_firms_mix)<10*v_tol && h>100)
         fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
             "is %2.4f and %2.4f in %2.1f periods \n"...
             ,value_err_n,value_err_o,h);
@@ -476,10 +501,13 @@ for h=1:1:max_iter_measure
 
     value_err_n_pre = value_err_n;
     value_err_o_pre = value_err_o;
+    value_err_m_pre = value_err_m;
     m_of_new_pre    = m_of_firms_new;
     m_of_old_pre    = m_of_firms_old;
+    m_of_mix_pre    = m_of_firms_mix;
 end
 
 trans_prob_n    = policy_choice_n*a_prob';
 trans_prob_o    = policy_choice_o*a_prob';
+trans_prob_m    = policy_choice_m*a_prob';
 end

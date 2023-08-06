@@ -117,18 +117,20 @@ for h=1:1:max_iter_measure
              
             policy_choice = 1-(v_best_resh==v_p_vec);
         
-            %%% those who get non-positive npv should exit
-            v_neg           = v<0; 
-            exiting_firm    = v_neg';
-            exit_vec        = exiting_firm(:);
-            policy_choice   = repmat(1-exit_vec,1,a_num_g).*policy_choice;
+            
         
             v_new       = sum(v_best_resh.*repmat(prob_matrix,age_num,1),2);
             v_new_resh  = (reshape(v_new,a_num_g,age_num))';
             v_new_resh  = pi_contemp + beta*v_new_resh;
 
+            %%% those who get non-positive npv should exit
+            v_neg           = v_new_resh<0; 
+            exiting_firm    = v_neg';
+            exit_vec        = exiting_firm(:);
+            policy_choice   = repmat(1-exit_vec,1,a_num_g).*policy_choice;
+
             v_new_resh(v_neg)           = 0;
-            v_new_resh(v_new_resh<0)    = 0;
+%             v_new_resh(v_new_resh<0)    = 0;
         
             error       = max(abs(v-v_new_resh),[],"all");
         
@@ -252,5 +254,5 @@ for h=1:1:max_iter_measure
     value_err_pre   = value_err;
     m_of_firm_pre   = m_of_firms;
 end
-trans_prob  = policy_choice*a_prob';
+trans_prob  = sum(policy_choice.*repmat(prob_matrix,age_num,1),2);
 end

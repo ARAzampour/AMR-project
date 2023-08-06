@@ -86,6 +86,11 @@ c_e_new_vec     = c_e_new*ones(1,trans_t);
 e0_n_1st        = 0.8;
 e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-40,trans_t));
 
+
+
+%%% auto correlation case parameters
+rho         = 0.75;
+age_reduc   = 20;
 %% old tech ss
 
 
@@ -106,9 +111,9 @@ tech_dist   = 1;
 [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
     trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
     age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st] = ...
-    Two_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
+    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
-    e0_n_1st,e0_o,e_n_eps,e_o_eps);
+    e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc);
 
 %%
 
@@ -120,9 +125,9 @@ xlabel('productivity'), ylabel('age')
 title('value of firm in each state')
 set(gca,'Fontsize',32)
 set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-
+%%
 dist_resh = (reshape(dist_old',a_num_g,age_num))';
-figure(2)
+figure(22)
 surf(1+a_grid,age_g,log(dist_resh));
 xlabel('productivity'), ylabel('age')
 title('log of mass of firms in each state ')
@@ -142,7 +147,7 @@ set(gca, 'FontSize', 24);
 set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 title("probability of tech adoption");
 address = 'D:\AMR_github\graphs\transition_prob.png';
-saveas(gcf,address)
+% saveas(gcf,address)
 % annotation('textarrow',[1,10],'String','y = x ')
 %% new tech ss (with two techs)
 tech_dist   = (1+diff_gr)^diff_gr_t;
@@ -150,9 +155,9 @@ tech_dist   = (1+diff_gr)^diff_gr_t;
 [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,...
     trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,...
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old] = ...
-    Two_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
+    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new,dem_tol,tech_dist,...
-    e0_n,e0_o,e_n_eps,e_o_eps);
+    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc);
 %%
 ScSz = get(0, 'ScreenSize');
 figure(1)
@@ -233,15 +238,17 @@ final_val1      = v_new_resh_o;
 init_dist_o     = dist_old;
 init_dist_n     = dist_n_1st; %%% be aware of the necessary changes when 
                             %%% a one-tech ss
-
+c_conver        = 5;
+conv_rate       = 0.0;
 
 [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,...
     trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_e_n_vec,...
     age_g,a_grid,a_prob,p_E_vec,cap_old,cap_new] =...
-    MIT_transition(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
+    MIT_transition_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
-    e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_1st,p_e_o,p_e_o_1st);
+    e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_1st,p_e_o,p_e_o_1st,...
+    rho,age_reduc,c_conver,conv_rate);
 
 
 
