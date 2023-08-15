@@ -1,11 +1,16 @@
 function [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,...
     trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,...
-    age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old] = ...
+    age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n,exit_o] = ...
     Two_tech_ss_AC(a_grow,alpha,~,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new,dem_tol,tech_dist,...
     e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc)
 
-a_grid  =  expinv(linspace(0,0.999,a_num_g),a_lamb);
+% a_grid  =  expinv(linspace(0,0.999,a_num_g),a_lamb);
+a_grid  = expinv(1-exp(linspace(log(1),log(0.001),a_num_g)),a_lamb); %%% here
+                %%%% I've change the spacing for grid productivity, the
+                %%%% reason is that by using the grid the gives equall prob
+                %%%% to each grid point we would focus to much on the
+                %%%% points that no action would be happening
 a_cdf   = expcdf(a_grid,a_lamb);
 a_prob  = [a_cdf(2:a_num_g) 1]-a_cdf;
 
@@ -15,7 +20,7 @@ max_iter_price      = floor(max_iter/100);
 max_iter_measure    = max_iter_price*100;
  
 age_g   = (linspace(0,age_num-1,age_num))';
-
+exit_sm = 2;
 
 
 policy_choice_n   = zeros(age_num*a_num_g,a_num_g);
@@ -156,15 +161,27 @@ for h=1:1:max_iter_measure
             v_n_adopt     = [kron(ones(age_reduc,a_num_g),v_of_new(1,:));...
                 kron(ones(1,a_num_g),v_of_new(1:end-age_reduc,:))];
             v_n_adopt_p   = v_n_adopt';
-            v_n_adopt_vec = v_n_adopt_p(:);        
+            v_n_adopt_vec = v_n_adopt_p(:);
+
+            temp_smoother = (1-exp(-(v_n_adopt_vec-c_of_a*(1)-v_p_n_expand)*exit_sm));
+            temp_smoother(isinf(temp_smoother)) = -1000;
         
-            v_n_best      = max(v_n_adopt_vec-c_a_new*(1)...
-                ,v_p_n_expand);     %%% let's try different adoption costs
+            v_n_best      = v_p_n_expand + (v_n_adopt_vec-c_of_a*(1)-v_p_n_expand)...
+                .*(v_n_adopt_vec-c_of_a*(1)>v_p_n_expand).* ...
+                temp_smoother;     %%% let's try different adoption costs
+
+            choice_vec_n  = (v_n_adopt_vec-c_of_a*(1)>v_p_n_expand).* ...
+                temp_smoother;
+
+            %%% here I've also smoothed the adoption policy, this is because
+            %%% the discrete changes in adoption decision makes small
+            %%% perturbation in the distribution which hinders market
+            %%% clearig
         
             v_n_best_resh = (reshape(v_n_best,a_num_g,age_num*a_num_g))';
         
              
-            policy_choice_n = 1-(v_n_best_resh==v_p_n_vec);
+            policy_choice_n = (reshape(choice_vec_n,a_num_g,age_num*a_num_g))';
         
             
         
@@ -174,7 +191,7 @@ for h=1:1:max_iter_measure
 
             %%% those who get non-positive npv should exit
             v_n_neg           = v_new_resh_n<0;
-            exiting_firm_n    = v_n_neg';
+            exiting_firm_n    = v_n_neg'+(1-v_n_neg').*(exp(-v_new_resh_n'*10^exit_sm));
             exit_vec_n        = exiting_firm_n(:);
             policy_choice_n   = (1-exit_vec_n).*policy_choice_n;
 
@@ -209,15 +226,24 @@ for h=1:1:max_iter_measure
             v_o_adopt     = [kron(ones(age_reduc,a_num_g),v_of_old(1,:));...
                 kron(ones(1,a_num_g),v_of_old(1:end-age_reduc,:))];
             v_o_adopt_p   = v_o_adopt';
-            v_o_adopt_vec = v_o_adopt_p(:);        
+            v_o_adopt_vec = v_o_adopt_p(:);
+            temp_smoother = (1-exp(-(v_o_adopt_vec-c_of_a*(1)-v_p_o_expand)*exit_sm));
+            temp_smoother(isinf(temp_smoother)) = -1000;
         
-            v_o_best      = max(v_o_adopt_vec-c_of_a*(1)...
-                ,v_p_o_expand);
+            v_o_best      = v_p_o_expand + (v_o_adopt_vec-c_of_a*(1)-v_p_o_expand)...
+                .*(v_o_adopt_vec-c_of_a*(1)>v_p_o_expand).* ...
+                temp_smoother;
+            choice_vec_o  = (v_o_adopt_vec-c_of_a*(1)>v_p_o_expand).* ...
+                temp_smoother;
+            %%% here I've also smoothe the adoption policy, this is because
+            %%% the discrete changes in adoption decision makes small
+            %%% perturbation in the distribution which hinders market
+            %%% clearig
         
             v_o_best_resh = (reshape(v_o_best,a_num_g,age_num*a_num_g))';
         
              
-            policy_choice_o = 1-(v_o_best_resh==v_p_o_vec);
+            policy_choice_o = (reshape(choice_vec_o,a_num_g,age_num*a_num_g))';
         
             
         
@@ -227,7 +253,7 @@ for h=1:1:max_iter_measure
 
             %%% those who get non-positive npv should exit
             v_o_neg           = v_new_resh_o<0; 
-            exiting_firm_o    = v_o_neg';
+            exiting_firm_o    = v_o_neg'+(1-v_o_neg').*(exp(-v_new_resh_o'*10^exit_sm));
             exit_vec_o        = exiting_firm_o(:);
             policy_choice_o   = (1-exit_vec_o).*policy_choice_o;
 
@@ -337,6 +363,7 @@ for h=1:1:max_iter_measure
         
         for j=1:1:max_iter
             dist_new_n    = dist_n *trans_matrix_n;
+            exit_n        = sum(dist_n-dist_new_n);
             dist_new_n    = dist_new_n + (m_of_firms_new-sum(dist_new_n))*dist_ent;
             error       = max(abs(dist_new_n-dist_n));
             if error<dist_tol
@@ -349,6 +376,7 @@ for h=1:1:max_iter_measure
 
         for j=1:1:max_iter
             dist_new_o    = dist_o *trans_matrix_o;
+            exit_o        = sum(dist_o-dist_new_o);
             dist_new_o    = dist_new_o + (m_of_firms_old-sum(dist_new_o))*dist_ent;
             error       = max(abs(dist_new_o-dist_o));
             if error<dist_tol
@@ -430,4 +458,6 @@ end
 
 trans_prob_n    = sum(policy_choice_n.*repmat(prob_matrix,age_num,1),2);
 trans_prob_o    = sum(policy_choice_o.*repmat(prob_matrix,age_num,1),2);
+
+
 end

@@ -13,11 +13,11 @@ clc
 %%
 a_bar   = 80;
 beta    = 0.97;
-c_of_a  = 10;   %%%% we should think more about how to enforce the fix cost
+c_of_a  = 1;   %%%% we should think more about how to enforce the fix cost
                 %%%% right now it's compared with the value of adoption
                 %%%% which can get really high so we need compare it to
                 %%%% some notion of contemporaneous profit
-c_a_new = 10; %20;   %%%% setting a different adoption cost for the new tech 
+c_a_new = 1; %20;   %%%% setting a different adoption cost for the new tech 
                 %%%% might be a solution to get a two tech SS; for gas and
                 %%%% coal case they will be set to be the same
 
@@ -39,8 +39,8 @@ e_p     = 0.1;    %%% this demand elasticity is estimated around 0.1 but more
 d_0     = 15;   %%% what should this value be?? it has profound effect on 
                 %%% the final distribution of the firms due to low
                 %%% elacticity of demand
-c_of_e  = 5;
-c_e_new = 5 ;%10;   %%%% setting a different entry cost for the new tech 
+c_of_e  = 15;
+c_e_new = 15 ;%10;   %%%% setting a different entry cost for the new tech 
                 %%%% might be a solution to get a two tech SS; for gas and
                 %%%% coal case they will be set to be the same
 dem_tol = 0.01;
@@ -115,6 +115,20 @@ tech_dist   = 1;
     v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
     e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc);
 
+
+save results_with_highAC_low(ca)
+
+age_reduc   = 10;
+
+[trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
+    trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
+    age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st] = ...
+    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
+    v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
+    e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc);
+
+save results_with_highAC_low(ca)_low(age_reduc)
+
 %%
 
 ScSz = get(0, 'ScreenSize');
@@ -128,7 +142,7 @@ set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 %%
 dist_resh = (reshape(dist_old',a_num_g,age_num))';
 figure(22)
-surf(1+a_grid,age_g,log(dist_resh));
+surf(1+a_grid,age_g,(dist_resh));
 xlabel('productivity'), ylabel('age')
 title('log of mass of firms in each state ')
 set(gca,'Fontsize',32)
@@ -137,7 +151,7 @@ set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 figure(6)
 temp            = reshape(trans_prob_old,a_num_g,age_num);
 temp(temp==0)   = NaN;
-surface(age_g,1+a_grid,temp,'edgecolor','none')
+surface(age_g(1:40),1+a_grid(10:40),temp(10:40,1:40),'edgecolor','none')
 % colormap(map_color)
 % shading("interp")
 colorbar
@@ -154,9 +168,9 @@ tech_dist   = (1+diff_gr)^diff_gr_t;
 
 [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,...
     trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,...
-    age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old] = ...
+    age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n_final,exit_o_final] = ...
     Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
-    v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new,dem_tol,tech_dist,...
+    v_tol,dist_tol,fco,e_p,d_0/(tech_dist^(1/(1-alpha))),c_of_e,c_e_new,dem_tol,tech_dist,...
     e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc);
 %%
 ScSz = get(0, 'ScreenSize');
@@ -169,7 +183,7 @@ set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 
 dist_resh = (reshape(dist_n',a_num_g,age_num))';
 figure(2)
-surf(1+a_grid,age_g,log(dist_resh));
+surf(1+a_grid,age_g,(dist_resh));
 xlabel('productivity'), ylabel('age')
 title('log of mass of firms in each state ')
 set(gca,'Fontsize',32)
@@ -212,7 +226,7 @@ set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 
 dist_resh = (reshape(dist_o',a_num_g,age_num))';
 figure(2)
-surf(1+a_grid,age_g,log(dist_resh));
+surf(1+a_grid,age_g,(dist_resh));
 xlabel('productivity'), ylabel('age')
 title('log of mass of firms in each state ')
 set(gca,'Fontsize',32)
@@ -238,8 +252,8 @@ final_val1      = v_new_resh_o;
 init_dist_o     = dist_old;
 init_dist_n     = dist_n_1st; %%% be aware of the necessary changes when 
                             %%% a one-tech ss
-c_conver        = 5;
-conv_rate       = 0.2;
+c_conver        = 3;
+conv_rate       = 0.15;
 
 [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,...
     trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_e_n_vec,...
@@ -248,7 +262,7 @@ conv_rate       = 0.2;
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_1st,p_e_o,p_e_o_1st,...
-    rho,age_reduc,c_conver,conv_rate);
+    rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final);
 
 
 
