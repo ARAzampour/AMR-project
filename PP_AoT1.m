@@ -31,6 +31,7 @@ a_lamb  = 0.5;
 a_num_g = 50;
 age_num = 200;
 
+
 fco     = 0.1;
 e_p     = 0.1;    %%% this demand elasticity is estimated around 0.1 but more 
                 %%% papers should be read about it (in the long run it's 1
@@ -52,7 +53,7 @@ trans_t  = 200;
 %%% growth; this would be the case for solar and gas
 diff_gr_t       = 10;
 diff_gr         = 0.02;
-a_grow          = 0.01;
+a_grow          = 0.02;
 % diff_gr_cons    = (1+0.4)^diff_gr_t;    %%% to be used for solar case
 diff_gr_cons    = 1;                    %%% to be used for gas and coal
 
@@ -90,7 +91,11 @@ e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-40,trans_t));
 
 %%% auto correlation case parameters
 rho         = 0.75;
-age_reduc   = 20;
+age_reduc   = 10;
+
+
+%%% exogenous exit
+exo_exit    = 0.02;
 %% old tech ss
 
 
@@ -110,24 +115,25 @@ tech_dist   = 1;
 
 [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
     trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
-    age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st] = ...
+    age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st,...
+    exit_n_1st,exit_o_1st] = ...
     Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
-    e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc);
+    e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit);
 
 
-save results_with_highAC_low(ca)
-
-age_reduc   = 10;
-
-[trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
-    trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
-    age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st] = ...
-    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
-    v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
-    e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc);
-
-save results_with_highAC_low(ca)_low(age_reduc)
+% save results_with_highAC_low(ca)
+% 
+% age_reduc   = 10;
+% 
+% [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
+%     trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
+%     age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st] = ...
+%     Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
+%     v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
+%     e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc);
+% 
+% save results_with_highAC_low(ca)_low(age_reduc)
 
 %%
 
@@ -151,7 +157,7 @@ set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 figure(6)
 temp            = reshape(trans_prob_old,a_num_g,age_num);
 temp(temp==0)   = NaN;
-surface(age_g(1:40),1+a_grid(10:40),temp(10:40,1:40),'edgecolor','none')
+surf(age_g,1+a_grid,temp,'edgecolor','none')
 % colormap(map_color)
 % shading("interp")
 colorbar
@@ -171,7 +177,7 @@ tech_dist   = (1+diff_gr)^diff_gr_t;
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n_final,exit_o_final] = ...
     Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0/(tech_dist^(1/(1-alpha))),c_of_e,c_e_new,dem_tol,tech_dist,...
-    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc);
+    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit);
 %%
 ScSz = get(0, 'ScreenSize');
 figure(1)
@@ -252,7 +258,7 @@ final_val1      = v_new_resh_o;
 init_dist_o     = dist_old;
 init_dist_n     = dist_n_1st; %%% be aware of the necessary changes when 
                             %%% a one-tech ss
-c_conver        = 3;
+c_conver        = 5;
 conv_rate       = 0.15;
 
 [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,...
@@ -262,7 +268,7 @@ conv_rate       = 0.15;
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_1st,p_e_o,p_e_o_1st,...
-    rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final);
+    rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final,exo_exit);
 
 
 

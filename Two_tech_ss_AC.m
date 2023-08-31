@@ -3,7 +3,7 @@ function [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,...
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n,exit_o] = ...
     Two_tech_ss_AC(a_grow,alpha,~,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new,dem_tol,tech_dist,...
-    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc)
+    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit)
 
 % a_grid  =  expinv(linspace(0,0.999,a_num_g),a_lamb);
 a_grid  = expinv(1-exp(linspace(log(1),log(0.001),a_num_g)),a_lamb); %%% here
@@ -187,7 +187,7 @@ for h=1:1:max_iter_measure
         
             v_new_n       = sum(v_n_best_resh.*repmat(prob_matrix,age_num,1),2);
             v_new_resh_n  = (reshape(v_new_n,a_num_g,age_num))';
-            v_new_resh_n  = pi_contemp_new + beta*v_new_resh_n;
+            v_new_resh_n  = pi_contemp_new + beta*(1-exo_exit)*v_new_resh_n;
 
             %%% those who get non-positive npv should exit
             v_n_neg           = v_new_resh_n<0;
@@ -249,7 +249,7 @@ for h=1:1:max_iter_measure
         
             v_new_o       = sum(v_o_best_resh.*repmat(prob_matrix,age_num,1),2);
             v_new_resh_o  = (reshape(v_new_o,a_num_g,age_num))';
-            v_new_resh_o  = pi_contemp_old + beta*v_new_resh_o;
+            v_new_resh_o  = pi_contemp_old + beta*(1-exo_exit)*v_new_resh_o;
 
             %%% those who get non-positive npv should exit
             v_o_neg           = v_new_resh_o<0; 
@@ -299,12 +299,14 @@ for h=1:1:max_iter_measure
         end
 
         trans_matrix_n                      = sparse(a_num_g*age_num,a_num_g*age_num);
-        temp_matrix_n                       = policy_choice_n.*repmat(prob_matrix,age_num,1).*(1-exit_vec_n);
+        temp_matrix_n                       = policy_choice_n.*repmat(prob_matrix,age_num,1).*...
+            (1-exit_vec_n)*(1-exo_exit);
         trans_matrix_n(state_if_adopt_n)    = temp_matrix_n(temp_address_n);
         prob_of_naot_n                      = sum((1-policy_choice_n).*repmat(prob_matrix,age_num,1),2);
         state_if_naot_n                     =  kron([1:age_num-1],ones(1,a_num_g))*age_num*a_num_g^2+...
             [1:(age_num-1)*a_num_g]+kron(ones(1,age_num-1),[0:a_num_g-1])*age_num*a_num_g;
-        p_of_naot_besideold_n               = ones((age_num-1)*a_num_g,1).*prob_of_naot_n(1:(age_num-1)*a_num_g);
+        p_of_naot_besideold_n               = ones((age_num-1)*a_num_g,1).*...
+            prob_of_naot_n(1:(age_num-1)*a_num_g)*(1-exo_exit);
         stay_alive_besideold_n              = (ones((age_num-1)*a_num_g,1)-temp_n);
         trans_matrix_n(state_if_naot_n)     = p_of_naot_besideold_n.*stay_alive_besideold_n;
 
@@ -335,12 +337,14 @@ for h=1:1:max_iter_measure
         end
 
         trans_matrix_o                      = sparse(a_num_g*age_num,a_num_g*age_num);
-        temp_matrix_o                       = policy_choice_o.*repmat(prob_matrix,age_num,1).*(1-exit_vec_o);
+        temp_matrix_o                       = policy_choice_o.*repmat(prob_matrix,age_num,1)...
+            .*(1-exit_vec_o)*(1-exo_exit);
         trans_matrix_o(state_if_adopt_o)    = temp_matrix_o(temp_address_o);
         prob_of_naot_o                      = sum((1-policy_choice_o).*repmat(prob_matrix,age_num,1),2);
         state_if_naot_o                     =  kron([1:age_num-1],ones(1,a_num_g))*age_num*a_num_g^2+...
             [1:(age_num-1)*a_num_g]+kron(ones(1,age_num-1),[0:a_num_g-1])*age_num*a_num_g;
-        p_of_naot_besideold_o               = ones((age_num-1)*a_num_g,1).*prob_of_naot_o(1:(age_num-1)*a_num_g);
+        p_of_naot_besideold_o               = ones((age_num-1)*a_num_g,1).*...
+            prob_of_naot_o(1:(age_num-1)*a_num_g)*(1-exo_exit);
         stay_alive_besideold_o              = (ones((age_num-1)*a_num_g,1)-temp_o);
         trans_matrix_o(state_if_naot_o)     = p_of_naot_besideold_o.*stay_alive_besideold_o;
         

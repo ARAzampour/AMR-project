@@ -5,7 +5,7 @@ function [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,.
     v_tol,~,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,fin_p_e_n,init_p_e_n,...
-    fin_p_e_o,init_p_e_o,rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final)
+    fin_p_e_o,init_p_e_o,rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final,exo_exit)
 
 %%% conv_rate is used to make the conversion slower, the reason is that
 %%% suddent conversion creates swinging features
@@ -205,7 +205,7 @@ for h=1:1:max_iter_measure
         
             v_new_n       = sum(v_n_best_resh.*repmat(prob_matrix,age_num,1),2);
             v_new_resh_n  = (reshape(v_new_n,a_num_g,age_num))';
-            v_new_resh_n  = pi_contemp_new + beta*v_new_resh_n;
+            v_new_resh_n  = pi_contemp_new + beta*(1-exo_exit)*v_new_resh_n;
 
             %%% those who get non-positive npv should exit
             v_n_neg           = v_new_resh_n<0;
@@ -338,7 +338,7 @@ for h=1:1:max_iter_measure
             v_new_o       = (1-converion_old_temp).*v_new_o + converion_old_temp.*v_o_convert;
 
             v_new_resh_o  = (reshape(v_new_o,a_num_g,age_num))';
-            v_new_resh_o  = pi_contemp_old + beta*v_new_resh_o;
+            v_new_resh_o  = pi_contemp_old + beta*(1-exo_exit)*v_new_resh_o;
 
             %%% those who get non-positive npv should exit
             v_o_neg           = v_new_resh_o<0; 
@@ -435,9 +435,11 @@ for h=1:1:max_iter_measure
                 repmat(kron(0:1:a_num_g-1,a_num_g*age_num*ones(1,(a_num_g))),1,age_num-age_reduc);
             end
     
-            temp_matrix_n                       = policy_choice_n.*repmat(prob_matrix,age_num,1).*(1-exit_vec_n);
+            temp_matrix_n                       = policy_choice_n.*repmat(prob_matrix,age_num,1)...
+                .*(1-exit_vec_n)*(1-exo_exit);
             prob_of_naot_n                      = sum((1-policy_choice_n).*repmat(prob_matrix,age_num,1),2);
-            p_of_naot_besideold_n               = ones((age_num-1)*a_num_g,1).*prob_of_naot_n(1:(age_num-1)*a_num_g);
+            p_of_naot_besideold_n               = ones((age_num-1)*a_num_g,1)...
+                .*prob_of_naot_n(1:(age_num-1)*a_num_g)*(1-exo_exit);
             stay_alive_besideold_n              = (ones((age_num-1)*a_num_g,1)-temp_n);
 
             if j>diff_gr_t
@@ -577,11 +579,13 @@ for h=1:1:max_iter_measure
                 repmat(kron(0:1:a_num_g-1,a_num_g*age_num*ones(1,(a_num_g))),1,age_num-age_reduc);
             end
     
-            temp_matrix_o                       = policy_choice_o.*repmat(prob_matrix,age_num,1).*(1-exit_vec_o);
+            temp_matrix_o                       = policy_choice_o.*repmat(prob_matrix,age_num,1)...
+                .*(1-exit_vec_o)*(1-exo_exit);
             prob_of_naot_o                      = sum((1-policy_choice_o).*repmat(prob_matrix,age_num,1),2);
             state_if_naot_o                     =  kron([1:age_num-1],ones(1,a_num_g))*age_num*a_num_g^2+...
                 [1:(age_num-1)*a_num_g]+kron(ones(1,age_num-1),[0:a_num_g-1])*age_num*a_num_g;
-            p_of_naot_besideold_o               = ones((age_num-1)*a_num_g,1).*prob_of_naot_o(1:(age_num-1)*a_num_g);
+            p_of_naot_besideold_o               = ones((age_num-1)*a_num_g,1)...
+                .*prob_of_naot_o(1:(age_num-1)*a_num_g)*(1-exo_exit);
             stay_alive_besideold_o              = (ones((age_num-1)*a_num_g,1)-temp_o);
             p_conversion_o                      = p_conv_o_all_prev(:,j);
             
@@ -602,12 +606,13 @@ for h=1:1:max_iter_measure
 %             trans_matrix_o = sparse(trans_matrix_o);
             
             cap_old(j)    = dist_o * cap_contemp_old(:);
+            conv_exit(j)  = sum(dist_o.*p_conversion_o');
             p_e_o_vec(j)  = (dist_o * eff_o_vec(:)/e0_o).^e_o_eps;
-            dist_new_o    = dist_o *trans_matrix_o;
+            dist_new_o    = (dist_o.*(1-p_conversion_o')) *trans_matrix_o;
             exit_o(j)     = sum(dist_o-dist_new_o);
             dist_new_o    = dist_new_o + m_of_entry_o(j)*dist_ent;
-            dist_o        = dist_new_o.*(1-p_conversion_o');
-            conv_exit(j)  = sum(dist_new_o.*p_conversion_o');
+            dist_o        = dist_new_o;
+            
 
 
             cap_o_temp(j) = dist_o_prev*cap_contemp_old(:);
@@ -650,7 +655,7 @@ for h=1:1:max_iter_measure
             break;
         end
         
-        p_E_vec     = p_E_vec + 0.01*demand_err/((ceil(k/10)));
+        p_E_vec     = p_E_vec + 0.05*demand_err/((ceil(k/20)));
 
         p_E_vec     = p_E_vec.*(sign(demand_err)==sign(dem_err_pre)) +...
             (p_E_vec+p_E_prev)/2.*(sign(demand_err)~=sign(dem_err_pre));
@@ -683,27 +688,33 @@ for h=1:1:max_iter_measure
     temp          = sum(a_prob.*v_new_resh_o_all(1,:,:),2);
     value_err_o   = temp(:)-c_of_e;
     if mean((abs(value_err_n))<2*dem_tol|(m_of_entry_n)'<v_tol)==1 && ...
-            mean((abs(value_err_o))<2*dem_tol|(m_of_entry_o)'<v_tol)==1
-        fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
-            "is %2.4f and %2.4f in %2.1f periods \n"...
-            ,mean(value_err_n),mean(value_err_o),h);
-        break;
+            mean((abs(value_err_o))<2*dem_tol|(m_of_entry_o)'<v_tol)==1 && ...
+            mean(sum(p_conv_o_all_prev.*conv_decrease_all.*dist_o_all',1)./measure_vec_o<10^-4)==1
+        if abs(sum(final_dist_n)-measure_vec_n(end))<dem_tol
+            fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
+                "is %2.4f and %2.4f in %2.1f periods \n"...
+                ,mean(value_err_n),mean(value_err_o),h);
+            break;
+        else
+            c_conver    = c_conver*(1-(sum(final_dist_n)-measure_vec_n(end))...
+                ./max(sum(final_dist_n),measure_vec_n(end)));
+        end
     end
 %+0.0001*value_err_n'
     if abs(measure_vec_n(end)-sum(final_dist_n))<0.1
         m_of_entry_n    = (m_of_entry_n.*(1+0.04*value_err_n')).*(value_err_n'>0)...
             + m_of_entry_n.*(1+0.01*value_err_n').*(value_err_n'<0);
     else
-        m_of_entry_n    = m_of_entry_n/sum(m_of_entry_n)*...
-            (sum(m_of_entry_n)+1*(sum(final_dist_n)-measure_vec_n(end)));
+        m_of_entry_n    = (m_of_entry_n+0.00001)/sum(m_of_entry_n+0.00001)*...
+            (sum(m_of_entry_n)+0.1*(sum(final_dist_n)-measure_vec_n(end)));
     end
 %+0.0001*value_err_o'
     if abs(measure_vec_o(end)-sum(final_dist_o))<0.1
         m_of_entry_o    = (m_of_entry_o.*(1+0.04*value_err_o')).*(value_err_o'>0)...
             + m_of_entry_o.*(1+0.01*value_err_o').*(value_err_o'<0);
     else
-        m_of_entry_o    = m_of_entry_o/sum(m_of_entry_o)*...
-            (sum(m_of_entry_o)+1*(sum(final_dist_o)-measure_vec_o(end)));
+        m_of_entry_o    = (m_of_entry_o+0.00001)/sum(m_of_entry_o+0.00001)*...
+            (sum(m_of_entry_o)+0.1*(sum(final_dist_o)-measure_vec_o(end)));
     end
     
     m_of_entry_n    = m_of_entry_n.*(sign(value_err_n')==value_err_n_pre')+...
