@@ -16,8 +16,8 @@ a_prob  = [a_cdf(2:a_num_g) 1]-a_cdf;
 
 prob_matrix         = auto_corr_prob(a_grid,a_prob,rho);
 
-max_iter_price      = floor(max_iter/100);
-max_iter_measure    = max_iter_price*100;
+max_iter_price      = floor(max_iter/1);
+max_iter_measure    = max_iter_price*1;
  
 age_g   = (linspace(0,age_num-1,age_num))';
 exit_sm = 2;
@@ -40,6 +40,11 @@ dist_o           = zeros(1,age_num*a_num_g);
 v_new_o          = zeros(age_num*a_num_g,1);
 v_new_resh_o     = zeros(age_num,a_num_g);
 exit_vec_o       = zeros(age_num*a_num_g,'logical');
+
+
+p_E_prev_pre    = zeros(1,max_iter_measure);
+p_e_n_pre_pre   = zeros(1,max_iter_measure);
+p_e_o_pre_pre   = zeros(1,max_iter_measure);
 
 %%%%%
 
@@ -108,6 +113,23 @@ value_err_o_pre = 0;
 m_of_new_pre    = 1;
 m_of_old_pre    = 1;
 
+p_e_n_pre       = 1;
+p_e_o_pre       = 1;
+
+% price_ratio_n   = 0.9;  %%%% ratio of price of electricity to input
+% price_ratio_o   = 0.9;
+
+price_ratio_n_p = 0.9;  %%%% ratio of price of electricity to input in the previous period
+price_ratio_o_p = 0.9;
+price_ratio_n_q = 0.9;  %%%% ratio of price of electricity to input in the 2 previous period
+price_ratio_o_q = 0.9;
+
+
+%%%
+input_adjsut    = 0.6;         %%%% the maximum variation in input price
+output_adjsut   = 0.3/(max(e_n_eps,e_o_eps)); %%% max var in output prices
+measure_adj_n   = 0.02/(e_n_eps); %%%% the maximum variation in newtech measure
+measure_adj_o   = 0.02/(e_o_eps); %%%% the maximum variation in newtech measure
 
 
 
@@ -405,7 +427,7 @@ for h=1:1:max_iter_measure
         
         
 
-        p_E     = p_E + 0.1*demand_err/(ceil(k/10));
+        p_E     = p_E + 0.1*output_adjsut*demand_err/(ceil(k/10));
 
         if sign(dem_err_pre)~=sign(demand_err)
             p_E = (p_E_prev + p_E)/2;
@@ -414,24 +436,53 @@ for h=1:1:max_iter_measure
         p_E_prev    = p_E;
         dem_err_pre = demand_err;
 
+        price_ratio_n = p_E/p_e_n;
+        price_ratio_o = p_E/p_e_o;
+
         p_e_n       = (dist_n * eff_n_vec(:)/e0_n).^e_n_eps;
         p_e_o       = (dist_o * eff_o_vec(:)/e0_o).^e_o_eps;
 
+        % if abs(p_e_o_pre-p_e_o)>input_adjsut/(ceil(k/10))
+        p_e_o   = p_e_o_pre*1+0.1*input_adjsut/(ceil(k/10))*(-p_e_o_pre+p_e_o);
+        % end
+        % if abs(p_e_n_pre-p_e_n)>input_adjsut/(ceil(k/10))
+        p_e_n   = p_e_n_pre*1+0.1*input_adjsut/(ceil(k/10))*(-p_e_n_pre+p_e_n);
+        % end
+
+        if sign(price_ratio_n-price_ratio_n_p)~=sign(price_ratio_n_p-price_ratio_n_q)
+            p_e_n = (p_e_n_pre + p_e_n)/2;
+        end
+
+        if sign(price_ratio_o-price_ratio_o_p)~=sign(price_ratio_o_p-price_ratio_o_q)
+            p_e_o = (p_e_o_pre + p_e_o)/2;
+        end
+
+        p_e_o_pre           = p_e_o;
+        p_e_n_pre           = p_e_n;
+        price_ratio_n_p     = price_ratio_n;
+        price_ratio_o_p     = price_ratio_o;
+        price_ratio_n_q     = price_ratio_n_p;
+        price_ratio_o_q     = price_ratio_o_p;
+
     end
+
+
+    
+
     value_err_n   = a_prob*(v_new_resh_n(1,:))'-c_e_new; %%% let's try 
                                 %%%% different entry cost for techs
     value_err_o   = a_prob*(v_new_resh_o(1,:))'-c_of_e;
 
 
     if abs(value_err_n)>0.5
-        m_of_firms_new = m_of_firms_new*(1+0.05*value_err_n/ceil(h/10));
+        m_of_firms_new = m_of_firms_new*(1+0.5*measure_adj_n*value_err_n/ceil(h/10));
     else
-        m_of_firms_new = m_of_firms_new*(1+0.1*value_err_n/ceil(h/10));
+        m_of_firms_new = m_of_firms_new*(1+0.6*measure_adj_n*value_err_n/ceil(h/10));
     end
     if abs(value_err_o)>0.5
-        m_of_firms_old = m_of_firms_old*(1+0.05*value_err_o/ceil(h/10));
+        m_of_firms_old = m_of_firms_old*(1+0.5*measure_adj_o*value_err_o/ceil(h/10));
     else
-        m_of_firms_old = m_of_firms_old*(1+0.1*value_err_o/ceil(h/10));
+        m_of_firms_old = m_of_firms_old*(1+0.6*measure_adj_o*value_err_o/ceil(h/10));
     end
 
 
@@ -446,7 +497,7 @@ for h=1:1:max_iter_measure
             (abs(value_err_o)<dem_tol||m_of_firms_old<v_tol))||...
             (abs(1-m_of_new_pre/m_of_firms_new)<10*v_tol && ...
             abs(1-m_of_old_pre/m_of_firms_old)<10*v_tol...
-            && h>100)
+            && h>max_iter_measure/10)
         fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
             "is %2.4f and %2.4f in %2.1f periods \n"...
             ,value_err_n,value_err_o,h);
@@ -458,6 +509,9 @@ for h=1:1:max_iter_measure
     value_err_o_pre = value_err_o;
     m_of_new_pre    = m_of_firms_new;
     m_of_old_pre    = m_of_firms_old;
+    p_E_prev_pre(h) = p_E_prev;
+    p_e_n_pre_pre(h)= p_e_n_pre;
+    p_e_o_pre_pre(h)= p_e_o_pre;
 end
 
 trans_prob_n    = sum(policy_choice_n.*repmat(prob_matrix,age_num,1),2);

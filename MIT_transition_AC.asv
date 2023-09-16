@@ -40,6 +40,8 @@ p_E_vec         = linspace(init_p_E,final_p_E,trans_t);
 p_E_prev        = linspace(init_p_E,final_p_E,trans_t);
 p_e_n_vec       = linspace(init_p_e_n,fin_p_e_n,trans_t);
 p_e_o_vec       = linspace(init_p_e_o,fin_p_e_o,trans_t);
+p_e_n_vec_pre   = linspace(init_p_e_n,fin_p_e_n,trans_t);
+p_e_o_vec_pre   = linspace(init_p_e_o,fin_p_e_o,trans_t);
 dem_err_pre     = 1;
 demand_err      = 1;
 
@@ -105,6 +107,21 @@ exit_o      = zeros(trans_t,1);
 conv_entry  = zeros(trans_t,1);
 conv_exit   = zeros(trans_t,1);
 
+price_ratio_n_p = 0.9*ones(1,trans_t);  %%%% ratio of price of electricity to input in the previous period
+price_ratio_o_p = 0.9*ones(1,trans_t);
+price_ratio_n_q = 0.9*ones(1,trans_t);  %%%% ratio of price of electricity to input in the 2 previous period
+price_ratio_o_q = 0.9*ones(1,trans_t);
+
+%%%
+input_adjsut    = 0.2;         %%%% the maximum variation in input price
+output_adjsut   = 0.1/(max(e_n_eps,e_o_eps)); %%% max var in output prices
+measure_adj_n   = 0.02/(e_n_eps); %%%% the maximum variation in newtech measure
+measure_adj_o   = 0.02/(e_o_eps); %%%% the maximum variation in newtech measure
+
+
+%%% this part is used to model the decay of the new generators in the
+%%% period of growth in new generators' productivity, this is beacuse the
+%%% new ones that have not updated are lagging behind
 [~,temp_index_grid] = max(a_g_nex<1+a_grid,[],2);
 temp_index_grid(temp_index_grid==1)         = 2;
 ratio_of_transition = (1+a_grid(temp_index_grid)'-a_g_nex)./(a_grid(temp_index_grid)'-a_grid(temp_index_grid-1)');
@@ -112,12 +129,14 @@ ratio_of_transition(ratio_of_transition>1)  = 1;
 temp_index_grid_exp = repmat(temp_index_grid,age_num,1)+kron((0:1:age_num-1)',a_num_g*ones(a_num_g,1));
 rat_of_tran_exp     = repmat(ratio_of_transition,age_num,1);
 
+
+%%%
 lag_grow_compensate = (1+diff_gr).*((1:1:trans_t)<diff_gr_t)+...
     1*((1:1:trans_t)>=diff_gr_t);                   %%% the notion here
                 %%%% is that beacuase in each period the dist of last
                 %%%% period is used to get the profit, production and input
                 %%%% these fundtions should also belong to the last period
-
+%%
 for h=1:1:max_iter_measure
 
     p_conv_o_all_prev   = p_conv_o_all + p_conv_o_all_prev.*(1-conv_decrease_all);
@@ -138,6 +157,9 @@ for h=1:1:max_iter_measure
                         %%%% should be erased afterwards with it's related
                         %%%% codes
         
+
+        price_ratio_n = p_E_vec./p_e_n_vec;
+        price_ratio_o = p_E_vec./p_e_o_vec;
 
         for i1=trans_t:-1:1
 
@@ -509,6 +531,8 @@ for h=1:1:max_iter_measure
             
             cap_new(j)    = dist_n * cap_contemp_new(:);
             p_e_n_vec(j)  = (dist_n * eff_n_vec(:)/e0_n_vec(j)).^e_n_eps;
+            p_e_n_vec(j)  = p_e_n_vec_pre(j) + 0.1*input_adjsut/(ceil(k/10))...
+                *(-p_e_n_vec_pre(j)+p_e_n_vec(j));
             exit_n(j)     = sum(dist_n-dist_new_n);
             dist_conv     = dist_o_prev*conv_matrix;
             conv_entry(j) = sum(dist_conv);
@@ -608,6 +632,8 @@ for h=1:1:max_iter_measure
             cap_old(j)    = dist_o * cap_contemp_old(:);
             conv_exit(j)  = sum(dist_o.*p_conversion_o');
             p_e_o_vec(j)  = (dist_o * eff_o_vec(:)/e0_o).^e_o_eps;
+            p_e_o_vec(j)  = p_e_o_vec_pre(j)*1+0.1*input_adjsut/(ceil(k/10))...
+                *(-p_e_o_vec_pre(j)+p_e_o_vec(j));
             dist_new_o    = (dist_o.*(1-p_conversion_o')) *trans_matrix_o;
             exit_o(j)     = sum(dist_o-dist_new_o);
             dist_new_o    = dist_new_o + m_of_entry_o(j)*dist_ent;
@@ -655,11 +681,16 @@ for h=1:1:max_iter_measure
             break;
         end
         
-        p_E_vec     = p_E_vec + 0.05*demand_err/((ceil(k/20)));
+        p_E_vec     = p_E_vec + 0.5*output_adjsut*demand_err/((ceil(k/20)));
 
         p_E_vec     = p_E_vec.*(sign(demand_err)==sign(dem_err_pre)) +...
             (p_E_vec+p_E_prev)/2.*(sign(demand_err)~=sign(dem_err_pre));
-        
+
+
+        p_e_n_vec   = p_e_n_vec.*(sign(price_ratio_n-price_ratio_n_p)==sign(price_ratio_n_p-price_ratio_n_q))...
+            + (p_e_n_vec_pre + p_e_n_vec)/2.*(sign(price_ratio_n-price_ratio_n_p)~=sign(price_ratio_n_p-price_ratio_n_q));
+        p_e_o_vec   = p_e_o_vec.*(sign(price_ratio_o-price_ratio_o_p)==sign(price_ratio_o_p-price_ratio_o_q))...
+            + (p_e_o_vec_pre + p_e_o_vec)/2.*(sign(price_ratio_o-price_ratio_o_p)~=sign(price_ratio_o_p-price_ratio_o_q));
 %         [~,loc1] = max(abs(dem_err_pre));
 %         [~,loc2] = max(abs(demand_err));
 % 
@@ -676,9 +707,14 @@ for h=1:1:max_iter_measure
 
 %         p_E_vec(end) = final_p_E;
 
-        p_E_prev    = p_E_vec;
-        dem_err_pre = demand_err;
-        
+        p_E_prev            = p_E_vec;
+        dem_err_pre         = demand_err;
+        p_e_o_vec_pre       = p_e_o;
+        p_e_n_vec_pre       = p_e_n;
+        price_ratio_n_p     = price_ratio_n;
+        price_ratio_o_p     = price_ratio_o;
+        price_ratio_n_q     = price_ratio_n_p;
+        price_ratio_o_q     = price_ratio_o_p;
 
         
         
@@ -702,16 +738,26 @@ for h=1:1:max_iter_measure
     end
 %+0.0001*value_err_n'
     if abs(measure_vec_n(end)-sum(final_dist_n))<0.1
-        m_of_entry_n    = (m_of_entry_n.*(1+0.04*value_err_n')).*(value_err_n'>0)...
-            + m_of_entry_n.*(1+0.01*value_err_n').*(value_err_n'<0);
+        if k>1
+            m_of_entry_n    = (m_of_entry_n.*(1+0.4*measure_adj_n*value_err_n')).*(value_err_n'>0)...
+                + m_of_entry_n.*(1+0.4*measure_adj_n*value_err_n').*(value_err_n'<0);
+        else
+            m_of_entry_n    = (m_of_entry_n.*(1+0.2*value_err_n')).*(value_err_n'>0)...
+                + m_of_entry_n.*(1+0.2*value_err_n').*(value_err_n'<0);
+        end
     else
         m_of_entry_n    = (m_of_entry_n+0.00001)/sum(m_of_entry_n+0.00001)*...
             (sum(m_of_entry_n)+0.1*(sum(final_dist_n)-measure_vec_n(end)));
     end
 %+0.0001*value_err_o'
     if abs(measure_vec_o(end)-sum(final_dist_o))<0.1
-        m_of_entry_o    = (m_of_entry_o.*(1+0.04*value_err_o')).*(value_err_o'>0)...
-            + m_of_entry_o.*(1+0.01*value_err_o').*(value_err_o'<0);
+        if k>1
+            m_of_entry_o    = (m_of_entry_o.*(1+0.4*measure_adj_o*value_err_o')).*(value_err_o'>0)...
+                + m_of_entry_o.*(1+0.4*measure_adj_o*value_err_o').*(value_err_o'<0);
+        else
+            m_of_entry_o    = (m_of_entry_o.*(1+0.2*value_err_o')).*(value_err_o'>0)...
+                + m_of_entry_o.*(1+0.2*value_err_o').*(value_err_o'<0);
+        end
     else
         m_of_entry_o    = (m_of_entry_o+0.00001)/sum(m_of_entry_o+0.00001)*...
             (sum(m_of_entry_o)+0.1*(sum(final_dist_o)-measure_vec_o(end)));

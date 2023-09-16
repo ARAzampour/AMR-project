@@ -61,8 +61,8 @@ diff_gr_cons    = 1;                    %%% to be used for gas and coal
 %%% let's define a supply curve for the effort used in different techs
 e0_n    = 1.2;
 e0_o    = 1;
-e_n_eps = 0.15;
-e_o_eps = 0.1;
+e_n_eps = 1.5;
+e_o_eps = 1;
 
 %%% let's define a high fixed cost a starting point for the new_tech guys
 %%% and it's transition in a declining exponential phase; in this case
@@ -95,7 +95,7 @@ age_reduc   = 10;
 
 
 %%% exogenous exit
-exo_exit    = 0.02;
+exo_exit    = 0.01;
 %% old tech ss
 
 
