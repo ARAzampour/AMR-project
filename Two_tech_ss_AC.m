@@ -126,8 +126,8 @@ price_ratio_o_q = 0.9;
 
 
 %%%
-input_adjsut    = 0.6;         %%%% the maximum variation in input price
-output_adjsut   = 0.3/(max(e_n_eps,e_o_eps)); %%% max var in output prices
+input_adjsut    = 0.3;         %%%% the maximum variation in input price
+output_adjsut   = 0.15/(max(e_n_eps,e_o_eps)); %%% max var in output prices
 measure_adj_n   = 0.02/(e_n_eps); %%%% the maximum variation in newtech measure
 measure_adj_o   = 0.02/(e_o_eps); %%%% the maximum variation in newtech measure
 

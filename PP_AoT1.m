@@ -148,9 +148,9 @@ set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 %%
 dist_resh = (reshape(dist_old',a_num_g,age_num))';
 figure(22)
-surf(1+a_grid,age_g,(dist_resh));
+surf(1+a_grid,age_g(1:50),(dist_resh(1:50,:)));
 xlabel('productivity'), ylabel('age')
-title('log of mass of firms in each state ')
+title('mass of firms in each state ')
 set(gca,'Fontsize',32)
 set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 %%
@@ -189,9 +189,9 @@ set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 
 dist_resh = (reshape(dist_n',a_num_g,age_num))';
 figure(2)
-surf(1+a_grid,age_g,(dist_resh));
+surf(1+a_grid,age_g(1:50),(dist_resh(1:50,:)));
 xlabel('productivity'), ylabel('age')
-title('log of mass of firms in each state ')
+title('mass of firms in each state ')
 set(gca,'Fontsize',32)
 set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 
@@ -200,7 +200,8 @@ ScSz = get(0, 'ScreenSize');
 figure(6)
 temp            = reshape(trans_prob_n,a_num_g,age_num);
 temp(temp==0)   = NaN;
-surface(age_g,1+a_grid,reshape(temp,a_num_g,age_num),'edgecolor','none')
+surf(age_g,1+a_grid,temp,'edgecolor','none')
+%surface(age_g,1+a_grid,reshape(temp,a_num_g,age_num),'edgecolor','none')
 % colormap(map_color)
 % shading("interp")
 xlabel("age")
@@ -216,14 +217,15 @@ ScSz = get(0, 'ScreenSize');
 figure(7)
 temp            = reshape(trans_prob_o,a_num_g,age_num);
 temp(temp==0)   = NaN;
-surface(age_g,1+a_grid,reshape(temp,a_num_g,age_num),'edgecolor','none')
+surf(age_g,1+a_grid,temp,'edgecolor','none')
+% surface(age_g,1+a_grid,reshape(temp,a_num_g,age_num),'edgecolor','none')
 % colormap(map_color)
 % shading("interp")
 xlabel("age")
 ylabel("productivity")
 set(gca, 'FontSize', 32);
 title("probability of tech adoption for old")
-colorbar
+% colorbar
 % annotation('textarrow',[1,10],'String','y = x ')
 title("probability of tech adoption for old-tech generators")
 set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
@@ -286,11 +288,11 @@ set(gca,'Fontsize',32)
 set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 
 
-growth_t_line   = 20*ones(1,trans_t);
+growth_t_line   = diff_gr_t*ones(1,trans_t);
 growth_t_line(1:diff_gr_t) = linspace(1,diff_gr_t,diff_gr_t);
-tech_dist_vec   = (1+diff_gr).^growth_t_line;
+tech_dist_vec   = (1+diff_gr).^growth_t_line*diff_gr_cons;
 figure(10)
-plot(tech_dist_vec.*(cap_old+cap_new),LineWidth=2)
+plot(tech_dist_vec.^(1/(1-alpha)).*(cap_old+cap_new),LineWidth=2)
 xlabel('periods into transition'), ylabel('capacity')
 title('total capacity (detrended)')
 set(gca,'Fontsize',32)
