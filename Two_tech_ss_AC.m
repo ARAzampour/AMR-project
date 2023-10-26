@@ -128,8 +128,8 @@ price_ratio_o_q = 0.9;
 %%%
 input_adjsut    = 0.3;         %%%% the maximum variation in input price
 output_adjsut   = 0.15/(max(e_n_eps,e_o_eps)); %%% max var in output prices
-measure_adj_n   = 0.02/(e_n_eps); %%%% the maximum variation in newtech measure
-measure_adj_o   = 0.02/(e_o_eps); %%%% the maximum variation in newtech measure
+measure_adj_n   = min(0.02/(e_n_eps),1); %%%% the maximum variation in newtech measure
+measure_adj_o   = min(0.02/(e_o_eps),1); %%%% the maximum variation in newtech measure
 
 
 
@@ -185,14 +185,14 @@ for h=1:1:max_iter_measure
             v_n_adopt_p   = v_n_adopt';
             v_n_adopt_vec = v_n_adopt_p(:);
 
-            temp_smoother = (1-exp(-(v_n_adopt_vec-c_of_a*(1)-v_p_n_expand)*exit_sm));
+            temp_smoother = (1-exp(-(v_n_adopt_vec-c_a_new*(1)-v_p_n_expand)*exit_sm));
             temp_smoother(isinf(temp_smoother)) = -1000;
         
-            v_n_best      = v_p_n_expand + (v_n_adopt_vec-c_of_a*(1)-v_p_n_expand)...
-                .*(v_n_adopt_vec-c_of_a*(1)>v_p_n_expand).* ...
+            v_n_best      = v_p_n_expand + (v_n_adopt_vec-c_a_new*(1)-v_p_n_expand)...
+                .*(v_n_adopt_vec-c_a_new*(1)>v_p_n_expand).* ...
                 temp_smoother;     %%% let's try different adoption costs
 
-            choice_vec_n  = (v_n_adopt_vec-c_of_a*(1)>v_p_n_expand).* ...
+            choice_vec_n  = (v_n_adopt_vec-c_a_new*(1)>v_p_n_expand).* ...
                 temp_smoother;
 
             %%% here I've also smoothed the adoption policy, this is because
@@ -227,7 +227,13 @@ for h=1:1:max_iter_measure
                 break;
             end
         
+            if (sum(isnan(exit_vec_n))>0)
+            fprintf("there is nan\n at %2.1f",i1);
+            break;
+            end
+
             v_of_new = v_new_resh_n;
+            
         end
         
         for i2=1:1:max_iter
@@ -289,7 +295,15 @@ for h=1:1:max_iter_measure
                 break;
             end
         
+            if sum(isnan(v_new_resh_o),"all")>1
+            fprintf("there is nan\n at %2.1f",i2);
+            break;
+            
+            end
+            
             v_of_old = v_new_resh_o;
+
+            
         end
         
         %%
@@ -397,6 +411,12 @@ for h=1:1:max_iter_measure
                 break;
             end
             dist_n        = dist_new_n;
+
+            if sum(isnan(dist_n),"all")>1
+                fprintf("there is nan\n at %2.1f",j);
+                break;
+                
+            end
         
         end
 
@@ -410,6 +430,12 @@ for h=1:1:max_iter_measure
                 break;
             end
             dist_o        = dist_new_o;
+
+            if sum(isnan(dist_o),"all")>1
+                fprintf("there is nan\n at %2.1f",j);
+                break;
+                
+            end
         
         end
         
@@ -503,7 +529,9 @@ for h=1:1:max_iter_measure
             ,value_err_n,value_err_o,h);
         break;
     end
-    
+    if h==10
+        save solar_gas_test
+    end
 
     value_err_n_pre = value_err_n;
     value_err_o_pre = value_err_o;

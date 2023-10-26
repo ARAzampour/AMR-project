@@ -6,246 +6,249 @@
 %%% a's are the demeaned A's
 
 
-clear
-close
-clc
-
-%%
-a_bar   = 80;
-beta    = 0.97;
-c_of_a  = 1;   %%%% we should think more about how to enforce the fix cost
-                %%%% right now it's compared with the value of adoption
-                %%%% which can get really high so we need compare it to
-                %%%% some notion of contemporaneous profit
-c_a_new = 1; %20;   %%%% setting a different adoption cost for the new tech 
-                %%%% might be a solution to get a two tech SS; for gas and
-                %%%% coal case they will be set to be the same
-
-max_iter    = 10000;
-v_tol       = 10^-5;
-dist_tol    = 10^-7;
-
-alpha   = 0.7; 
-p_e     = 1;
-a_lamb  = 0.5;
-a_num_g = 50;
-age_num = 200;
-
-
-fco     = 0.1;
-e_p     = 0.1;    %%% this demand elasticity is estimated around 0.1 but more 
-                %%% papers should be read about it (in the long run it's 1
-                %%% but I think we should use the short run estimate)
-
-d_0     = 15;   %%% what should this value be?? it has profound effect on 
-                %%% the final distribution of the firms due to low
-                %%% elacticity of demand
-c_of_e  = 15;
-c_e_new = 15 ;%10;   %%%% setting a different entry cost for the new tech 
-                %%%% might be a solution to get a two tech SS; for gas and
-                %%%% coal case they will be set to be the same
-dem_tol = 0.01;
-
-
-trans_t  = 200;
-
-%%% there can be also an efficiency wedge that has been there without any
-%%% growth; this would be the case for solar and gas
-diff_gr_t       = 10;
-diff_gr         = 0.02;
-a_grow          = 0.02;
-% diff_gr_cons    = (1+0.4)^diff_gr_t;    %%% to be used for solar case
-diff_gr_cons    = 1;                    %%% to be used for gas and coal
-
-
-%%% let's define a supply curve for the effort used in different techs
-e0_n    = 1.2;
-e0_o    = 1;
-e_n_eps = 1.5;
-e_o_eps = 1;
-
-%%% let's define a high fixed cost a starting point for the new_tech guys
-%%% and it's transition in a declining exponential phase; in this case
-%%% e0_n_vec would be a constant.
-% c_a_new_1st     = 40;
-% c_e_new_1st     = 20;
+% clear
+% close
+% clc
 % 
-% c_a_new_vec     = c_a_new + (c_a_new_1st-c_a_new)*exp(linspace(0,-20,trans_t));
-% c_e_new_vec     = c_e_new + (c_e_new_1st-c_e_new)*exp(linspace(0,-20,trans_t));
-% e0_n_vec        = e0_n*ones(1,trans_t);
-
-%%% if the tech transition combined with supply expansion (for gas
-%%% transition) is in mind then the fix cost vectors are a constant and the
-%%% supply side would increase from on level to another one
-
-c_a_new_1st     = c_a_new;
-c_e_new_1st     = c_e_new;
-
-c_a_new_vec     = c_a_new*ones(1,trans_t);
-c_e_new_vec     = c_e_new*ones(1,trans_t);
-
-e0_n_1st        = 0.8;
-e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-40,trans_t));
-
-
-
-%%% auto correlation case parameters
-rho         = 0.75;
-age_reduc   = 10;
-
-
-%%% exogenous exit
-exo_exit    = 0.01;
-%% old tech ss
-
-
-% [trans_prob_old,v_new_old,v_new_resh_old,dist_old,...
-%     trans_matrix_old,age_g,a_grid,~,pi_contemp,p_E_old,m_of_firms_old] = ...
-% One_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
-% v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol);
-
-%%%%% or the old tech ss for the transition of solar introduction can be a
-%%%%% two tech ss where c_a_new and c_e_new are high numbers leading to
-%%%%% a near zero measure of the new_tech firms. In this setting the reduction in
-%%%%% the fixed costs of new-tech would lead to the increase in their share
-%%%%% Or also use the two-tech system for a case when coal and gas
-%%%%% transition is happening 
-
-tech_dist   = 1;
-
-[trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
-    trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
-    age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st,...
-    exit_n_1st,exit_o_1st] = ...
-    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
-    v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
-    e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit);
-
-
-% save results_with_highAC_low(ca)
+% %%
+% a_bar   = 80;
+% beta    = 0.97;
+% c_of_a  = 1;   %%%% we should think more about how to enforce the fix cost
+%                 %%%% right now it's compared with the value of adoption
+%                 %%%% which can get really high so we need compare it to
+%                 %%%% some notion of contemporaneous profit
+% c_a_new = 1; %20;   %%%% setting a different adoption cost for the new tech 
+%                 %%%% might be a solution to get a two tech SS; for gas and
+%                 %%%% coal case they will be set to be the same
 % 
-% age_reduc   = 10;
+% max_iter    = 10000;
+% v_tol       = 10^-5;
+% dist_tol    = 10^-7;
+% 
+% alpha   = 0.7; 
+% p_e     = 1;
+% a_lamb  = 0.5;
+% a_num_g = 50;
+% age_num = 200;
+% 
+% 
+% fco     = 0.1;
+% e_p     = 0.1;    %%% this demand elasticity is estimated around 0.1 but more 
+%                 %%% papers should be read about it (in the long run it's 1
+%                 %%% but I think we should use the short run estimate)
+% 
+% d_0     = 15;   %%% what should this value be?? it has profound effect on 
+%                 %%% the final distribution of the firms due to low
+%                 %%% elacticity of demand
+% c_of_e  = 15;
+% c_e_new = 15 ;%10;   %%%% setting a different entry cost for the new tech 
+%                 %%%% might be a solution to get a two tech SS; for gas and
+%                 %%%% coal case they will be set to be the same
+% dem_tol = 0.01;
+% 
+% 
+% trans_t  = 200;
+% 
+% %%% there can be also an efficiency wedge that has been there without any
+% %%% growth; this would be the case for solar and gas
+% diff_gr_t       = 10;
+% diff_gr         = 0.02;
+% a_grow          = 0.02;
+% % diff_gr_cons    = (1+0.4)^diff_gr_t;    %%% to be used for solar case
+% diff_gr_cons    = 1;                    %%% to be used for gas and coal
+% 
+% 
+% %%% let's define a supply curve for the effort used in different techs
+% e0_n    = 1.2;
+% e0_o    = 1;
+% e_n_eps = 1.5;
+% e_o_eps = 1;
+% 
+% %%% let's define a high fixed cost a starting point for the new_tech guys
+% %%% and it's transition in a declining exponential phase; in this case
+% %%% e0_n_vec would be a constant.
+% % c_a_new_1st     = 40;
+% % c_e_new_1st     = 20;
+% % 
+% % c_a_new_vec     = c_a_new + (c_a_new_1st-c_a_new)*exp(linspace(0,-20,trans_t));
+% % c_e_new_vec     = c_e_new + (c_e_new_1st-c_e_new)*exp(linspace(0,-20,trans_t));
+% % e0_n_vec        = e0_n*ones(1,trans_t);
+% 
+% %%% if the tech transition combined with supply expansion (for gas
+% %%% transition) is in mind then the fix cost vectors are a constant and the
+% %%% supply side would increase from on level to another one
+% 
+% c_a_new_1st     = c_a_new;
+% c_e_new_1st     = c_e_new;
+% 
+% c_a_new_vec     = c_a_new*ones(1,trans_t);
+% c_e_new_vec     = c_e_new*ones(1,trans_t);
+% 
+% e0_n_1st        = 0.8;
+% e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-40,trans_t));
+% 
+% 
+% 
+% %%% auto correlation case parameters
+% rho         = 0.75;
+% age_reduc   = 15;
+% 
+% 
+% %%% exogenous exit
+% exo_exit    = 0.01;
+% %% old tech ss
+% 
+% 
+% % [trans_prob_old,v_new_old,v_new_resh_old,dist_old,...
+% %     trans_matrix_old,age_g,a_grid,~,pi_contemp,p_E_old,m_of_firms_old] = ...
+% % One_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
+% % v_tol,dist_tol,fco,e_p,d_0,c_of_e,dem_tol);
+% 
+% %%%%% or the old tech ss for the transition of solar introduction can be a
+% %%%%% two tech ss where c_a_new and c_e_new are high numbers leading to
+% %%%%% a near zero measure of the new_tech firms. In this setting the reduction in
+% %%%%% the fixed costs of new-tech would lead to the increase in their share
+% %%%%% Or also use the two-tech system for a case when coal and gas
+% %%%%% transition is happening 
+% 
+% tech_dist   = 1;
 % 
 % [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
 %     trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
-%     age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st] = ...
+%     age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st,...
+%     exit_n_1st,exit_o_1st] = ...
 %     Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
 %     v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
-%     e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc);
+%     e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit);
 % 
-% save results_with_highAC_low(ca)_low(age_reduc)
-
+% 
+% % save results_with_highAC_low(ca)
+% % 
+% % age_reduc   = 10;
+% % 
+% % [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
+% %     trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
+% %     age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st] = ...
+% %     Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
+% %     v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
+% %     e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc);
+% % 
+% % save results_with_highAC_low(ca)_low(age_reduc)
+% 
+% %%
+% % 
+% % ScSz = get(0, 'ScreenSize');
+% % 
+% % figure(1)
+% % surf(1+a_grid,age_g,v_new_resh_old);
+% % xlabel('productivity'), ylabel('age')
+% % title('value of firm in each state')
+% % set(gca,'Fontsize',32)
+% % set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+% % %%
+% % dist_resh = (reshape(dist_old',a_num_g,age_num))';
+% % figure(22)
+% % surf(1+a_grid,age_g(1:50),(dist_resh(1:50,:)));
+% % xlabel('productivity'), ylabel('age')
+% % title('mass of firms in each state ')
+% % set(gca,'Fontsize',32)
+% % set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+% % %%
+% % figure(6)
+% % temp            = reshape(trans_prob_old,a_num_g,age_num);
+% % temp(temp==0)   = NaN;
+% % surf(age_g,1+a_grid,temp,'edgecolor','none')
+% % % colormap(map_color)
+% % % shading("interp")
+% % colorbar
+% % xlabel("age")
+% % ylabel("productivity")
+% % set(gca, 'FontSize', 24);
+% % set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+% % title("probability of tech adoption");
+% % address = 'D:\AMR_github\graphs\transition_prob.png';
+% % saveas(gcf,address)
+% % annotation('textarrow',[1,10],'String','y = x ')
+% %% new tech ss (with two techs)
+% tech_dist   = (1+diff_gr)^diff_gr_t;
+% 
+% [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,...
+%     trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,...
+%     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n_final,exit_o_final] = ...
+%     Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
+%     v_tol,dist_tol,fco,e_p,d_0/(tech_dist^(1/(1-alpha))),c_of_e,c_e_new,dem_tol,tech_dist,...
+%     e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit);
+% 
+% save ss_coal_gas
+load ss_coal_gas
 %%
-
-ScSz = get(0, 'ScreenSize');
-
-figure(1)
-surf(1+a_grid,age_g,v_new_resh_old);
-xlabel('productivity'), ylabel('age')
-title('value of firm in each state')
-set(gca,'Fontsize',32)
-set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-%%
-dist_resh = (reshape(dist_old',a_num_g,age_num))';
-figure(22)
-surf(1+a_grid,age_g(1:50),(dist_resh(1:50,:)));
-xlabel('productivity'), ylabel('age')
-title('mass of firms in each state ')
-set(gca,'Fontsize',32)
-set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-%%
-figure(6)
-temp            = reshape(trans_prob_old,a_num_g,age_num);
-temp(temp==0)   = NaN;
-surf(age_g,1+a_grid,temp,'edgecolor','none')
-% colormap(map_color)
-% shading("interp")
-colorbar
-xlabel("age")
-ylabel("productivity")
-set(gca, 'FontSize', 24);
-set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-title("probability of tech adoption");
-address = 'D:\AMR_github\graphs\transition_prob.png';
-% saveas(gcf,address)
-% annotation('textarrow',[1,10],'String','y = x ')
-%% new tech ss (with two techs)
-tech_dist   = (1+diff_gr)^diff_gr_t;
-
-[trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,...
-    trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,...
-    age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n_final,exit_o_final] = ...
-    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
-    v_tol,dist_tol,fco,e_p,d_0/(tech_dist^(1/(1-alpha))),c_of_e,c_e_new,dem_tol,tech_dist,...
-    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit);
-%%
-ScSz = get(0, 'ScreenSize');
-figure(1)
-surf(1+a_grid,age_g,v_new_resh_n);
-xlabel('productivity'), ylabel('age')
-title('value of firm in each state')
-set(gca,'Fontsize',32)
-set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-
-dist_resh = (reshape(dist_n',a_num_g,age_num))';
-figure(2)
-surf(1+a_grid,age_g(1:50),(dist_resh(1:50,:)));
-xlabel('productivity'), ylabel('age')
-title('mass of firms in each state ')
-set(gca,'Fontsize',32)
-set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-
-%%
-ScSz = get(0, 'ScreenSize');
-figure(6)
-temp            = reshape(trans_prob_n,a_num_g,age_num);
-temp(temp==0)   = NaN;
-surf(age_g,1+a_grid,temp,'edgecolor','none')
-%surface(age_g,1+a_grid,reshape(temp,a_num_g,age_num),'edgecolor','none')
-% colormap(map_color)
-% shading("interp")
-xlabel("age")
-ylabel("productivity")
-set(gca, 'FontSize', 32);
-colorbar
-title("probability of tech adoption for new-tech generators")
-set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-% address = 'D:\AMR_github\graphs\transition_prob_n.png';
-% saveas(gcf,address)
-%%
-ScSz = get(0, 'ScreenSize');
-figure(7)
-temp            = reshape(trans_prob_o,a_num_g,age_num);
-temp(temp==0)   = NaN;
-surf(age_g,1+a_grid,temp,'edgecolor','none')
-% surface(age_g,1+a_grid,reshape(temp,a_num_g,age_num),'edgecolor','none')
-% colormap(map_color)
-% shading("interp")
-xlabel("age")
-ylabel("productivity")
-set(gca, 'FontSize', 32);
-title("probability of tech adoption for old")
+% ScSz = get(0, 'ScreenSize');
+% figure(1)
+% surf(1+a_grid,age_g,v_new_resh_n);
+% xlabel('productivity'), ylabel('age')
+% title('value of firm in each state')
+% set(gca,'Fontsize',32)
+% set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+% 
+% dist_resh = (reshape(dist_n',a_num_g,age_num))';
+% figure(2)
+% surf(1+a_grid,age_g(1:50),(dist_resh(1:50,:)));
+% xlabel('productivity'), ylabel('age')
+% title('mass of firms in each state ')
+% set(gca,'Fontsize',32)
+% set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+% 
+% %%
+% ScSz = get(0, 'ScreenSize');
+% figure(6)
+% temp            = reshape(trans_prob_n,a_num_g,age_num);
+% temp(temp==0)   = NaN;
+% surf(age_g,1+a_grid,temp,'edgecolor','none')
+% %surface(age_g,1+a_grid,reshape(temp,a_num_g,age_num),'edgecolor','none')
+% % colormap(map_color)
+% % shading("interp")
+% xlabel("age")
+% ylabel("productivity")
+% set(gca, 'FontSize', 32);
 % colorbar
-% annotation('textarrow',[1,10],'String','y = x ')
-title("probability of tech adoption for old-tech generators")
-set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-% address = 'D:\AMR_github\graphs\transition_prob_o.png';
-% saveas(gcf,address)
-
-dist_resh = (reshape(dist_o',a_num_g,age_num))';
-figure(2)
-surf(1+a_grid,age_g,(dist_resh));
-xlabel('productivity'), ylabel('age')
-title('log of mass of firms in each state ')
-set(gca,'Fontsize',32)
-set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-
-figure(1)
-surf(1+a_grid,age_g,v_new_resh_o);
-xlabel('productivity'), ylabel('age')
-title('value of firm in each state')
-set(gca,'Fontsize',32)
-set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+% title("probability of tech adoption for new-tech generators")
+% set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+% % address = 'D:\AMR_github\graphs\transition_prob_n.png';
+% % saveas(gcf,address)
+% %%
+% ScSz = get(0, 'ScreenSize');
+% figure(7)
+% temp            = reshape(trans_prob_o,a_num_g,age_num);
+% temp(temp==0)   = NaN;
+% surf(age_g,1+a_grid,temp,'edgecolor','none')
+% % surface(age_g,1+a_grid,reshape(temp,a_num_g,age_num),'edgecolor','none')
+% % colormap(map_color)
+% % shading("interp")
+% xlabel("age")
+% ylabel("productivity")
+% set(gca, 'FontSize', 32);
+% title("probability of tech adoption for old")
+% % colorbar
+% % annotation('textarrow',[1,10],'String','y = x ')
+% title("probability of tech adoption for old-tech generators")
+% set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+% % address = 'D:\AMR_github\graphs\transition_prob_o.png';
+% % saveas(gcf,address)
+% 
+% dist_resh = (reshape(dist_o',a_num_g,age_num))';
+% figure(2)
+% surf(1+a_grid,age_g,(dist_resh));
+% xlabel('productivity'), ylabel('age')
+% title('log of mass of firms in each state ')
+% set(gca,'Fontsize',32)
+% set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+% 
+% figure(1)
+% surf(1+a_grid,age_g,v_new_resh_o);
+% xlabel('productivity'), ylabel('age')
+% title('value of firm in each state')
+% set(gca,'Fontsize',32)
+% set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 %%
 %%%% MIT transition 
 %%% In the transition each frim has firm on the old tech has would
@@ -275,7 +278,7 @@ conv_rate       = 0.15;
 
 
 
-
+save final_coal_gas
 %%
 
 ScSz = get(0, 'ScreenSize');

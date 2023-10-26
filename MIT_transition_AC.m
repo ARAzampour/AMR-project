@@ -115,8 +115,8 @@ price_ratio_o_q = 0.9*ones(1,trans_t);
 %%%
 input_adjsut    = 0.2;         %%%% the maximum variation in input price
 output_adjsut   = 0.1/(max(e_n_eps,e_o_eps)); %%% max var in output prices
-measure_adj_n   = 0.02/(e_n_eps); %%%% the maximum variation in newtech measure
-measure_adj_o   = 0.02/(e_o_eps); %%%% the maximum variation in newtech measure
+measure_adj_n   = min(0.02/(e_n_eps),1); %%%% the maximum variation in newtech measure
+measure_adj_o   = min(0.02/(e_o_eps),1); %%%% the maximum variation in newtech measure
 
 
 %%% this part is used to model the decay of the new generators in the
@@ -195,7 +195,12 @@ for h=1:1:max_iter_measure
 %             pi_contemp_new(pi_contemp_neg_new) = 0;
     
             
-            
+            c_a_new_temp    = c_a_new_vec(1:i1);
+            c_a_new_temp    = [flip(c_a_new_temp) ones(1,age_num-i1)*c_a_new_vec(1)];
+            c_a_new_temp    = kron(c_a_new_temp',ones(a_num_g^2,1));
+            %%% those whor are old and have not updated should pay their
+            %%% respective cost of adoption (it matters for solar
+            %%% transition)
             
             v_p_n_expand  = kron(v_p_n_vec,ones(a_num_g,1));
             v_n_adopt     = [kron(ones(age_reduc,a_num_g),v_of_new(1,:));...
@@ -203,14 +208,14 @@ for h=1:1:max_iter_measure
             v_n_adopt_p   = v_n_adopt';
             v_n_adopt_vec = v_n_adopt_p(:);
 
-            temp_smoother = (1-exp(-(v_n_adopt_vec-c_of_a*(1)-v_p_n_expand)*exit_sm));
+            temp_smoother = (1-exp(-(v_n_adopt_vec-c_a_new_temp-v_p_n_expand)*exit_sm));
             temp_smoother(isinf(temp_smoother)) = -1000;
         
-            v_n_best      = v_p_n_expand + (v_n_adopt_vec-c_of_a*(1)-v_p_n_expand)...
-                .*(v_n_adopt_vec-c_of_a*(1)>v_p_n_expand).* ...
+            v_n_best      = v_p_n_expand + (v_n_adopt_vec-c_a_new_temp-v_p_n_expand)...
+                .*(v_n_adopt_vec-c_a_new_temp>v_p_n_expand).* ...
                 temp_smoother;
 
-            choice_vec_n  = (v_n_adopt_vec-c_of_a*(1)>v_p_n_expand).* ...
+            choice_vec_n  = (v_n_adopt_vec-c_a_new_temp>v_p_n_expand).* ...
                 temp_smoother;
 
             %%% here I've also smoothed the adoption policy, this is because
@@ -709,8 +714,8 @@ for h=1:1:max_iter_measure
 
         p_E_prev            = p_E_vec;
         dem_err_pre         = demand_err;
-        p_e_o_vec_pre       = p_e_o;
-        p_e_n_vec_pre       = p_e_n;
+        p_e_o_vec_pre       = p_e_o_vec;
+        p_e_n_vec_pre       = p_e_n_vec;
         price_ratio_n_p     = price_ratio_n;
         price_ratio_o_p     = price_ratio_o;
         price_ratio_n_q     = price_ratio_n_p;
@@ -723,8 +728,8 @@ for h=1:1:max_iter_measure
     value_err_n   = reshape(temp(:),trans_t,1)-c_e_new_vec';
     temp          = sum(a_prob.*v_new_resh_o_all(1,:,:),2);
     value_err_o   = temp(:)-c_of_e;
-    if mean((abs(value_err_n))<2*dem_tol|(m_of_entry_n)'<v_tol)==1 && ...
-            mean((abs(value_err_o))<2*dem_tol|(m_of_entry_o)'<v_tol)==1 && ...
+    if mean((abs(value_err_n))<2*dem_tol|(m_of_entry_n)'<v_tol)>=0.95 && ...
+            mean((abs(value_err_o))<2*dem_tol|(m_of_entry_o)'<v_tol)>=0.95 && ...
             mean(sum(p_conv_o_all_prev.*conv_decrease_all.*dist_o_all',1)./measure_vec_o<10^-4)==1
         if abs(sum(final_dist_n)-measure_vec_n(end))<dem_tol
             fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
