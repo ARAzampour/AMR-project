@@ -128,11 +128,11 @@ price_ratio_o_q = 0.9;
 %%%
 input_adjsut    = 0.3;         %%%% the maximum variation in input price
 output_adjsut   = 0.15/(max(e_n_eps,e_o_eps)); %%% max var in output prices
-measure_adj_n   = min(0.02/(e_n_eps),1); %%%% the maximum variation in newtech measure
-measure_adj_o   = min(0.02/(e_o_eps),1); %%%% the maximum variation in newtech measure
+measure_adj_n   = min(0.02/(e_n_eps),0.1); %%%% the maximum variation in newtech measure
+measure_adj_o   = min(0.02/(e_o_eps),0.1); %%%% the maximum variation in newtech measure
 
 
-
+%%
 for h=1:1:max_iter_measure
     for k=1:1:max_iter_price
         pi_contemp_new      = ((1+a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
@@ -495,9 +495,9 @@ for h=1:1:max_iter_measure
 
     
 
-    value_err_n   = a_prob*(v_new_resh_n(1,:))'-c_e_new; %%% let's try 
+    value_err_n   = max(a_prob*(v_new_resh_n(1,:))'-c_e_new,-1/(0.5*measure_adj_n)); %%% let's try 
                                 %%%% different entry cost for techs
-    value_err_o   = a_prob*(v_new_resh_o(1,:))'-c_of_e;
+    value_err_o   = max(a_prob*(v_new_resh_o(1,:))'-c_of_e,-1/(0.5*measure_adj_o));
 
 
     if abs(value_err_n)>0.5
@@ -529,7 +529,7 @@ for h=1:1:max_iter_measure
             ,value_err_n,value_err_o,h);
         break;
     end
-    if h==10
+    if h==1
         save solar_gas_test
     end
 
