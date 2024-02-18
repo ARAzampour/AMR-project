@@ -5,7 +5,8 @@ function [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,.
     v_tol,~,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,fin_p_e_n,init_p_e_n,...
-    fin_p_e_o,init_p_e_o,rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final,exo_exit)
+    fin_p_e_o,init_p_e_o,rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final,...
+    exo_exit,e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p)
 
 %%% conv_rate is used to make the conversion slower, the reason is that
 %%% suddent conversion creates swinging features
@@ -123,6 +124,9 @@ measure_adj_o   = min(0.02/(e_o_eps),1); %%%% the maximum variation in newtech m
 %%% period of growth in new generators' productivity, this is beacuse the
 %%% new ones that have not updated are lagging behind
 [~,temp_index_grid] = max(a_g_nex<1+a_grid,[],2);
+if temp_index_grid(end) == 1
+    temp_index_grid(end) = a_num_g;
+end
 temp_index_grid(temp_index_grid==1)         = 2;
 ratio_of_transition = (1+a_grid(temp_index_grid)'-a_g_nex)./(a_grid(temp_index_grid)'-a_grid(temp_index_grid-1)');
 ratio_of_transition(ratio_of_transition>1)  = 1;
@@ -135,7 +139,26 @@ lag_grow_compensate = (1+diff_gr).*((1:1:trans_t)<diff_gr_t)+...
     1*((1:1:trans_t)>=diff_gr_t);                   %%% the notion here
                 %%%% is that beacuase in each period the dist of last
                 %%%% period is used to get the profit, production and input
-                %%%% these fundtions should also belong to the last period
+                %%%% these functions should also belong to the last period
+
+%%%
+input_all_n         = init_input_n*ones(trans_t,1);
+input_all_o         = init_input_o*ones(trans_t,1);
+
+%%% the price of input should also be stable between two iterations. The
+%%% following variables are used to ensure that
+input_adjsut_o_all  = zeros(trans_t,1);
+input_adjsut_n_all  = zeros(trans_t,1);
+i_a_param           = 0.4;
+
+
+%%%%%% Important note %%%%%%%%
+%%% In the transition first the output (and its decision) happens and then
+%%% the decisions on adoption (conversion) and exit are made. This measn
+%%% that in the period t of the transtion a generator would make it
+%%% decsions for the period t+1 and therefore in the adjustment of measures
+%%% of entry also the value of entry for the period t+1 should be
+%%% considered
 %%
 for h=1:1:max_iter_measure
 
@@ -147,16 +170,25 @@ for h=1:1:max_iter_measure
     p_conv_o_all_prev(p_conv_o_all_prev<0)      = 0;
     converion_o_all_pre(converion_o_all_pre<0)  = 0;
 
+    measure_adj_n = (h<500)*measure_adj_n + 0.1*(h<1000&&h>=500) + 0.05*(h>=1000);
+    measure_adj_o = (h<500)*measure_adj_o + 0.1*(h<1000&&h>=500) + 0.05*(h>=1000);
+
     for k=1:1:max_iter_price
 
         v_of_new    = final_val2;
         v_of_old    = final_val1;
+
+      
+        
 
         dist_o_all_prev = dist_o_all;
         dist_n_all_prev = dist_n_all; %%%%% this is used for debuggin it
                         %%%% should be erased afterwards with it's related
                         %%%% codes
         
+        % P_E_vec_expan = [p_E_vec final_p_E];
+        % p_e_n_vec_exp = [p_e_n_vec fin_p_e_n];
+        % p_e_o_vec_exp = [p_e_o_vec fin_p_e_o];
 
         price_ratio_n = p_E_vec./p_e_n_vec;
         price_ratio_o = p_E_vec./p_e_o_vec;
@@ -185,11 +217,17 @@ for h=1:1:max_iter_measure
                     v_p_n_vec(temp_index_grid_exp-1).*(rat_of_tran_exp);
             end
 
-            pi_contemp_new      = ((1+a_grid).*(alpha*p_E_vec(i1)/p_e_n_vec(i1))^alpha.*(1/(1+a_grow)).^age_g)...
-                .^(1/(1-alpha))*(1-alpha);
-            
+            % pi_contemp_new      = ((1+a_grid).*(alpha*p_E_vec(i1)/p_e_n_vec(i1))^alpha.*(1/(1+a_grow)).^age_g)...
+            %     .^(1/(1-alpha))*(1-alpha);
+
+            eff_n_vec           = (((1+a_grid).*alpha*p_E_vec(i1)/p_e_n_vec(i1)...
+                .*(((1+a_grid).^gamma)./(1+a_grow)).^age_g).^(1/(1-alpha)))';
+            eff_n_vec           = min(eff_n_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+                        %%% the amount of input a generator can use
+
+            cap_contemp_new     = (1+a_grid)'.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
         
-            pi_contemp_new      = pi_contemp_new - fco;
+            pi_contemp_new      = p_E_vec(i1).*cap_contemp_new'-p_e_n_vec(i1).*eff_n_vec'- fco;
         
 %             pi_contemp_neg_new  = pi_contemp_new<0;
 %             pi_contemp_new(pi_contemp_neg_new) = 0;
@@ -232,11 +270,13 @@ for h=1:1:max_iter_measure
         
             v_new_n       = sum(v_n_best_resh.*repmat(prob_matrix,age_num,1),2);
             v_new_resh_n  = (reshape(v_new_n,a_num_g,age_num))';
-            v_new_resh_n  = pi_contemp_new + beta*(1-exo_exit)*v_new_resh_n;
-
-            %%% those who get non-positive npv should exit
+            %%% those who get non-positive npv in the upcoming periods should exit
             v_n_neg           = v_new_resh_n<0;
             exiting_firm_n    = v_n_neg'+(1-v_n_neg').*(exp(-v_new_resh_n'*10^exit_sm));
+
+            v_new_resh_n  = pi_contemp_new + beta*(1-exo_exit)*v_new_resh_n;
+
+            
             exit_vec_n        = exiting_firm_n(:);
             policy_choice_n   = (1-exit_vec_n).*policy_choice_n;
 
@@ -268,11 +308,20 @@ for h=1:1:max_iter_measure
             prob_matrix     = prob_matrix_ss;
            
             %*lag_grow_compensate(i2)
-            pi_contemp_old      = ((1+a_grid)/tech_dist_vec(i2)...
-                .*(alpha*p_E_vec(i2)/p_e_o_vec(i2))^alpha.*(1/(1+a_grow)).^age_g)...
-                .^(1/(1-alpha))*(1-alpha);
+            % pi_contemp_old      = ((1+a_grid)/tech_dist_vec(i2)...
+            %     .*(alpha*p_E_vec(i2)/p_e_o_vec(i2))^alpha.*(1/(1+a_grow)).^age_g)...
+            %     .^(1/(1-alpha))*(1-alpha);
 
-            pi_contemp_old      = pi_contemp_old - fco;
+            eff_o_vec           = (((1+a_grid)/tech_dist_vec(i2).*alpha*p_E_vec(i2)...
+                /p_e_o_vec(i2).*(((1+a_grid).^gamma)./(1+a_grow)).^age_g)...
+            .^(1/(1-alpha)))';
+            eff_o_vec           = min(eff_o_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+                        %%% the amount of input a generator can use
+
+            cap_contemp_old     = (1+a_grid')/tech_dist_vec(i2)...
+                .*(((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_o_vec.^alpha);
+
+            pi_contemp_old      = p_E_vec(i2).*cap_contemp_old'-p_e_o_vec(i2).*eff_o_vec'- fco;
             
 %             pi_contemp_neg_old  = pi_contemp_old<0;
 %             pi_contemp_old(pi_contemp_neg_old) = 0;
@@ -314,6 +363,9 @@ for h=1:1:max_iter_measure
             %%%% closest new tech states when adjusted for it's decay
 
             [~,tech_conver_h] = max((1+a_grid)'/tech_dist_vec(i2)<(1+a_grid),[],2);
+            if tech_conver_h(end)==1
+                tech_conver_h(end) = a_num_g;
+            end
             tech_conver_h(tech_conver_h==1) = 2;
             ratio_tech_conver = ((1+a_grid)'/tech_dist_vec(i2)-(1+a_grid(tech_conver_h-1))')...
                 ./((1+a_grid(tech_conver_h))'-(1+a_grid(tech_conver_h-1))');
@@ -365,11 +417,13 @@ for h=1:1:max_iter_measure
             v_new_o       = (1-converion_old_temp).*v_new_o + converion_old_temp.*v_o_convert;
 
             v_new_resh_o  = (reshape(v_new_o,a_num_g,age_num))';
-            v_new_resh_o  = pi_contemp_old + beta*(1-exo_exit)*v_new_resh_o;
-
-            %%% those who get non-positive npv should exit
+            %%% those who get non-positive npv in the upcoming periods should exit
             v_o_neg           = v_new_resh_o<0; 
             exiting_firm_o    = v_o_neg'+(1-v_o_neg').*(exp(-v_new_resh_o'*10^exit_sm));
+
+            v_new_resh_o  = pi_contemp_old + beta*(1-exo_exit)*v_new_resh_o;
+
+            
             exit_vec_o        = exiting_firm_o(:);
             policy_choice_o   = (1-exit_vec_o).*(1-converion_old_temp).*policy_choice_o;
             p_conversion_o    = sum(converion_old.*(1-exit_vec_o).*repmat(prob_matrix,age_num,1),2);
@@ -417,7 +471,7 @@ for h=1:1:max_iter_measure
 
         
         dist_ent        = zeros(1,age_num*a_num_g);
-        dist_ent(1:a_num_g) = 1/a_num_g;
+        dist_ent(1:a_num_g) = a_prob;
 
         
         for j=1:1:trans_t
@@ -431,10 +485,18 @@ for h=1:1:max_iter_measure
                 prob_matrix     = prob_matrix_tr;
             end
 
-            cap_contemp_new   = (((1+a_grid).*(alpha*p_E_vec(j)/p_e_n_vec(j))^alpha.*(1/(1+a_grow)).^age_g)...
-                .^(1/(1-alpha)))';
-            eff_n_vec         = (((1+a_grid).*alpha*p_E_vec(j)/p_e_n_vec(j).*(1/(1+a_grow)).^age_g)...
-            .^(1/(1-alpha)))';
+            % cap_contemp_new   = (((1+a_grid).*(alpha*p_E_vec(j)/p_e_n_vec(j))^alpha.*(1/(1+a_grow)).^age_g)...
+            %     .^(1/(1-alpha)))';
+            % eff_n_vec         = (((1+a_grid).*alpha*p_E_vec(j)/p_e_n_vec(j).*(1/(1+a_grow)).^age_g)...
+            % .^(1/(1-alpha)))';
+
+            eff_n_vec           = (((1+a_grid).*alpha*p_E_vec(j)/p_e_n_vec(j)...
+                .*(((1+a_grid).^gamma)./(1+a_grow)).^age_g).^(1/(1-alpha)))';
+            eff_n_vec           = min(eff_n_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+                            %%% the amount of input a generator can use
+    
+            cap_contemp_new     = (1+a_grid)'.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
+            
             
             exit_vec_n                      = exit_vec_n_all(:,j);
             policy_choice_n                 = policy_choice_n_all(:,:,j);
@@ -535,9 +597,14 @@ for h=1:1:max_iter_measure
                 a_num_g*age_num,a_num_g*age_num);
             
             cap_new(j)    = dist_n * cap_contemp_new(:);
-            p_e_n_vec(j)  = (dist_n * eff_n_vec(:)/e0_n_vec(j)).^e_n_eps;
-            p_e_n_vec(j)  = p_e_n_vec_pre(j) + 0.1*input_adjsut/(ceil(k/10))...
+            input_use_n   = dist_n * eff_n_vec(:);
+            
+            p_e_n_vec(j)  = (input_use_n/e0_n_vec(j)*...
+                (input_use_n/input_all_n(j))^penalty_n).^e_n_eps;
+            kk      = k*(k<10) + 10*(k>=10); 
+            input_adjsut_n_all(j)   = i_a_param*input_adjsut/(ceil(kk/10))...
                 *(-p_e_n_vec_pre(j)+p_e_n_vec(j));
+            p_e_n_vec(j)  = p_e_n_vec_pre(j) + input_adjsut_n_all(j);
             exit_n(j)     = sum(dist_n-dist_new_n);
             dist_conv     = dist_o_prev*conv_matrix;
             conv_entry(j) = sum(dist_conv);
@@ -547,6 +614,7 @@ for h=1:1:max_iter_measure
             dist_n        = dist_new_n;
 
             dist_n_all(j,:)  = dist_n;
+            input_all_n(j+1) =input_use_n;
 
             cap_n_temp(j) = dist_n_prev*cap_contemp_new(:);
 
@@ -575,12 +643,21 @@ for h=1:1:max_iter_measure
             prob_matrix     = prob_matrix_ss;
 
 %              tic  *lag_grow_compensate(j)         
-            cap_contemp_old   = (((1+a_grid)/tech_dist_vec(j)...
-                .*(alpha*p_E_vec(j)/p_e_o_vec(j))^alpha.*(1/(1+a_grow)).^age_g)...
+            % cap_contemp_old   = (((1+a_grid)/tech_dist_vec(j)...
+            %     .*(alpha*p_E_vec(j)/p_e_o_vec(j))^alpha.*(1/(1+a_grow)).^age_g)...
+            %     .^(1/(1-alpha)))';
+            % eff_o_vec           = (((1+a_grid)/tech_dist_vec(j)...
+            %     .*alpha*p_E_vec(j)/p_e_o_vec(j).*(1/(1+a_grow)).^age_g)...
+            % .^(1/(1-alpha)))';
+
+            eff_o_vec           = (((1+a_grid)/tech_dist_vec(j).*alpha*...
+                p_E_vec(j)/p_e_o_vec(j).*(((1+a_grid).^gamma)./(1+a_grow)).^age_g)...
                 .^(1/(1-alpha)))';
-            eff_o_vec           = (((1+a_grid)/tech_dist_vec(j)...
-                .*alpha*p_E_vec(j)/p_e_o_vec(j).*(1/(1+a_grow)).^age_g)...
-            .^(1/(1-alpha)))';
+            eff_o_vec           = min(eff_o_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+                            %%% the amount of input a generator can use
+    
+            cap_contemp_old     = (1+a_grid')/tech_dist_vec(j).*...
+                (((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_o_vec.^alpha);
 
             exit_vec_o                      = exit_vec_o_all(:,j);
             policy_choice_o                 = policy_choice_o_all(:,:,j);
@@ -636,9 +713,18 @@ for h=1:1:max_iter_measure
             
             cap_old(j)    = dist_o * cap_contemp_old(:);
             conv_exit(j)  = sum(dist_o.*p_conversion_o');
-            p_e_o_vec(j)  = (dist_o * eff_o_vec(:)/e0_o).^e_o_eps;
-            p_e_o_vec(j)  = p_e_o_vec_pre(j)*1+0.1*input_adjsut/(ceil(k/10))...
+
+            input_use_o   = dist_o * eff_o_vec(:);
+            
+            p_e_o_vec(j)  = (input_use_o/e0_o*...
+                (input_use_o/input_all_o(j))^penalty_o).^e_o_eps;
+
+            kk      = k*(k<10) + 10*(k>=10); 
+
+            input_adjsut_o_all(j)   = i_a_param*input_adjsut/(ceil(kk/10))...
                 *(-p_e_o_vec_pre(j)+p_e_o_vec(j));
+            % p_e_o_vec(j)  = (dist_o * eff_o_vec(:)/e0_o).^e_o_eps;
+            p_e_o_vec(j)  = p_e_o_vec_pre(j)*1+input_adjsut_o_all(j);
             dist_new_o    = (dist_o.*(1-p_conversion_o')) *trans_matrix_o;
             exit_o(j)     = sum(dist_o-dist_new_o);
             dist_new_o    = dist_new_o + m_of_entry_o(j)*dist_ent;
@@ -659,7 +745,7 @@ for h=1:1:max_iter_measure
             measure_vec_o(j) = sum(dist_o);
 
             dist_o_prev      = dist_o_all_prev(j,:);
-
+            input_all_o(j+1) = input_use_o;
             
 %             toc
         
@@ -668,8 +754,12 @@ for h=1:1:max_iter_measure
         fprintf("MIT distribution of old is found\n");
         
         total_cap   = cap_old + cap_new;
+        tot_cap_lag = zeros(size(total_cap));
+        tot_cap_lag(2:end)  = total_cap(1:end-1);
+        tot_cap_lag(1)      = d_0/(init_p_E^e_p);
         %(1+diff_gr)*
-        suply_price = ((d_0./(tech_dist_vec.^(1/(1-alpha))))./total_cap).^(1/e_p);
+        suply_price = ((d_0./(tech_dist_vec.^(1/(1-alpha))))./(total_cap.*...
+            (total_cap./tot_cap_lag).^penalty_p)).^(1/e_p);
         
         demand_err  = suply_price - p_E_vec;
         
@@ -680,16 +770,20 @@ for h=1:1:max_iter_measure
         demand_err(demand_err>25)   = 25;
         demand_err(demand_err<-25)  = -25;
         
-        if mean(abs(demand_err))<dem_tol
-            fprintf("demand and supply has converged and the prices is ..." + ...
-                "%2.4f in %2.1f periods\n",mean(p_E_vec),k);
-            break;
-        end
         
         p_E_vec     = p_E_vec + 0.5*output_adjsut*demand_err/((ceil(k/20)));
 
         p_E_vec     = p_E_vec.*(sign(demand_err)==sign(dem_err_pre)) +...
             (p_E_vec+p_E_prev)/2.*(sign(demand_err)~=sign(dem_err_pre));
+
+        if mean(abs(demand_err)<dem_tol | (abs(p_E_prev-p_E_vec)<5*v_tol & k>max_iter_price/5))>0.99 ...
+                && mean(abs(input_adjsut_o_all)<5*v_tol)>0.99 ...
+                && mean(abs(input_adjsut_n_all)<5*v_tol)>0.99
+            fprintf("demand and supply has converged and the prices is ..." + ...
+                "%2.4f in %2.1f periods\n",mean(p_E_vec),k);
+            break;
+        end
+        
 
 
         p_e_n_vec   = p_e_n_vec.*(sign(price_ratio_n-price_ratio_n_p)==sign(price_ratio_n_p-price_ratio_n_q))...
@@ -716,14 +810,19 @@ for h=1:1:max_iter_measure
         dem_err_pre         = demand_err;
         p_e_o_vec_pre       = p_e_o_vec;
         p_e_n_vec_pre       = p_e_n_vec;
-        price_ratio_n_p     = price_ratio_n;
-        price_ratio_o_p     = price_ratio_o;
         price_ratio_n_q     = price_ratio_n_p;
         price_ratio_o_q     = price_ratio_o_p;
+        price_ratio_n_p     = price_ratio_n;
+        price_ratio_o_p     = price_ratio_o;
+        
 
         
         
     end
+    v_new_resh_n_all(:,:,1:end-1)   = v_new_resh_n_all(:,:,2:end);
+    v_new_resh_n_all(:,:,end)       = final_val2;
+    v_new_resh_o_all(:,:,1:end-1)   = v_new_resh_o_all(:,:,2:end);
+    v_new_resh_o_all(:,:,end)       = final_val1;
     temp          = sum(a_prob.*v_new_resh_n_all(1,:,:),2);
     value_err_n   = reshape(temp(:),trans_t,1)-c_e_new_vec';
     temp          = sum(a_prob.*v_new_resh_o_all(1,:,:),2);
@@ -790,6 +889,6 @@ for h=1:1:max_iter_measure
 
     measure_vec_n_rec(h,:)  = measure_vec_n;
     measure_vec_o_rec(h,:)  = measure_vec_o;
-    price_vec_rec(h,:)      = p_E_vec       ;
+    price_vec_rec(h,:)      = p_E_vec;
 end
 end

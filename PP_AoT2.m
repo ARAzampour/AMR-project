@@ -21,7 +21,7 @@ c_a_new = 2; %20;   %%%% setting a different adoption cost for the new tech
                 %%%% might be a solution to get a two tech SS; for gas and
                 %%%% coal case they will be set to be the same
 
-max_iter    = 10000;
+max_iter    = 30000;
 v_tol       = 10^-5;
 dist_tol    = 10^-7;
 
@@ -33,7 +33,7 @@ age_num = 200;
 
 
 fco     = 0.1;
-e_p     = 0.1;    %%% this demand elasticity is estimated around 0.1 but more 
+e_p     = 1;    %%% this demand elasticity is estimated around 0.1 but more 
                 %%% papers should be read about it (in the long run it's 1
                 %%% but I think we should use the short run estimate)
 
@@ -52,7 +52,7 @@ trans_t  = 200;
 %%% there can be also an efficiency wedge that has been there without any
 %%% growth; this would be the case for solar and gas
 diff_gr_t       = 1;
-diff_gr         = 0.02;
+diff_gr         = 0.0;
 a_grow          = 0.02;
 % diff_gr_cons    = (1+0.4)^diff_gr_t;    %%% to be used for solar case
 diff_gr_cons    = 1;                    %%% to be used for gas and coal
@@ -62,13 +62,13 @@ diff_gr_cons    = 1;                    %%% to be used for gas and coal
 e0_n    = 1.2;
 e0_o    = 1;
 e_n_eps = 0;
-e_o_eps = 1;
+e_o_eps = 0.2;
 
 %%% let's define a high fixed cost a starting point for the new_tech guys
 %%% and it's transition in a declining exponential phase; in this case
 %%% e0_n_vec would be a constant.
-c_a_new_1st     = 10;
-c_e_new_1st     = 100;
+c_a_new_1st     = 3.35;
+c_e_new_1st     = 33.5;
 
 c_a_new_vec     = c_a_new + (c_a_new_1st-c_a_new)*exp(linspace(0,-20,trans_t));
 c_e_new_vec     = c_e_new + (c_e_new_1st-c_e_new)*exp(linspace(0,-20,trans_t));
@@ -97,9 +97,20 @@ age_reduc   = 15;
 
 %%% exogenous exit
 exo_exit    = 0.01;
+
+%%% maximum input is put in place since there is naturally a maximum input
+%%% that a generator can take in
+
+e_max       = 30;
+
+
+%%% we have set that generators with a higher initial efficiency would
+%%% depreciate slower, this incorporated using ((1+a_grid).^gamma).^t
+
+gamma       = 0.0075;
 %% old tech ss
-
-
+vec_c_a_1st     = zeros(100,1);
+vec_c_e_1st     = zeros(100,1);
 % [trans_prob_old,v_new_old,v_new_resh_old,dist_old,...
 %     trans_matrix_old,age_g,a_grid,~,pi_contemp,p_E_old,m_of_firms_old] = ...
 % One_tech_ss(a_grow,alpha,a_bar,beta,c_of_a,a_lamb,p_e,a_num_g,age_num,max_iter,...
@@ -113,14 +124,25 @@ exo_exit    = 0.01;
 %%%%% transition is happening 
 
 tech_dist   = 1;
+% for tt = 1:1:100 
+    [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,cap_contemp_new,...
+        trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,cap_contemp_old,...
+        age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st,...
+        exit_n_1st,exit_o_1st] = ...
+        Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
+        v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
+        e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
-[trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,...
-    trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,...
-    age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st,...
-    exit_n_1st,exit_o_1st] = ...
-    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
-    v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
-    e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit);
+    error_ss    = dist_n_1st*cap_contemp_new(:)/(dist_n_1st*cap_contemp_new(:)+dist_old*cap_contemp_old(:))-0.075;
+%     if abs(error_ss)<0.025
+%         break;
+%     else
+%         c_e_new_1st     = c_e_new_1st*(1+0.1*error_ss);
+%         c_a_new_1st     = c_a_new_1st*(1+0.1*error_ss);
+%         vec_c_a_1st(tt) = c_a_new_1st;
+%         vec_c_e_1st(tt) = c_e_new_1st;
+%     end
+% end
 
 
 % save results_with_highAC_low(ca)
@@ -137,48 +159,48 @@ tech_dist   = 1;
 % save results_with_highAC_low(ca)_low(age_reduc)
 
 %%
-% 
-% ScSz = get(0, 'ScreenSize');
-% 
-% figure(1)
-% surf(1+a_grid,age_g,v_new_resh_old);
-% xlabel('productivity'), ylabel('age')
-% title('value of firm in each state')
-% set(gca,'Fontsize',32)
-% set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-% %%
-% dist_resh = (reshape(dist_old',a_num_g,age_num))';
-% figure(22)
-% surf(1+a_grid,age_g(1:50),(dist_resh(1:50,:)));
-% xlabel('productivity'), ylabel('age')
-% title('mass of firms in each state ')
-% set(gca,'Fontsize',32)
-% set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-% %%
-% figure(6)
-% temp            = reshape(trans_prob_old,a_num_g,age_num);
-% temp(temp==0)   = NaN;
-% surf(age_g,1+a_grid,temp,'edgecolor','none')
-% % colormap(map_color)
-% % shading("interp")
-% colorbar
-% xlabel("age")
-% ylabel("productivity")
-% set(gca, 'FontSize', 24);
-% set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
-% title("probability of tech adoption");
+
+ScSz = get(0, 'ScreenSize');
+
+figure(1)
+surf(1+a_grid,age_g,v_new_resh_old);
+xlabel('productivity'), ylabel('age')
+title('value of firm in each state')
+set(gca,'Fontsize',32)
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+%%
+dist_resh = (reshape(dist_old',a_num_g,age_num))';
+figure(22)
+surf(1+a_grid,age_g(1:50),(dist_resh(1:50,:)));
+xlabel('productivity'), ylabel('age')
+title('mass of firms in each state ')
+set(gca,'Fontsize',32)
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+%%
+figure(6)
+temp            = reshape(trans_prob_old,a_num_g,age_num);
+temp(temp==0)   = NaN;
+surf(age_g,1+a_grid,temp,'edgecolor','none')
+% colormap(map_color)
+% shading("interp")
+colorbar
+xlabel("age")
+ylabel("productivity")
+set(gca, 'FontSize', 24);
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
+title("probability of tech adoption");
 % address = 'D:\AMR_github\graphs\transition_prob.png';
 % saveas(gcf,address)
 % annotation('textarrow',[1,10],'String','y = x ')
 %% new tech ss (with two techs)
 tech_dist   = (1+diff_gr)^diff_gr_t;
 
-[trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,...
-    trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,...
+[trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,cap_contemp_n2,...
+    trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,cap_contemp_o2,...
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n_final,exit_o_final] = ...
     Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0/(tech_dist^(1/(1-alpha))),c_of_e,c_e_new,dem_tol,tech_dist,...
-    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit);
+    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
 save ss_gas_solar
 %%
@@ -263,8 +285,23 @@ final_val1      = v_new_resh_o;
 init_dist_o     = dist_old;
 init_dist_n     = dist_n_1st; %%% be aware of the necessary changes when 
                             %%% a one-tech ss
-c_conver        = 50;
+c_conver        = 500;
 conv_rate       = 0.15;
+
+penalty_p       = 1; %%% demand is also less elastic in the transition
+penalty_n       = 1;
+penalty_o       = 1; %%% this is the effect of deviation from last year's input
+                        %%% for the whole submarket, e.g. a 10% increase in
+                        %%% demand would require 20% increase in supply
+
+eff_n_vec           = (((1+a_grid).*alpha*p_E_old/p_e_n_1st.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g)...
+.^(1/(1-alpha)))';
+eff_n_vec           = min(eff_n_vec,e_max*(1+a_grid)');
+eff_o_vec           = (((1+a_grid).*alpha*p_E_old/p_e_o_1st.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g)...
+.^(1/(1-alpha)))';
+eff_o_vec           = min(eff_o_vec,e_max*(1+a_grid)');
+init_input_n = dist_n_1st*eff_n_vec(:)
+init_input_o = dist_old*eff_o_vec(:)
 
 [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,...
     trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_e_n_vec,...
@@ -273,7 +310,8 @@ conv_rate       = 0.15;
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_1st,p_e_o,p_e_o_1st,...
-    rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final,exo_exit);
+    rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final,exo_exit,...
+    e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p);
 
 
 

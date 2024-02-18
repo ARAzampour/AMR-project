@@ -1,9 +1,9 @@
-function [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,...
-    trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,...
+function [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,cap_contemp_new,...
+    trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,cap_contemp_old,...
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n,exit_o] = ...
     Two_tech_ss_AC(a_grow,alpha,~,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new,dem_tol,tech_dist,...
-    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit)
+    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma)
 
 % a_grid  =  expinv(linspace(0,0.999,a_num_g),a_lamb);
 a_grid  = expinv(1-exp(linspace(log(1),log(0.001),a_num_g)),a_lamb); %%% here
@@ -105,13 +105,13 @@ v_of_old = pi_contemp_old;
 %%%% also to have the entry and exit equal to each other the measure of the
 %%%% firms should be the correct number
 
-m_of_firms_new  = 1;
-m_of_firms_old  = 1;
+m_of_firms_new  = 0.1;
+m_of_firms_old  = 4;
 
 value_err_n_pre = 0;
 value_err_o_pre = 0;
-m_of_new_pre    = 1;
-m_of_old_pre    = 1;
+m_of_new_pre    = 0.1;
+m_of_old_pre    = 4;
 
 p_e_n_pre       = 1;
 p_e_o_pre       = 1;
@@ -135,32 +135,48 @@ measure_adj_o   = min(0.02/(e_o_eps),0.1); %%%% the maximum variation in newtech
 %%
 for h=1:1:max_iter_measure
     for k=1:1:max_iter_price
-        pi_contemp_new      = ((1+a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
-            .^(1/(1-alpha))*(1-alpha);
         
-        cap_contemp_new     = (((1+a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
-            .^(1/(1-alpha)))';
 
-        eff_n_vec           = (((1+a_grid).*alpha*p_E/p_e_n.*(1/(1+a_grow)).^age_g)...
+        eff_n_vec           = (((1+a_grid).*alpha*p_E/p_e_n.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g)...
             .^(1/(1-alpha)))';
+        eff_n_vec           = min(eff_n_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+                        %%% the amount of input a generator can use
+
+        % pi_contemp_new      = ((1+a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
+        %     .^(1/(1-alpha))*(1-alpha);
+        cap_contemp_new     = (1+a_grid)'.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
+        
+        % cap_contemp_new     = (((1+a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
+        %     .^(1/(1-alpha)))';
+        pi_contemp_new      = p_E.*cap_contemp_new'-p_e_n.*eff_n_vec'- fco;
     
-        pi_contemp_new      = pi_contemp_new - fco;
+        % pi_contemp_new      = pi_contemp_new - fco;
     
 %         pi_contemp_neg_new  = pi_contemp_new<0;
 %         pi_contemp_new(pi_contemp_neg_new) = 0;
 
-        pi_contemp_old      = ((1+a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
-            .^(1/(1-alpha))*(1-alpha);
-        
-        eff_o_vec           = (((1+a_grid)/tech_dist.*alpha*p_E/p_e_o.*(1/(1+a_grow)).^age_g)...
-            .^(1/(1-alpha)))';
-        
-        cap_contemp_old     = (((1+a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
-            .^(1/(1-alpha)))';
-        pi_contemp_old      = pi_contemp_old - fco;
-        
+        % pi_contemp_old      = ((1+a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
+        %     .^(1/(1-alpha))*(1-alpha);
+        % 
+        % eff_o_vec           = (((1+a_grid)/tech_dist.*alpha*p_E/p_e_o.*(1/(1+a_grow)).^age_g)...
+        %     .^(1/(1-alpha)))';
+        % 
+        % cap_contemp_old     = (((1+a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
+        %     .^(1/(1-alpha)))';
+        % pi_contemp_old      = pi_contemp_old - fco;
+        % 
 %         pi_contemp_neg_old  = pi_contemp_old<0;
 %         pi_contemp_old(pi_contemp_neg_old) = 0;
+
+        eff_o_vec           = (((1+a_grid)/tech_dist.*alpha*p_E/p_e_o.*(((1+a_grid).^gamma)...
+            ./(1+a_grow)).^age_g).^(1/(1-alpha)))';
+        eff_o_vec           = min(eff_o_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+                        %%% the amount of input a generator can use
+
+        cap_contemp_old     = (1+a_grid')/tech_dist.*(((1+a_grid).^gamma)...
+            ./(1+a_grow)).^age_g'.*(eff_o_vec.^alpha);
+        
+        pi_contemp_old      = p_E.*cap_contemp_old'-p_e_o.*eff_o_vec'- fco;
 
 
 
@@ -398,7 +414,7 @@ for h=1:1:max_iter_measure
         dist_n          = m_of_firms_new*ones(1,age_num*a_num_g)/(age_num*a_num_g);
         dist_o          = m_of_firms_old*ones(1,age_num*a_num_g)/(age_num*a_num_g);
         dist_ent        = zeros(1,age_num*a_num_g);
-        dist_ent(1:a_num_g) = 1/a_num_g;
+        dist_ent(1:a_num_g) = a_prob;
 
         
         for j=1:1:max_iter
@@ -444,23 +460,18 @@ for h=1:1:max_iter_measure
         suply_price = (d_0/total_cap)^(1/e_p);
         
         demand_err  = suply_price - p_E;
-        
-        if abs(demand_err)<dem_tol || (abs(p_E_prev-p_E)<5*v_tol && k>max_iter_price/5)
-            fprintf("demand and supply has converged and the prices is ..." + ...
-                "%2.4f in %2.1f periods\n",p_E,k);
-            break;
+
+        if abs(demand_err)>100
+            demand_err = sign(demand_err)*100;
         end
         
         
-
+       
         p_E     = p_E + 0.1*output_adjsut*demand_err/(ceil(k/10));
 
         if sign(dem_err_pre)~=sign(demand_err)
             p_E = (p_E_prev + p_E)/2;
         end
-
-        p_E_prev    = p_E;
-        dem_err_pre = demand_err;
 
         price_ratio_n = p_E/p_e_n;
         price_ratio_o = p_E/p_e_o;
@@ -469,10 +480,13 @@ for h=1:1:max_iter_measure
         p_e_o       = (dist_o * eff_o_vec(:)/e0_o).^e_o_eps;
 
         % if abs(p_e_o_pre-p_e_o)>input_adjsut/(ceil(k/10))
-        p_e_o   = p_e_o_pre*1+0.1*input_adjsut/(ceil(k/10))*(-p_e_o_pre+p_e_o);
+        kk      = k*(k<10) + 10*(k>=10); 
+        input_adjsut_of_o   = 0.1*input_adjsut/(ceil(kk/10))*(-p_e_o_pre+p_e_o);
+        p_e_o   = p_e_o_pre*1+input_adjsut_of_o;
         % end
         % if abs(p_e_n_pre-p_e_n)>input_adjsut/(ceil(k/10))
-        p_e_n   = p_e_n_pre*1+0.1*input_adjsut/(ceil(k/10))*(-p_e_n_pre+p_e_n);
+        input_adjsut_of_n   = 0.1*input_adjsut/(ceil(kk/10))*(-p_e_n_pre+p_e_n);
+        p_e_n   = p_e_n_pre*1+input_adjsut_of_n;
         % end
 
         if sign(price_ratio_n-price_ratio_n_p)~=sign(price_ratio_n_p-price_ratio_n_q)
@@ -483,12 +497,24 @@ for h=1:1:max_iter_measure
             p_e_o = (p_e_o_pre + p_e_o)/2;
         end
 
+        if (abs(demand_err)<dem_tol || (abs(p_E_prev-p_E)<5*v_tol && k>max_iter_price/5))...
+                && (abs(input_adjsut_of_o)<5*v_tol) && (abs(input_adjsut_of_n)<5*v_tol)
+            fprintf("demand and supply has converged and the prices is ..." + ...
+                "%2.4f in %2.1f periods\n",p_E,k);
+            break;
+        end
+
+        p_E_prev    = p_E;
+        dem_err_pre = demand_err;
+
+        
         p_e_o_pre           = p_e_o;
         p_e_n_pre           = p_e_n;
-        price_ratio_n_p     = price_ratio_n;
-        price_ratio_o_p     = price_ratio_o;
         price_ratio_n_q     = price_ratio_n_p;
         price_ratio_o_q     = price_ratio_o_p;
+        price_ratio_n_p     = price_ratio_n;
+        price_ratio_o_p     = price_ratio_o;
+        
 
     end
 
@@ -499,16 +525,23 @@ for h=1:1:max_iter_measure
                                 %%%% different entry cost for techs
     value_err_o   = max(a_prob*(v_new_resh_o(1,:))'-c_of_e,-1/(0.5*measure_adj_o));
 
+    if abs(value_err_n)>200
+        value_err_n = sign(value_err_n)*100;
+    end
+    if abs(value_err_o)>200
+        value_err_o = sign(value_err_o)*100;
+    end
 
+    hh = min(h,30)*(h<=500)+10*(h>500);
     if abs(value_err_n)>0.5
-        m_of_firms_new = m_of_firms_new*(1+0.5*measure_adj_n*value_err_n/ceil(h/10));
+        m_of_firms_new = m_of_firms_new*(1+max(0.5*measure_adj_n*value_err_n/ceil(hh/5),-0.8));
     else
-        m_of_firms_new = m_of_firms_new*(1+0.6*measure_adj_n*value_err_n/ceil(h/10));
+        m_of_firms_new = m_of_firms_new*(1+max(0.6*measure_adj_n*value_err_n/ceil(hh/5),-0.8));
     end
     if abs(value_err_o)>0.5
-        m_of_firms_old = m_of_firms_old*(1+0.5*measure_adj_o*value_err_o/ceil(h/10));
+        m_of_firms_old = m_of_firms_old*(1+max(0.5*measure_adj_o*value_err_o/ceil(hh/5),-0.8));
     else
-        m_of_firms_old = m_of_firms_old*(1+0.6*measure_adj_o*value_err_o/ceil(h/10));
+        m_of_firms_old = m_of_firms_old*(1+max(0.6*measure_adj_o*value_err_o/ceil(hh/5),-0.8));
     end
 
 
@@ -521,17 +554,17 @@ for h=1:1:max_iter_measure
 
     if ((abs(value_err_n)<dem_tol||m_of_firms_new<v_tol) && ...
             (abs(value_err_o)<dem_tol||m_of_firms_old<v_tol))||...
-            (abs(1-m_of_new_pre/m_of_firms_new)<10*v_tol && ...
-            abs(1-m_of_old_pre/m_of_firms_old)<10*v_tol...
+            (abs(1-m_of_new_pre/m_of_firms_new)<1*v_tol && ...
+            abs(1-m_of_old_pre/m_of_firms_old)<1*v_tol...
             && h>max_iter_measure/10)
         fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
             "is %2.4f and %2.4f in %2.1f periods \n"...
             ,value_err_n,value_err_o,h);
         break;
     end
-    if h==1
-        save solar_gas_test
-    end
+   
+    % save solar_gas_test
+    
 
     value_err_n_pre = value_err_n;
     value_err_o_pre = value_err_o;
