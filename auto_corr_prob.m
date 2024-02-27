@@ -13,6 +13,7 @@ for i=1:1:a_num_g
         else
             prob_matrix(i,temp_index) = a_prob(j) + prob_matrix(i,temp_index);
         end
+        
     end
 end
 end
