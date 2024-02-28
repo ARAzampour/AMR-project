@@ -170,8 +170,8 @@ for h=1:1:max_iter_measure
     p_conv_o_all_prev(p_conv_o_all_prev<0)      = 0;
     converion_o_all_pre(converion_o_all_pre<0)  = 0;
 
-    measure_adj_n = (h<500)*measure_adj_n + 0.1*(h<1000&&h>=500) + 0.05*(h>=1000);
-    measure_adj_o = (h<500)*measure_adj_o + 0.1*(h<1000&&h>=500) + 0.05*(h>=1000);
+    measure_adj_n = (h<100)*measure_adj_n + 0.1*(h<200&&h>=100) + 0.05*(h>=200);
+    measure_adj_o = (h<100)*measure_adj_o + 0.1*(h<200&&h>=100) + 0.05*(h>=200);
 
     for k=1:1:max_iter_price
 
