@@ -288,12 +288,12 @@ save ss_gas_coal
 %%% In the transition each frim has firm on the old tech has would
 %%% eventually in the transition but it can still update its facility in
 %%% the path.
-final_dist_o    = dist_o;
-final_dist_n    = dist_n;
-final_p_E       = p_E;
+final_dist_o    = dist_o1;
+final_dist_n    = dist_n1;
+final_p_E       = p_E1;
 init_p_E        = p_E_old;
-final_val2      = v_new_resh_n;
-final_val1      = v_new_resh_o;
+final_val2      = v_new_resh_n1;
+final_val1      = v_new_resh_o1;
 init_dist_o     = dist_old;
 init_dist_n     = dist_n_1st; %%% be aware of the necessary changes when 
                             %%% a one-tech ss
@@ -321,30 +321,30 @@ init_input_o = dist_old*eff_o_vec(:)
     MIT_transition_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
-    e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_1st,p_e_o,p_e_o_1st,...
-    rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final,exo_exit,...
+    e0_n_vec_1step,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n1,p_e_n_1st,p_e_o1,p_e_o_1st,...
+    rho,age_reduc,c_conver,conv_rate,exit_n_final1,exit_o_final1,exo_exit,...
     e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p);
 %%%% I implement the transition as first the shock of efficiency is
-%%%% observed and after that in the middle of transition the shock of loewr
+%%%% observed and after that in the way of transition the shock of loewr
 %%%% input is realized
-diff_gr_cons    = (1+diff_gr)^(diff_gr_t/2);
+diff_gr_cons    = (1+diff_gr)^(diff_gr_t);
 
 final_dist_o    = dist_o;
 final_dist_n    = dist_n;
 final_p_E       = p_E;
-init_p_E        = p_E_vec1(diff_gr_t/2);
+init_p_E        = p_E_vec1(diff_gr_t);
 final_val2      = v_new_resh_n;
 final_val1      = v_new_resh_o;
-init_dist_o     = dist_n_all1(diff_gr_t/2,:);
-init_dist_n     = dist_n_1st(diff_gr_t/2,:); 
+init_dist_o     = dist_n_all1(diff_gr_t,:);
+init_dist_n     = dist_n_1st(diff_gr_t,:); 
 
 diff_gr         = 0.0;
 
 
-eff_n_vec           = (((1+a_grid).*alpha*p_E_vec1(diff_gr_t/2)/p_e_n_vec1(diff_gr_t/2).*...
+eff_n_vec           = (((1+a_grid).*alpha*p_E_vec1(diff_gr_t)/p_e_n_vec1(diff_gr_t).*...
     (((1+a_grid).^gamma)./(1+a_grow)).^age_g).^(1/(1-alpha)))';
 eff_n_vec           = min(eff_n_vec,e_max*(1+a_grid)');
-eff_o_vec           = (((1+a_grid)/diff_gr_cons.*alpha*p_E_vec1(diff_gr_t/2)/p_e_o_vec1(diff_gr_t/2).*...
+eff_o_vec           = (((1+a_grid)/diff_gr_cons.*alpha*p_E_vec1(diff_gr_t)/p_e_o_vec1(diff_gr_t).*...
     (((1+a_grid).^gamma)./(1+a_grow)).^age_g).^(1/(1-alpha)))';
 eff_o_vec           = min(eff_o_vec,e_max*(1+a_grid)');
 init_input_n = init_dist_n*eff_n_vec(:)
