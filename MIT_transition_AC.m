@@ -151,6 +151,9 @@ input_adjsut_o_all  = zeros(trans_t,1);
 input_adjsut_n_all  = zeros(trans_t,1);
 i_a_param           = 0.4;
 
+%%% The adjustment in the price of electricity will be bounded and weight_adj_p
+%%% will determine the amount of adjustment when bound is reached
+weight_adj_p        = 0.2;
 
 %%%%%% Important note %%%%%%%%
 %%% In the transition first the output (and its decision) happens and then
@@ -273,6 +276,7 @@ for h=1:1:max_iter_measure
             %%% those who get non-positive npv in the upcoming periods should exit
             v_n_neg           = v_new_resh_n<0;
             exiting_firm_n    = v_n_neg'+(1-v_n_neg').*(exp(-v_new_resh_n'*10^exit_sm));
+            exiting_firm_n(isnan(exiting_firm_n)) = 1;
 
             v_new_resh_n  = pi_contemp_new + beta*(1-exo_exit)*v_new_resh_n;
 
@@ -420,6 +424,7 @@ for h=1:1:max_iter_measure
             %%% those who get non-positive npv in the upcoming periods should exit
             v_o_neg           = v_new_resh_o<0; 
             exiting_firm_o    = v_o_neg'+(1-v_o_neg').*(exp(-v_new_resh_o'*10^exit_sm));
+            exiting_firm_o(isnan(exiting_firm_o)) = 1;
 
             v_new_resh_o  = pi_contemp_old + beta*(1-exo_exit)*v_new_resh_o;
 
@@ -760,6 +765,20 @@ for h=1:1:max_iter_measure
         %(1+diff_gr)*
         suply_price = ((d_0./(tech_dist_vec.^(1/(1-alpha))))./(total_cap.*...
             (total_cap./tot_cap_lag).^penalty_p)).^(1/e_p);
+
+        %%% I aim to bound the changes in the supply price to 50% of the
+        %%% previous period's supply price otherwise it would make prcie
+        %%% loop volatile and convergence would take longer
+
+        % suply_price_lag         = suply_price;
+        % suply_price_lag(2:end)  = suply_price(1:end-1);
+        % suply_price_lag(1)      = init_p_E;
+        suply_price_lag     = p_E_vec;
+
+
+        sup_price_d = abs((suply_price-suply_price_lag)./suply_price_lag); 
+        suply_price((sup_price_d)>0.5) = exp((1-weight_adj_p)*log(suply_price_lag((sup_price_d)>0.5)) + ...
+            weight_adj_p.*log(suply_price(abs(sup_price_d)>0.5)));
         
         demand_err  = suply_price - p_E_vec;
         
