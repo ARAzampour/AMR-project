@@ -374,7 +374,7 @@ ScSz = get(0, 'ScreenSize');
 
 figure(9)
 plot([cap_new1(1:diff_gr_t)./(cap_old1(1:diff_gr_t)+cap_new1(1:diff_gr_t))...
-    cap_new(diff_gr_t+1:end)./(cap_old(diff_gr_t+1:end)+cap_new(diff_gr_t+1:end))],LineWidth=2)
+    cap_new(2:end-diff_gr_t+1)./(cap_old(2:end-diff_gr_t+1)+cap_new(2:end-diff_gr_t+1))],LineWidth=2)
 xlabel('periods into transition'), ylabel('share')
 title('new tech share of capacity')
 set(gca,'Fontsize',32)
@@ -386,14 +386,14 @@ growth_t_line(1:diff_gr_t) = linspace(1,diff_gr_t,diff_gr_t);
 tech_dist_vec   = (1+diff_gr).^growth_t_line*diff_gr_cons;
 figure(10)
 plot(tech_dist_vec.^(1/(1-alpha)).*[(cap_old1(1:diff_gr_t)+cap_new1(1:diff_gr_t)) ...
-    (cap_old(diff_gr_t+1:end)+cap_new(diff_gr_t+1:end))],LineWidth=2)
+    (cap_old(2:end-diff_gr_t+1)+cap_new(2:end-diff_gr_t+1))],LineWidth=2)
 xlabel('periods into transition'), ylabel('capacity')
 title('total capacity (detrended)')
 set(gca,'Fontsize',32)
 set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 
 figure(11)
-plot([p_E_vec1(1:diff_gr_t) p_E_vec(diff_gr_t+1:end)],LineWidth=2)
+plot([p_E_vec1(1:diff_gr_t) p_E_vec(2:end-diff_gr_t+1)],LineWidth=2)
 xlabel('periods into transition'), ylabel('price')
 title('price path')
 set(gca,'Fontsize',32)
@@ -408,7 +408,7 @@ yyaxis left
 plot(tech_dist_vec,'LineWidth',2)
 ylabel('tech diff path')
 yyaxis right
-plot([e0_n_vec_1step(1:diff_gr_t) e0_n_vec(1:end-diff_gr_t)],'LineWidth',2)
+plot([e0_n_vec_1step(1:diff_gr_t) e0_n_vec(2:end-diff_gr_t+1)],'LineWidth',2)
 ylabel('gas supply shock')
 %xlim([pl1 pl2])
 xlabel('periods into transition')
