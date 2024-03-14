@@ -324,6 +324,8 @@ init_input_o = dist_old*eff_o_vec(:)
     e0_n_vec_1step,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n1,p_e_n_1st,p_e_o1,p_e_o_1st,...
     rho,age_reduc,c_conver,conv_rate,exit_n_final1,exit_o_final1,exo_exit,...
     e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p);
+
+%%
 %%%% I implement the transition as first the shock of efficiency is
 %%%% observed and after that in the way of transition the shock of loewr
 %%%% input is realized
@@ -335,8 +337,8 @@ final_p_E       = p_E;
 init_p_E        = p_E_vec1(diff_gr_t);
 final_val2      = v_new_resh_n;
 final_val1      = v_new_resh_o;
-init_dist_o     = dist_n_all1(diff_gr_t,:);
-init_dist_n     = dist_n_1st(diff_gr_t,:); 
+init_dist_o     = dist_o_all1(diff_gr_t,:);
+init_dist_n     = dist_n_all1(diff_gr_t,:); 
 
 diff_gr         = 0.0;
 
@@ -371,7 +373,8 @@ save final_gas_solar
 ScSz = get(0, 'ScreenSize');
 
 figure(9)
-plot(cap_new./(cap_old+cap_new),LineWidth=2)
+plot([cap_new1(1:diff_gr_t)./(cap_old1(1:diff_gr_t)+cap_new1(1:diff_gr_t))...
+    cap_new(diff_gr_t+1:end)./(cap_old(diff_gr_t+1:end)+cap_new(diff_gr_t+1:end))],LineWidth=2)
 xlabel('periods into transition'), ylabel('share')
 title('new tech share of capacity')
 set(gca,'Fontsize',32)
@@ -382,19 +385,36 @@ growth_t_line   = diff_gr_t*ones(1,trans_t);
 growth_t_line(1:diff_gr_t) = linspace(1,diff_gr_t,diff_gr_t);
 tech_dist_vec   = (1+diff_gr).^growth_t_line*diff_gr_cons;
 figure(10)
-plot(tech_dist_vec.^(1/(1-alpha)).*(cap_old+cap_new),LineWidth=2)
+plot(tech_dist_vec.^(1/(1-alpha)).*[(cap_old1(1:diff_gr_t)+cap_new1(1:diff_gr_t)) ...
+    (cap_old(diff_gr_t+1:end)+cap_new(diff_gr_t+1:end))],LineWidth=2)
 xlabel('periods into transition'), ylabel('capacity')
 title('total capacity (detrended)')
 set(gca,'Fontsize',32)
 set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 
 figure(11)
-plot(p_E_vec,LineWidth=2)
+plot([p_E_vec1(1:diff_gr_t) p_E_vec(diff_gr_t+1:end)],LineWidth=2)
 xlabel('periods into transition'), ylabel('price')
 title('price path')
 set(gca,'Fontsize',32)
 set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 
+diff_gr         = 0.015;
+growth_t_line   = diff_gr_t*ones(1,trans_t);
+growth_t_line(1:diff_gr_t) = linspace(1,diff_gr_t,diff_gr_t);
+tech_dist_vec   = (1+diff_gr).^growth_t_line;
+figure(12)
+yyaxis left
+plot(tech_dist_vec,'LineWidth',2)
+ylabel('tech diff path')
+yyaxis right
+plot([e0_n_vec_1step(1:diff_gr_t) e0_n_vec(1:end-diff_gr_t)],'LineWidth',2)
+ylabel('gas supply shock')
+%xlim([pl1 pl2])
+xlabel('periods into transition')
+title('shock     path')
+set(gca,'Fontsize',32)
+set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 %%
 dist_reshaped = (reshape(dist_of_new',a_num_g,age_num))';
 figure(3)
