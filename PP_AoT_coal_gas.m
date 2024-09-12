@@ -13,11 +13,11 @@ clc
 %%
 a_bar   = 80;
 beta    = 0.97;
-c_of_a  = 1;   %%%% we should think more about how to enforce the fix cost
+c_of_a  = 5;   %%%% we should think more about how to enforce the fix cost
                 %%%% right now it's compared with the value of adoption
                 %%%% which can get really high so we need compare it to
                 %%%% some notion of contemporaneous profit
-c_a_new = 1; %20;   %%%% setting a different adoption cost for the new tech 
+c_a_new = 5; %20;   %%%% setting a different adoption cost for the new tech 
                 %%%% might be a solution to get a two tech SS; for gas and
                 %%%% coal case they will be set to be the same
 
@@ -27,21 +27,23 @@ dist_tol    = 10^-7;
 
 alpha   = 0.7; 
 p_e     = 1;
-a_lamb  = 0.5;
+mu      = 0.3;
+sigma   = 0.1;
 a_num_g = 50;
 age_num = 200;
 
 
-fco     = 0.1;
+fco_o   = 2;
+fco_n   = 1;
 e_p     = 1;    %%% this demand elasticity is estimated around 0.1 but more 
                 %%% papers should be read about it (in the long run it's 1
                 %%% but I think we should use the short run estimate)
 
-d_0     = 15;   %%% what should this value be?? it has profound effect on 
+d_0     = 100;   %%% what should this value be?? it has profound effect on 
                 %%% the final distribution of the firms due to low
                 %%% elacticity of demand
-c_of_e  = 15;
-c_e_new = 15 ;%10;   %%%% setting a different entry cost for the new tech 
+c_of_e  = 100;
+c_e_new = 50 ;%10;   %%%% setting a different entry cost for the new tech 
                 %%%% might be a solution to get a two tech SS; for gas and
                 %%%% coal case they will be set to be the same
 dem_tol = 0.01;
@@ -59,8 +61,8 @@ diff_gr_cons    = 1;                    %%% to be used for gas and coal
 
 
 %%% let's define a supply curve for the effort used in different techs
-e0_n    = 1.2;
-e0_o    = 1;
+e0_n    = 1;
+e0_o    = 10;
 e_n_eps = 0.2;
 e_o_eps = 0.2;
 
@@ -109,6 +111,31 @@ e_max       = 30;
 %%% depreciate slower, this incorporated using ((1+a_grid).^gamma).^t
 
 gamma       = 0.0075;
+alphas      = linspace(0.1,0.95,20);
+
+%% calibration first part
+%%% the unkown paramteres are d_0, e0_n, e0_o, alpha, c_of_a, c_a_new, rat and
+%%% the moments are p_E, p_e_n, p_e_o, total_eff_ratio, measure_ratio, mean
+%%% efficiency, and ratio of input cost to instalation cost
+tech_dist   = 1;
+rat     = 1; %%% this governs the ratio of the overhead costs to O&M cost in the model
+options = optimoptions('surrogateopt','Display','iter','PlotFcn',[]);
+
+global tracks JJ
+tracks  = zeros(15,100);
+JJ      = 0;
+
+p_E_m = 12; p_e_n_m = 2.3; p_e_o_m = 1.3; inp_ratio = 7; m_ratio = 3;
+mean_eff = 0.33; tech_dist   = 0.9; feul_ce_ratio = 0.12;
+
+A = []; B = []; Aeq = []; Beq = []; nonlcon=[];
+lb  = [0.3,1,1,80,0.1,1,0.5];
+ub  = [0.9,20,20,120,0.9,10,1.5];
+[x,fval,exitflag,output]    = surrogateopt(@(x)simulator(a_grow,x(1),a_bar...
+    ,beta,x(2),x(3),mu,sigma,a_num_g,age_num,max_iter,...
+        v_tol,dist_tol,fco_o,fco_n,e_p,x(4),c_of_e,c_e_new,dem_tol,tech_dist,...
+        x(5),x(6),e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma,x(7),...
+        p_E_m,p_e_n_m,p_e_o_m,inp_ratio,m_ratio,mean_eff,feul_ce_ratio),lb,ub,nonlcon,A,B,Aeq,Beq,options);
 %% old tech ss
 vec_c_a_1st     = zeros(100,1);
 vec_c_e_1st     = zeros(100,1);
@@ -123,18 +150,22 @@ vec_c_e_1st     = zeros(100,1);
 %%%%% the fixed costs of new-tech would lead to the increase in their share
 %%%%% Or also use the two-tech system for a case when coal and gas
 %%%%% transition is happening 
-
+for i=1:1:20
 tech_dist   = 1;
 % for tt = 1:1:100 
-    [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,cap_contemp_new,...
-        trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,cap_contemp_old,...
+    alpha = alphas(i);
+    [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,cap_contemp_new,eff_n_final,...
+        trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,cap_contemp_old,eff_o_final,...
         age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st,...
         exit_n_1st,exit_o_1st] = ...
-        Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
+        Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,mu,a_num_g,age_num,max_iter,...
         v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
         e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
     error_ss    = dist_n_1st*cap_contemp_new(:)/(dist_n_1st*cap_contemp_new(:)+dist_old*cap_contemp_old(:))-0.075;
+    filensme = ['1st_ss_trial' num2str(i)];
+    save(filensme);
+end
 %     if abs(error_ss)<0.025
 %         break;
 %     else
@@ -170,9 +201,9 @@ title('value of firm in each state')
 set(gca,'Fontsize',32)
 set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 %%
-dist_resh = (reshape(dist_old',a_num_g,age_num))';
+dist_resh = (reshape(dist_o',a_num_g,age_num))';
 figure(22)
-surf(1+a_grid,age_g(1:50),(dist_resh(1:50,:)));
+surf(a_grid,age_g(1:50),(dist_resh(1:50,:)));
 xlabel('productivity'), ylabel('age')
 title('mass of firms in each state ')
 set(gca,'Fontsize',32)
@@ -200,7 +231,7 @@ tech_dist   = (1+diff_gr)^diff_gr_t;
 [trans_prob_o1,v_new_o1,v_new_resh_o1,dist_o1,trans_matrix_n1,p_e_n1,cap_contemp_n21,...
     trans_prob_n1,v_new_n1,v_new_resh_n1,dist_n1,trans_matrix_o1,p_e_o1,cap_contemp_o21,...
     age_g1,a_grid1,a_prob1,pi_contemp_new1,p_E1,m_of_firms_new1,m_of_firms_old1,exit_n_final1,exit_o_final1] = ...
-    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
+    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,mu,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0/(tech_dist^(1/(1-alpha))),c_of_e,c_e_new,dem_tol,tech_dist,...
     e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
@@ -210,7 +241,7 @@ tech_dist   = (1+diff_gr)^diff_gr_t;
 [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,cap_contemp_n2,...
     trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,cap_contemp_o2,...
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n_final,exit_o_final] = ...
-    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
+    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,mu,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0/(tech_dist^(1/(1-alpha))),c_of_e,c_e_new,dem_tol,tech_dist,...
     e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
@@ -318,7 +349,7 @@ init_input_o = dist_old*eff_o_vec(:)
 [trans_prob_o_all1,v_new_resh_o_all1,dist_o_all1,measure_vec_o1,p_e_o_vec1,...
     trans_prob_n_all1,v_new_resh_n_all1,dist_n_all1,measure_vec_n1,p_e_n_vec1,...
     age_g1,a_grid1,a_prob1,p_E_vec1,cap_old1,cap_new1] =...
-    MIT_transition_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
+    MIT_transition_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_vec,mu,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec_1step,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n1,p_e_n_1st,p_e_o1,p_e_o_1st,...
@@ -355,7 +386,7 @@ init_input_o = init_dist_o*eff_o_vec(:)
 [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,...
     trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_e_n_vec,...
     age_g,a_grid,a_prob,p_E_vec,cap_old,cap_new] =...
-    MIT_transition_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
+    MIT_transition_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_vec,mu,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_vec1(diff_gr_t),p_e_o,p_e_o_vec1(diff_gr_t),...

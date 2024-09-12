@@ -1,0 +1,45 @@
+Normal Distribution:
+Fitting of the distribution ' norm ' by maximum likelihood 
+Parameters : 
+       estimate  Std. Error
+mean 0.40716697 0.006044865
+sd   0.08904642 0.004271939
+Loglikelihood:  216.926   AIC:  -429.852   BIC:  -423.0922 
+Correlation matrix:
+     mean sd
+mean    1  0
+sd      0  1
+
+
+Log-Normal Distribution:
+Fitting of the distribution ' lnorm ' by maximum likelihood 
+Parameters : 
+          estimate Std. Error
+meanlog -0.9272028 0.01719774
+sdlog    0.2533385 0.01215979
+Loglikelihood:  191.2405   AIC:  -378.4811   BIC:  -371.7213 
+Correlation matrix:
+        meanlog sdlog
+meanlog       1     0
+sdlog         0     1
+
+
+Gamma Distribution:
+Fitting of the distribution ' gamma ' by maximum likelihood 
+Parameters : 
+      estimate Std. Error
+shape 17.55728   1.669787
+rate  43.10647   4.158702
+Loglikelihood:  202.4326   AIC:  -400.8653   BIC:  -394.1055 
+Correlation matrix:
+          shape      rate
+shape 1.0000000 0.9857991
+rate  0.9857991 1.0000000
+
+
+Exponential Distribution:
+Fitting of the distribution ' exp ' by maximum likelihood 
+Parameters : 
+     estimate Std. Error
+rate 2.455995  0.1667238
+Loglikelihood:  -22.01857   AIC:  46.03714   BIC:  49.41704 

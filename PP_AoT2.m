@@ -67,8 +67,8 @@ e_o_eps = 0.2;
 %%% let's define a high fixed cost a starting point for the new_tech guys
 %%% and it's transition in a declining exponential phase; in this case
 %%% e0_n_vec would be a constant.
-c_a_new_1st     = 3.35;
-c_e_new_1st     = 33.5;
+c_a_new_1st     = 3.63;
+c_e_new_1st     = 36.3;
 
 c_a_new_vec     = c_a_new + (c_a_new_1st-c_a_new)*exp(linspace(0,-20,trans_t));
 c_e_new_vec     = c_e_new + (c_e_new_1st-c_e_new)*exp(linspace(0,-20,trans_t));
@@ -133,6 +133,7 @@ tech_dist   = 1;
         v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
         e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
+    save 1stresult
     error_ss    = dist_n_1st*cap_contemp_new(:)/(dist_n_1st*cap_contemp_new(:)+dist_old*cap_contemp_old(:))-0.075;
 %     if abs(error_ss)<0.025
 %         break;
@@ -288,9 +289,9 @@ init_dist_n     = dist_n_1st; %%% be aware of the necessary changes when
 c_conver        = 500;
 conv_rate       = 0.15;
 
-penalty_p       = 1; %%% demand is also less elastic in the transition
+penalty_p       = 5; %%% demand is also less elastic in the transition
 penalty_n       = 1;
-penalty_o       = 1; %%% this is the effect of deviation from last year's input
+penalty_o       = 5; %%% this is the effect of deviation from last year's input
                         %%% for the whole submarket, e.g. a 10% increase in
                         %%% demand would require 20% increase in supply
 
@@ -316,7 +317,7 @@ init_input_o = dist_old*eff_o_vec(:)
 
 
 
-save final_gas_solar
+save final_gas_solar3
 %%
 
 ScSz = get(0, 'ScreenSize');

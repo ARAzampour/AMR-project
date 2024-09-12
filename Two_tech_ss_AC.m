@@ -1,18 +1,24 @@
-function [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,cap_contemp_new,...
-    trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,cap_contemp_old,...
+function [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,cap_contemp_new,eff_n_final,...
+    trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,cap_contemp_old,eff_o_final,...
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n,exit_o] = ...
-    Two_tech_ss_AC(a_grow,alpha,~,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
-    v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new,dem_tol,tech_dist,...
+    Two_tech_ss_AC(a_grow,alpha,~,beta,c_of_a,c_a_new,mu,sigma,a_num_g,age_num,max_iter,...
+    v_tol,dist_tol,fco_o,fco_n,e_p,d_0,c_of_e,c_e_new,dem_tol,tech_dist,...
     e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma)
 
 % a_grid  =  expinv(linspace(0,0.999,a_num_g),a_lamb);
-a_grid  = expinv(1-exp(linspace(log(1),log(0.001),a_num_g)),a_lamb); %%% here
+x = norminv(linspace(0,1,a_num_g+2),mu,sigma); %%% looking at the entrants, 
+                            %%% distribution we have now decided to use
+                            %%% normal distribution 2024-09-11
+%a_grid  = expinv(1-exp(linspace(log(1),log(0.001),a_num_g)),a_lamb); %%% here
                 %%%% I've change the spacing for grid productivity, the
                 %%%% reason is that by using the grid the gives equall prob
                 %%%% to each grid point we would focus to much on the
                 %%%% points that no action would be happening
-a_cdf   = expcdf(a_grid,a_lamb);
-a_prob  = [a_cdf(2:a_num_g) 1]-a_cdf;
+                %%%%%% the previous comments is not a danger here now we're
+                %%%%%% in normal
+a_grid  = x(2:a_num_g+1);
+a_cdf   = normcdf(x,mu,sigma);
+a_prob  = a_cdf(2:a_num_g+1)-a_cdf(1:a_num_g);
 
 prob_matrix         = auto_corr_prob(a_grid,a_prob,rho);
 
@@ -72,12 +78,12 @@ p_e_o   = 1;
 % them
 
 
-pi_contemp_new      = ((1+a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
+pi_contemp_new      = ((a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
     .^(1/(1-alpha))*(1-alpha);
 
 %%% I also consider the remainder of the firms that have not transitioned
 
-pi_contemp_old      = ((1+a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
+pi_contemp_old      = ((a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
     .^(1/(1-alpha))*(1-alpha);
 
 
@@ -85,8 +91,8 @@ pi_contemp_old      = ((1+a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_gr
 %%% here I'm adding fixed cost of operation to implement exit decision: it
 %%% should be calibrated
 
-pi_contemp_new      = pi_contemp_new - fco;
-pi_contemp_old      = pi_contemp_old - fco;
+pi_contemp_new      = pi_contemp_new - fco_n;
+pi_contemp_old      = pi_contemp_old - fco_o;
 
 %%% those with negative contemporary profit will exit
 % pi_contemp_neg_new  = pi_contemp_new<0;
@@ -137,46 +143,46 @@ for h=1:1:max_iter_measure
     for k=1:1:max_iter_price
         
 
-        eff_n_vec           = (((1+a_grid).*alpha*p_E/p_e_n.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g)...
+        eff_n_vec           = (((a_grid).*alpha*p_E/p_e_n.*(((a_grid).^gamma)./(1+a_grow)).^age_g)...
             .^(1/(1-alpha)))';
-        eff_n_vec           = min(eff_n_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+        eff_n_vec           = min(eff_n_vec,e_max*(a_grid)'); %%% e_max is add to cap
                         %%% the amount of input a generator can use
 
-        % pi_contemp_new      = ((1+a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
+        % pi_contemp_new      = ((a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
         %     .^(1/(1-alpha))*(1-alpha);
-        cap_contemp_new     = (1+a_grid)'.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
+        cap_contemp_new     = (a_grid)'.*(((a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
         
-        % cap_contemp_new     = (((1+a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
+        % cap_contemp_new     = (((a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
         %     .^(1/(1-alpha)))';
-        pi_contemp_new      = p_E.*cap_contemp_new'-p_e_n.*eff_n_vec'- fco;
+        pi_contemp_new      = p_E.*cap_contemp_new'-p_e_n.*eff_n_vec'- fco_n;
     
         % pi_contemp_new      = pi_contemp_new - fco;
     
 %         pi_contemp_neg_new  = pi_contemp_new<0;
 %         pi_contemp_new(pi_contemp_neg_new) = 0;
 
-        % pi_contemp_old      = ((1+a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
+        % pi_contemp_old      = ((a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
         %     .^(1/(1-alpha))*(1-alpha);
         % 
-        % eff_o_vec           = (((1+a_grid)/tech_dist.*alpha*p_E/p_e_o.*(1/(1+a_grow)).^age_g)...
+        % eff_o_vec           = (((a_grid)/tech_dist.*alpha*p_E/p_e_o.*(1/(1+a_grow)).^age_g)...
         %     .^(1/(1-alpha)))';
         % 
-        % cap_contemp_old     = (((1+a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
+        % cap_contemp_old     = (((a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
         %     .^(1/(1-alpha)))';
         % pi_contemp_old      = pi_contemp_old - fco;
         % 
 %         pi_contemp_neg_old  = pi_contemp_old<0;
 %         pi_contemp_old(pi_contemp_neg_old) = 0;
 
-        eff_o_vec           = (((1+a_grid)/tech_dist.*alpha*p_E/p_e_o.*(((1+a_grid).^gamma)...
+        eff_o_vec           = (((a_grid)/tech_dist.*alpha*p_E/p_e_o.*(((a_grid).^gamma)...
             ./(1+a_grow)).^age_g).^(1/(1-alpha)))';
-        eff_o_vec           = min(eff_o_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+        eff_o_vec           = min(eff_o_vec,e_max*(a_grid)'); %%% e_max is add to cap
                         %%% the amount of input a generator can use
 
-        cap_contemp_old     = (1+a_grid')/tech_dist.*(((1+a_grid).^gamma)...
+        cap_contemp_old     = (a_grid')/tech_dist.*(((a_grid).^gamma)...
             ./(1+a_grow)).^age_g'.*(eff_o_vec.^alpha);
         
-        pi_contemp_old      = p_E.*cap_contemp_old'-p_e_o.*eff_o_vec'- fco;
+        pi_contemp_old      = p_E.*cap_contemp_old'-p_e_o.*eff_o_vec'- fco_o;
 
 
 
@@ -230,6 +236,7 @@ for h=1:1:max_iter_measure
             %%% those who get non-positive npv should exit
             v_n_neg           = v_new_resh_n<0;
             exiting_firm_n    = v_n_neg'+(1-v_n_neg').*(exp(-v_new_resh_n'*10^exit_sm));
+            exiting_firm_n(isnan(exiting_firm_n)) = 1;
             exit_vec_n        = exiting_firm_n(:);
             policy_choice_n   = (1-exit_vec_n).*policy_choice_n;
 
@@ -298,6 +305,7 @@ for h=1:1:max_iter_measure
             %%% those who get non-positive npv should exit
             v_o_neg           = v_new_resh_o<0; 
             exiting_firm_o    = v_o_neg'+(1-v_o_neg').*(exp(-v_new_resh_o'*10^exit_sm));
+            exiting_firm_o(isnan(exiting_firm_o)) = 1;
             exit_vec_o        = exiting_firm_o(:);
             policy_choice_o   = (1-exit_vec_o).*policy_choice_o;
 
@@ -467,7 +475,7 @@ for h=1:1:max_iter_measure
         
         
        
-        p_E     = p_E + 0.1*output_adjsut*demand_err/(ceil(k/10));
+        p_E     = p_E + 0.1*output_adjsut*demand_err/(min(ceil(k/10),20));
 
         if sign(dem_err_pre)~=sign(demand_err)
             p_E = (p_E_prev + p_E)/2;
@@ -478,6 +486,7 @@ for h=1:1:max_iter_measure
 
         p_e_n       = (dist_n * eff_n_vec(:)/e0_n).^e_n_eps;
         p_e_o       = (dist_o * eff_o_vec(:)/e0_o).^e_o_eps;
+
 
         % if abs(p_e_o_pre-p_e_o)>input_adjsut/(ceil(k/10))
         kk      = k*(k<10) + 10*(k>=10); 
@@ -578,5 +587,7 @@ end
 trans_prob_n    = sum(policy_choice_n.*repmat(prob_matrix,age_num,1),2);
 trans_prob_o    = sum(policy_choice_o.*repmat(prob_matrix,age_num,1),2);
 
+eff_n_final     = eff_n_vec(:);
+eff_o_final     = eff_o_vec(:);
 
 end
