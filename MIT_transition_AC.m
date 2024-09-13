@@ -6,7 +6,7 @@ function [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,i
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,fin_p_e_n,init_p_e_n,...
     fin_p_e_o,init_p_e_o,rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final,...
-    exo_exit,e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p)
+    exo_exit,e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p,d0_gr)
 
 %%% conv_rate is used to make the conversion slower, the reason is that
 %%% suddent conversion creates swinging features
@@ -52,6 +52,7 @@ demand_err      = 1;
 growth_t_line   = diff_gr_t*ones(1,trans_t);
 growth_t_line(1:diff_gr_t) = linspace(1,diff_gr_t,diff_gr_t);
 tech_dist_vec   = (1+diff_gr).^growth_t_line*diff_gr_cons;
+d0_vec          = d0*(1+d0_gr).^(1:1:trans_t);
 
 % v_of_new    = final_val2;
 % v_of_old    = final_val1;
@@ -769,7 +770,7 @@ for h=1:1:max_iter_measure
         tot_cap_lag(2:end)  = total_cap(1:end-1);
         tot_cap_lag(1)      = d_0/(init_p_E^e_p);
         %(1+diff_gr)*
-        suply_price = ((d_0./(tech_dist_vec.^(1/(1-alpha))))./(total_cap.*...
+        suply_price = ((d0_vec./(tech_dist_vec.^(1/(1-alpha))))./(total_cap.*...
             (total_cap./tot_cap_lag).^penalty_p)).^(1/e_p);
 
         %%% I aim to bound the changes in the supply price to 50% of the
