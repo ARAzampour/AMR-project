@@ -27,7 +27,7 @@ dist_tol    = 10^-7;
 
 alpha   = 0.7; 
 p_e     = 1;
-mu      = 0.3;
+mu      = 0.29;
 sigma   = 0.1;
 a_num_g = 50;
 age_num = 200;
@@ -63,8 +63,8 @@ diff_gr_cons    = 1;                    %%% to be used for gas and coal
 %%% let's define a supply curve for the effort used in different techs
 e0_n    = 1;
 e0_o    = 10;
-e_n_eps = 0.2;
-e_o_eps = 0.2;
+e_n_eps = 0.4;
+e_o_eps = 0.4;
 
 %%% let's define a high fixed cost a starting point for the new_tech guys
 %%% and it's transition in a declining exponential phase; in this case
@@ -129,8 +129,8 @@ p_E_m = 12; p_e_n_m = 2.3; p_e_o_m = 1.3; inp_ratio = 7; m_ratio = 3;
 mean_eff = 0.33; tech_dist   = 0.9; feul_ce_ratio = 0.12;
 
 A = []; B = []; Aeq = []; Beq = []; nonlcon=[];
-lb  = [0.3,1,1,80,0.1,1,0.5];
-ub  = [0.9,20,20,120,0.9,10,1.5];
+lb  = [0.6,5,5,80,0.33,1,0.85];
+ub  = [0.75,15,15,120,0.9,3,1.15];
 [x,fval,exitflag,output]    = surrogateopt(@(x)simulator(a_grow,x(1),a_bar...
     ,beta,x(2),x(3),mu,sigma,a_num_g,age_num,max_iter,...
         v_tol,dist_tol,fco_o,fco_n,e_p,x(4),c_of_e,c_e_new,dem_tol,tech_dist,...

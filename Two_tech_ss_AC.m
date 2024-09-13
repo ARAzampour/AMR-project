@@ -143,6 +143,9 @@ for h=1:1:max_iter_measure
     for k=1:1:max_iter_price
         
 
+        
+        output_adjsut   = 0.15/(max(e_n_eps,e_o_eps))*(k<25) ...
+           + 1.5/(max(e_n_eps,e_o_eps))*(k>=25); %%% max var in output prices
         eff_n_vec           = (((a_grid).*alpha*p_E/p_e_n.*(((a_grid).^gamma)./(1+a_grow)).^age_g)...
             .^(1/(1-alpha)))';
         eff_n_vec           = min(eff_n_vec,e_max*(a_grid)'); %%% e_max is add to cap
@@ -484,8 +487,8 @@ for h=1:1:max_iter_measure
         price_ratio_n = p_E/p_e_n;
         price_ratio_o = p_E/p_e_o;
 
-        p_e_n       = (dist_n * eff_n_vec(:)/e0_n).^e_n_eps;
-        p_e_o       = (dist_o * eff_o_vec(:)/e0_o).^e_o_eps;
+        p_e_n       = (dist_n * eff_n_vec(:)/e0_n).^(1/e_n_eps);
+        p_e_o       = (dist_o * eff_o_vec(:)/e0_o).^(1/e_o_eps);
 
 
         % if abs(p_e_o_pre-p_e_o)>input_adjsut/(ceil(k/10))

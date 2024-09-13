@@ -1,8 +1,8 @@
 function [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,...
     trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_e_n_vec,...
     age_g,a_grid,a_prob,p_E_vec,cap_old,cap_new] =...
-    MIT_transition_AC(a_grow,alpha,~,beta,c_of_a,c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
-    v_tol,~,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
+    MIT_transition_AC(a_grow,alpha,~,beta,c_of_a,c_a_new_vec,mu,sigma,a_num_g,age_num,max_iter,...
+    v_tol,~,fco_o,fco_n,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,fin_p_e_n,init_p_e_n,...
     fin_p_e_o,init_p_e_o,rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final,...
@@ -10,15 +10,18 @@ function [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,.
 
 %%% conv_rate is used to make the conversion slower, the reason is that
 %%% suddent conversion creates swinging features
-% a_grid  = expinv(linspace(0,0.999,a_num_g),a_lamb);
-a_grid  = expinv(1-exp(linspace(log(1),log(0.001),a_num_g)),a_lamb); %%% here
+x = norminv(linspace(0,1,a_num_g+2),mu,sigma); %%% looking at the entrants, 
+                            %%% distribution we have now decided to use
+                            %%% normal distribution 2024-09-11
+% a_grid  = expinv(1-exp(linspace(log(1),log(0.001),a_num_g)),a_lamb); %%% here
                 %%%% I've change the spacing for grid productivity, the
                 %%%% reason is that by using the grid the gives equall prob
                 %%%% to each grid point we would focus to much on the
                 %%%% points that no action would be happening
+a_grid  = x(2:a_num_g+1);
 a_g_nex = (1+a_grid)'/(1+diff_gr);
-a_cdf   = expcdf(a_grid,a_lamb);
-a_prob  = [a_cdf(2:a_num_g) 1]-a_cdf;
+a_cdf   = normcdf(x,mu,sigma);
+a_prob  = a_cdf(2:a_num_g+1)-a_cdf(1:a_num_g);
 
 prob_matrix_ss       = auto_corr_prob(a_grid,a_prob,rho);
 prob_matrix_tr      = auto_corr_prob_transition(1+a_grid,a_prob,rho,diff_gr);
@@ -162,6 +165,9 @@ weight_adj_p        = 0.2;
 %%% decsions for the period t+1 and therefore in the adjustment of measures
 %%% of entry also the value of entry for the period t+1 should be
 %%% considered
+
+
+eff_n_final = zeros()
 %%
 for h=1:1:max_iter_measure
 
@@ -173,11 +179,13 @@ for h=1:1:max_iter_measure
     p_conv_o_all_prev(p_conv_o_all_prev<0)      = 0;
     converion_o_all_pre(converion_o_all_pre<0)  = 0;
 
-    measure_adj_n = (h<500)*measure_adj_n + 0.1*(h<1000&&h>=500) + 0.05*(h>=1000);
-    measure_adj_o = (h<500)*measure_adj_o + 0.1*(h<1000&&h>=500) + 0.05*(h>=1000);
+    measure_adj_n = (h<100)*measure_adj_n + 0.1*(h<200&&h>=100) + 0.05*(h>=200);
+    measure_adj_o = (h<100)*measure_adj_o + 0.1*(h<200&&h>=100) + 0.05*(h>=200);
 
     for k=1:1:max_iter_price
 
+        output_adjsut   = 0.1/(max(e_n_eps,e_o_eps))*(k<50) ...
+           + 1.5/(max(e_n_eps,e_o_eps))*(k>=50); %%% max var in output prices
         v_of_new    = final_val2;
         v_of_old    = final_val1;
 
@@ -230,7 +238,7 @@ for h=1:1:max_iter_measure
 
             cap_contemp_new     = (1+a_grid)'.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
         
-            pi_contemp_new      = p_E_vec(i1).*cap_contemp_new'-p_e_n_vec(i1).*eff_n_vec'- fco;
+            pi_contemp_new      = p_E_vec(i1).*cap_contemp_new'-p_e_n_vec(i1).*eff_n_vec'- fco_n;
         
 %             pi_contemp_neg_new  = pi_contemp_new<0;
 %             pi_contemp_new(pi_contemp_neg_new) = 0;
@@ -325,7 +333,7 @@ for h=1:1:max_iter_measure
             cap_contemp_old     = (1+a_grid')/tech_dist_vec(i2)...
                 .*(((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_o_vec.^alpha);
 
-            pi_contemp_old      = p_E_vec(i2).*cap_contemp_old'-p_e_o_vec(i2).*eff_o_vec'- fco;
+            pi_contemp_old      = p_E_vec(i2).*cap_contemp_old'-p_e_o_vec(i2).*eff_o_vec'- fco_o;
             
 %             pi_contemp_neg_old  = pi_contemp_old<0;
 %             pi_contemp_old(pi_contemp_neg_old) = 0;
@@ -605,7 +613,7 @@ for h=1:1:max_iter_measure
             input_use_n   = dist_n * eff_n_vec(:);
             
             p_e_n_vec(j)  = (input_use_n/e0_n_vec(j)*...
-                (input_use_n/input_all_n(j))^penalty_n).^e_n_eps;
+                (input_use_n/input_all_n(j))^penalty_n).^(1/e_n_eps);
             kk      = k*(k<10) + 10*(k>=10); 
             input_adjsut_n_all(j)   = i_a_param*input_adjsut/(ceil(kk/10))...
                 *(-p_e_n_vec_pre(j)+p_e_n_vec(j));
@@ -722,7 +730,7 @@ for h=1:1:max_iter_measure
             input_use_o   = dist_o * eff_o_vec(:);
             
             p_e_o_vec(j)  = (input_use_o/e0_o*...
-                (input_use_o/input_all_o(j))^penalty_o).^e_o_eps;
+                (input_use_o/input_all_o(j))^penalty_o).^(1/e_o_eps);
 
             kk      = k*(k<10) + 10*(k>=10); 
 
@@ -776,9 +784,9 @@ for h=1:1:max_iter_measure
         suply_price_lag     = p_E_vec;
 
 
-        sup_price_d = ((suply_price-suply_price_lag)./suply_price_lag); 
-        suply_price(abs(sup_price_d)>0.5) = exp(log(suply_price_lag(abs(sup_price_d)>0.5)) + ...
-            sup_price_d(abs(sup_price_d)>0.5).*weight_adj_p.*suply_price_lag(abs(sup_price_d)>0.5));
+        sup_price_d = abs((suply_price-suply_price_lag)./suply_price_lag); 
+        suply_price((sup_price_d)>0.5) = exp((1-weight_adj_p)*log(suply_price_lag((sup_price_d)>0.5)) + ...
+            weight_adj_p.*log(suply_price(abs(sup_price_d)>0.5)));
         
         demand_err  = suply_price - p_E_vec;
         
@@ -846,8 +854,8 @@ for h=1:1:max_iter_measure
     value_err_n   = reshape(temp(:),trans_t,1)-c_e_new_vec';
     temp          = sum(a_prob.*v_new_resh_o_all(1,:,:),2);
     value_err_o   = temp(:)-c_of_e;
-    if mean((abs(value_err_n))<2*dem_tol|(m_of_entry_n)'<v_tol)>=0.95 && ...
-            mean((abs(value_err_o))<2*dem_tol|(m_of_entry_o)'<v_tol)>=0.95 && ...
+    if mean((abs(value_err_n))<5*dem_tol|(m_of_entry_n)'<v_tol)>=0.95 && ...
+            mean((abs(value_err_o))<5*dem_tol|(m_of_entry_o)'<v_tol)>=0.95 && ...
             mean(sum(p_conv_o_all_prev.*conv_decrease_all.*dist_o_all',1)./measure_vec_o<10^-4)==1
         if abs(sum(final_dist_n)-measure_vec_n(end))<dem_tol
             fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
