@@ -19,12 +19,12 @@ x = norminv(linspace(0,1,a_num_g+2),mu,sigma); %%% looking at the entrants,
                 %%%% to each grid point we would focus to much on the
                 %%%% points that no action would be happening
 a_grid  = x(2:a_num_g+1);
-a_g_nex = (1+a_grid)'/(1+diff_gr);
+a_g_nex = (a_grid)'/(1+diff_gr);
 a_cdf   = normcdf(x,mu,sigma);
 a_prob  = a_cdf(2:a_num_g+1)-a_cdf(1:a_num_g);
 
 prob_matrix_ss       = auto_corr_prob(a_grid,a_prob,rho);
-prob_matrix_tr      = auto_corr_prob_transition(1+a_grid,a_prob,rho,diff_gr);
+prob_matrix_tr      = auto_corr_prob_transition(a_grid,a_prob,rho,diff_gr);
 
 max_iter_price      = floor(max_iter/10);
 max_iter_measure    = max_iter_price*10;
@@ -52,6 +52,7 @@ demand_err      = 1;
 growth_t_line   = diff_gr_t*ones(1,trans_t);
 growth_t_line(1:diff_gr_t) = linspace(1,diff_gr_t,diff_gr_t);
 tech_dist_vec   = (1+diff_gr).^growth_t_line*diff_gr_cons;
+d0_vec          = d_0*(1+d0_gr).^(1:1:trans_t);
 
 % v_of_new    = final_val2;
 % v_of_old    = final_val1;
@@ -126,12 +127,12 @@ measure_adj_o   = min(0.02/(e_o_eps),1); %%%% the maximum variation in newtech m
 %%% this part is used to model the decay of the new generators in the
 %%% period of growth in new generators' productivity, this is beacuse the
 %%% new ones that have not updated are lagging behind
-[~,temp_index_grid] = max(a_g_nex<1+a_grid,[],2);
+[~,temp_index_grid] = max(a_g_nex<a_grid,[],2);
 if temp_index_grid(end) == 1
     temp_index_grid(end) = a_num_g;
 end
 temp_index_grid(temp_index_grid==1)         = 2;
-ratio_of_transition = (1+a_grid(temp_index_grid)'-a_g_nex)./(a_grid(temp_index_grid)'-a_grid(temp_index_grid-1)');
+ratio_of_transition = (a_grid(temp_index_grid)'-a_g_nex)./(a_grid(temp_index_grid)'-a_grid(temp_index_grid-1)');
 ratio_of_transition(ratio_of_transition>1)  = 1;
 temp_index_grid_exp = repmat(temp_index_grid,age_num,1)+kron((0:1:age_num-1)',a_num_g*ones(a_num_g,1));
 rat_of_tran_exp     = repmat(ratio_of_transition,age_num,1);
@@ -226,15 +227,15 @@ for h=1:1:max_iter_measure
                     v_p_n_vec(temp_index_grid_exp-1).*(rat_of_tran_exp);
             end
 
-            % pi_contemp_new      = ((1+a_grid).*(alpha*p_E_vec(i1)/p_e_n_vec(i1))^alpha.*(1/(1+a_grow)).^age_g)...
+            % pi_contemp_new      = ((a_grid).*(alpha*p_E_vec(i1)/p_e_n_vec(i1))^alpha.*(1/(1+a_grow)).^age_g)...
             %     .^(1/(1-alpha))*(1-alpha);
 
-            eff_n_vec           = (((1+a_grid).*alpha*p_E_vec(i1)/p_e_n_vec(i1)...
-                .*(((1+a_grid).^gamma)./(1+a_grow)).^age_g).^(1/(1-alpha)))';
-            eff_n_vec           = min(eff_n_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+            eff_n_vec           = (((a_grid).*alpha*p_E_vec(i1)/p_e_n_vec(i1)...
+                .*(((a_grid).^gamma)./(1+a_grow)).^age_g).^(1/(1-alpha)))';
+            eff_n_vec           = min(eff_n_vec,e_max*(a_grid)'); %%% e_max is add to cap
                         %%% the amount of input a generator can use
 
-            cap_contemp_new     = (1+a_grid)'.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
+            cap_contemp_new     = (a_grid)'.*(((a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
         
             pi_contemp_new      = p_E_vec(i1).*cap_contemp_new'-p_e_n_vec(i1).*eff_n_vec'- fco_n;
         
@@ -318,18 +319,18 @@ for h=1:1:max_iter_measure
             prob_matrix     = prob_matrix_ss;
            
             %*lag_grow_compensate(i2)
-            % pi_contemp_old      = ((1+a_grid)/tech_dist_vec(i2)...
+            % pi_contemp_old      = ((a_grid)/tech_dist_vec(i2)...
             %     .*(alpha*p_E_vec(i2)/p_e_o_vec(i2))^alpha.*(1/(1+a_grow)).^age_g)...
             %     .^(1/(1-alpha))*(1-alpha);
 
-            eff_o_vec           = (((1+a_grid)/tech_dist_vec(i2).*alpha*p_E_vec(i2)...
-                /p_e_o_vec(i2).*(((1+a_grid).^gamma)./(1+a_grow)).^age_g)...
+            eff_o_vec           = (((a_grid)/tech_dist_vec(i2).*alpha*p_E_vec(i2)...
+                /p_e_o_vec(i2).*(((a_grid).^gamma)./(1+a_grow)).^age_g)...
             .^(1/(1-alpha)))';
-            eff_o_vec           = min(eff_o_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+            eff_o_vec           = min(eff_o_vec,e_max*(a_grid)'); %%% e_max is add to cap
                         %%% the amount of input a generator can use
 
-            cap_contemp_old     = (1+a_grid')/tech_dist_vec(i2)...
-                .*(((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_o_vec.^alpha);
+            cap_contemp_old     = (a_grid')/tech_dist_vec(i2)...
+                .*(((a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_o_vec.^alpha);
 
             pi_contemp_old      = p_E_vec(i2).*cap_contemp_old'-p_e_o_vec(i2).*eff_o_vec'- fco_o;
             
@@ -372,13 +373,13 @@ for h=1:1:max_iter_measure
             %%%% is such that a generator with old tech would go to two
             %%%% closest new tech states when adjusted for it's decay
 
-            [~,tech_conver_h] = max((1+a_grid)'/tech_dist_vec(i2)<(1+a_grid),[],2);
+            [~,tech_conver_h] = max((a_grid)'/tech_dist_vec(i2)<(a_grid),[],2);
             if tech_conver_h(end)==1
                 tech_conver_h(end) = a_num_g;
             end
             tech_conver_h(tech_conver_h==1) = 2;
-            ratio_tech_conver = ((1+a_grid)'/tech_dist_vec(i2)-(1+a_grid(tech_conver_h-1))')...
-                ./((1+a_grid(tech_conver_h))'-(1+a_grid(tech_conver_h-1))');
+            ratio_tech_conver = ((a_grid)'/tech_dist_vec(i2)-(a_grid(tech_conver_h-1))')...
+                ./((a_grid(tech_conver_h))'-(a_grid(tech_conver_h-1))');
             ratio_tech_conver(ratio_tech_conver<0) = 0;
 
         
@@ -496,17 +497,17 @@ for h=1:1:max_iter_measure
                 prob_matrix     = prob_matrix_tr;
             end
 
-            % cap_contemp_new   = (((1+a_grid).*(alpha*p_E_vec(j)/p_e_n_vec(j))^alpha.*(1/(1+a_grow)).^age_g)...
+            % cap_contemp_new   = (((a_grid).*(alpha*p_E_vec(j)/p_e_n_vec(j))^alpha.*(1/(1+a_grow)).^age_g)...
             %     .^(1/(1-alpha)))';
-            % eff_n_vec         = (((1+a_grid).*alpha*p_E_vec(j)/p_e_n_vec(j).*(1/(1+a_grow)).^age_g)...
+            % eff_n_vec         = (((a_grid).*alpha*p_E_vec(j)/p_e_n_vec(j).*(1/(1+a_grow)).^age_g)...
             % .^(1/(1-alpha)))';
 
-            eff_n_vec           = (((1+a_grid).*alpha*p_E_vec(j)/p_e_n_vec(j)...
-                .*(((1+a_grid).^gamma)./(1+a_grow)).^age_g).^(1/(1-alpha)))';
-            eff_n_vec           = min(eff_n_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+            eff_n_vec           = (((a_grid).*alpha*p_E_vec(j)/p_e_n_vec(j)...
+                .*(((a_grid).^gamma)./(1+a_grow)).^age_g).^(1/(1-alpha)))';
+            eff_n_vec           = min(eff_n_vec,e_max*(a_grid)'); %%% e_max is add to cap
                             %%% the amount of input a generator can use
     
-            cap_contemp_new     = (1+a_grid)'.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
+            cap_contemp_new     = (a_grid)'.*(((a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
             
             
             exit_vec_n                      = exit_vec_n_all(:,j);
@@ -615,6 +616,7 @@ for h=1:1:max_iter_measure
             kk      = k*(k<10) + 10*(k>=10); 
             input_adjsut_n_all(j)   = i_a_param*input_adjsut/(ceil(kk/10))...
                 *(-p_e_n_vec_pre(j)+p_e_n_vec(j));
+            input_adjsut_n_all(j)   = (median(input_adjsut_n_all)
             p_e_n_vec(j)  = p_e_n_vec_pre(j) + input_adjsut_n_all(j);
             exit_n(j)     = sum(dist_n-dist_new_n);
             dist_conv     = dist_o_prev*conv_matrix;
@@ -654,21 +656,21 @@ for h=1:1:max_iter_measure
             prob_matrix     = prob_matrix_ss;
 
 %              tic  *lag_grow_compensate(j)         
-            % cap_contemp_old   = (((1+a_grid)/tech_dist_vec(j)...
+            % cap_contemp_old   = (((a_grid)/tech_dist_vec(j)...
             %     .*(alpha*p_E_vec(j)/p_e_o_vec(j))^alpha.*(1/(1+a_grow)).^age_g)...
             %     .^(1/(1-alpha)))';
-            % eff_o_vec           = (((1+a_grid)/tech_dist_vec(j)...
+            % eff_o_vec           = (((a_grid)/tech_dist_vec(j)...
             %     .*alpha*p_E_vec(j)/p_e_o_vec(j).*(1/(1+a_grow)).^age_g)...
             % .^(1/(1-alpha)))';
 
-            eff_o_vec           = (((1+a_grid)/tech_dist_vec(j).*alpha*...
-                p_E_vec(j)/p_e_o_vec(j).*(((1+a_grid).^gamma)./(1+a_grow)).^age_g)...
+            eff_o_vec           = (((a_grid)/tech_dist_vec(j).*alpha*...
+                p_E_vec(j)/p_e_o_vec(j).*(((a_grid).^gamma)./(1+a_grow)).^age_g)...
                 .^(1/(1-alpha)))';
-            eff_o_vec           = min(eff_o_vec,e_max*(1+a_grid)'); %%% e_max is add to cap
+            eff_o_vec           = min(eff_o_vec,e_max*(a_grid)'); %%% e_max is add to cap
                             %%% the amount of input a generator can use
     
-            cap_contemp_old     = (1+a_grid')/tech_dist_vec(j).*...
-                (((1+a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_o_vec.^alpha);
+            cap_contemp_old     = (a_grid')/tech_dist_vec(j).*...
+                (((a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_o_vec.^alpha);
 
             exit_vec_o                      = exit_vec_o_all(:,j);
             policy_choice_o                 = policy_choice_o_all(:,:,j);
@@ -769,7 +771,7 @@ for h=1:1:max_iter_measure
         tot_cap_lag(2:end)  = total_cap(1:end-1);
         tot_cap_lag(1)      = d_0/(init_p_E^e_p);
         %(1+diff_gr)*
-        suply_price = ((d_0./(tech_dist_vec.^(1/(1-alpha))))./(total_cap.*...
+        suply_price = ((d0_vec./(tech_dist_vec.^(1/(1-alpha))))./(total_cap.*...
             (total_cap./tot_cap_lag).^penalty_p)).^(1/e_p);
 
         %%% I aim to bound the changes in the supply price to 50% of the
