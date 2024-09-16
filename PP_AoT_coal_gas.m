@@ -152,7 +152,9 @@ vec_c_e_1st     = zeros(100,1);
 %%%%% a near zero measure of the new_tech firms. In this setting the reduction in
 %%%%% the fixed costs of new-tech would lead to the increase in their share
 %%%%% Or also use the two-tech system for a case when coal and gas
-%%%%% transition is happening 
+%%%%% transition is happening
+tech_dist   = 0.9;
+
 tracks(15,tracks(15,:)==0)=30;
 track0  = tracks(1:7,tracks(15,:)==min(tracks(15,:)));
 alpha   = track0(1);
@@ -163,7 +165,7 @@ e0_n_1st= track0(5)*0.75;
 e0_o    = track0(6)*1.25;
 rat     = track0(7);
 % for i=1:1:20
-tech_dist   = 0.9;
+
 % for tt = 1:1:100 
     % alpha = alphas(i);
     [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,cap_contemp_new,eff_n_final,...
@@ -171,8 +173,8 @@ tech_dist   = 0.9;
         age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st,...
         exit_n_1st,exit_o_1st] = ...
         Two_tech_ss_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,a_num_g,age_num,max_iter,...
-        v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0/tech_dist,rat*c_of_e,rat*c_e_new_1st,dem_tol,tech_dist,...
-        e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
+        v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0/(tech_dist^(1/(1-alpha))),rat*c_of_e,rat*c_e_new_1st,dem_tol,tech_dist,...
+        e0_n_1st/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
     error_ss    = dist_n_1st*cap_contemp_new(:)/(dist_n_1st*cap_contemp_new(:)+dist_old*cap_contemp_old(:))-0.075;
     filensme = ['1st_ss_trial' num2str(i)];
@@ -245,7 +247,7 @@ tech_dist   = (1+diff_gr)^diff_gr_t;
     age_g1,a_grid1,a_prob1,pi_contemp_new1,p_E1,m_of_firms_new1,m_of_firms_old1,exit_n_final1,exit_o_final1] = ...
     Two_tech_ss_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0*(1+d0_gr)^trans_t/(tech_dist^(1/(1-alpha))),rat*c_of_e,rat*c_e_new,dem_tol,tech_dist,...
-    e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
+    e0_n_1st/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
 % new tech ss (with two techs)
 tech_dist   = (1+diff_gr)^diff_gr_t;
@@ -255,10 +257,10 @@ tech_dist   = (1+diff_gr)^diff_gr_t;
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n_final,exit_o_final] = ...
     Two_tech_ss_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0*(1+d0_gr)^trans_t/(tech_dist^(1/(1-alpha))),rat*c_of_e,rat*c_e_new,dem_tol,tech_dist,...
-    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
+    e0_n/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
 save ss_gas_coal
-%%
+%
 % ScSz = get(0, 'ScreenSize');
 % figure(1)
 % surf(a_grid,age_g,v_new_resh_n);
@@ -331,6 +333,11 @@ save ss_gas_coal
 %%% In the transition each frim has firm on the old tech has would
 %%% eventually in the transition but it can still update its facility in
 %%% the path.
+
+e0_n_vec_1step  = e0_n_1st*ones(1,trans_t);
+e0_n_1st_1step  = e0_n_1st;
+e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-40,trans_t));
+
 final_dist_o    = dist_o1;
 final_dist_n    = dist_n1;
 final_p_E       = p_E1;
@@ -363,8 +370,8 @@ eff_o_vec           = min(eff_o_vec,e_max*(a_grid)');
 init_input_n = dist_n_1st*eff_n_vec(:)
 init_input_o = dist_old*eff_o_vec(:)
 
-[trans_prob_o_all1,v_new_resh_o_all1,dist_o_all1,measure_vec_o1,p_e_o_vec1,...
-    trans_prob_n_all1,v_new_resh_n_all1,dist_n_all1,measure_vec_n1,p_e_n_vec1,...
+[trans_prob_o_all1,v_new_resh_o_all1,dist_o_all1,measure_vec_o1,p_e_o_vec1,input_all_o1,...
+    trans_prob_n_all1,v_new_resh_n_all1,dist_n_all1,measure_vec_n1,p_e_n_vec1,input_all_n1,...
     age_g1,a_grid1,a_prob1,p_E_vec1,cap_old1,cap_new1] =...
     MIT_transition_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new_vec,mu,sigma,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0,rat*c_of_e,rat*c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
@@ -375,7 +382,7 @@ init_input_o = dist_old*eff_o_vec(:)
 
 %%
 %%%% I implement the transition as first the shock of efficiency is
-%%%% observed and after that in the way of transition the shock of loewr
+%%%% observed and after that in the way of transition the shock of lower
 %%%% input is realized
 diff_gr_cons    = diff_gr_cons*(1+diff_gr)^(diff_gr_t);
 
@@ -400,11 +407,11 @@ eff_o_vec           = min(eff_o_vec,e_max*(a_grid)');
 init_input_n = init_dist_n*eff_n_vec(:)
 init_input_o = init_dist_o*eff_o_vec(:)
 
-[trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,...
-    trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_e_n_vec,...
+[trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,input_all_o2,...
+    trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_e_n_vec,input_all_n2,...
     age_g,a_grid,a_prob,p_E_vec,cap_old,cap_new] =...
     MIT_transition_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new_vec,mu,sigma,a_num_g,age_num,max_iter,...
-    v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0,rat*c_of_e,rat*c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
+    v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0,rat*c_of_e,rat*c_e_new_vec(diff_gr_t+1:trans_t),dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t-diff_gr_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_vec1(diff_gr_t),p_e_o,p_e_o_vec1(diff_gr_t),...
     rho,age_reduc,rat*c_conver,conv_rate,exit_n_final,exit_o_final,exo_exit,...
@@ -415,7 +422,7 @@ init_input_o = init_dist_o*eff_o_vec(:)
 
 
 
-save final_gas_solar
+save final_gas_coal1
 %%
 
 ScSz = get(0, 'ScreenSize');

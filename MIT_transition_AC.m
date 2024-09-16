@@ -611,7 +611,7 @@ for h=1:1:max_iter_measure
             cap_new(j)    = dist_n * cap_contemp_new(:);
             input_use_n   = dist_n * eff_n_vec(:);
             
-            p_e_n_vec(j)  = (input_use_n/e0_n_vec(j)*...
+            p_e_n_vec(j)  = (input_use_n/(e0_n_vec(j)/tech_dist_vec(j).^(1/(1-alpha)))*...
                 (input_use_n/input_all_n(j))^penalty_n).^(1/e_n_eps);
             kk      = k*(k<10) + 10*(k>=10); 
             input_adjsut_n_all(j)   = i_a_param*input_adjsut/(ceil(kk/10))...
@@ -732,7 +732,7 @@ for h=1:1:max_iter_measure
 
             input_use_o   = dist_o * eff_o_vec(:);
             
-            p_e_o_vec(j)  = (input_use_o/e0_o*...
+            p_e_o_vec(j)  = (input_use_o/(e0_o/tech_dist_vec(j).^(1/(1-alpha)))*...
                 (input_use_o/input_all_o(j))^penalty_o).^(1/e_o_eps);
 
             kk      = k*(k<10) + 10*(k>=10); 
