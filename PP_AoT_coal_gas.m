@@ -2,8 +2,7 @@
 
 %%% let's start with only one technology, I assume that after 100 period a
 %%% plant would for sure adopt a new technology meaning that we should have
-%%% the policy of the plant for a set of [0 age_num] years * [a_l a_L] where small
-%%% a's are the demeaned A's
+%%% the policy of the plant for a set of [0 age_num] years * [a_l a_L]
 
 
 clear
@@ -330,9 +329,8 @@ save ss_gas_coal
 % set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 %%
 %%%% MIT transition 
-%%% In the transition each frim has firm on the old tech has would
-%%% eventually in the transition but it can still update its facility in
-%%% the path.
+%%% In the transition first the shock to efficiency is observed and then
+%%% the shock to gas supply arrives
 
 e0_n_vec_1step  = e0_n_1st*ones(1,trans_t);
 e0_n_1st_1step  = e0_n_1st;
