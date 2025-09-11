@@ -13,10 +13,9 @@ clc
 %%
 a_bar   = 80;
 beta    = 0.97;
-c_of_a  = 1;   %%%% we should think more about how to enforce the fix cost
-                %%%% right now it's compared with the value of adoption
-                %%%% which can get really high so we need compare it to
-                %%%% some notion of contemporaneous profit
+c_of_a  = 1;   %%% This should come from the calibration at the gas coal ss
+
+
 c_a_new = 2; %20;   %%%% setting a different adoption cost for the new tech 
                 %%%% might be a solution to get a two tech SS; for gas and
                 %%%% coal case they will be set to be the same
@@ -27,27 +26,29 @@ dist_tol    = 10^-7;
 
 alpha   = 0.7; 
 p_e     = 1;
-a_lamb  = 0.5;
+mu      = 0.29;
+sigma   = 0.1;
 a_num_g = 50;
 age_num = 200;
 
 
-fco     = 0.1;
+fco_o   = 2;
+fco_n   = 1;    %%% set this from the ratio of overheadcost of solar to gas
+
 e_p     = 1;    %%% this demand elasticity is estimated around 0.1 but more 
                 %%% papers should be read about it (in the long run it's 1
                 %%% but I think we should use the short run estimate)
 
-d_0     = 15;   %%% what should this value be?? it has profound effect on 
-                %%% the final distribution of the firms due to low
-                %%% elacticity of demand
-c_of_e  = 15;
-c_e_new = 25 ;%10;   %%%% setting a different entry cost for the new tech 
-                %%%% might be a solution to get a two tech SS; for gas and
-                %%%% coal case they will be set to be the same
+d_0     = 15;   %%% This should come from the calibration at the gas coal ss
+
+c_of_e  = 50;
+c_e_new = 125 ;%10;   %%%% will be set from data
+
+
 dem_tol = 0.01;
 
 
-trans_t  = 200;
+trans_t  = 100;
 
 %%% there can be also an efficiency wedge that has been there without any
 %%% growth; this would be the case for solar and gas
@@ -67,8 +68,11 @@ e_o_eps = 0.2;
 %%% let's define a high fixed cost a starting point for the new_tech guys
 %%% and it's transition in a declining exponential phase; in this case
 %%% e0_n_vec would be a constant.
-c_a_new_1st     = 3.63;
-c_e_new_1st     = 36.3;
+
+c_a_new_1st     = 3.63; %%% should we do a calibration for this one???? or  
+                        % get it from the O&M cost ratios?
+c_e_new_1st     = 36.3; %%% atcually this one comes from the data the end 
+                        % point is from extrapolating the trend of 
 
 c_a_new_vec     = c_a_new + (c_a_new_1st-c_a_new)*exp(linspace(0,-20,trans_t));
 c_e_new_vec     = c_e_new + (c_e_new_1st-c_e_new)*exp(linspace(0,-20,trans_t));
@@ -108,6 +112,12 @@ e_max       = 30;
 %%% depreciate slower, this incorporated using ((1+a_grid).^gamma).^t
 
 gamma       = 0.0075;
+
+%%% we also incorporate the growth in baseline demand growth
+d0_gr   = 0.01;
+
+rat     = 1; %%% this governs the ratio of the overhead costs to O&M cost in the model
+             %%% and it comes from the calibration
 %% old tech ss
 vec_c_a_1st     = zeros(100,1);
 vec_c_e_1st     = zeros(100,1);
@@ -125,12 +135,12 @@ vec_c_e_1st     = zeros(100,1);
 
 tech_dist   = 1;
 % for tt = 1:1:100 
-    [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,cap_contemp_new,...
-        trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,cap_contemp_old,...
+    [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,cap_contemp_new,eff_n_begin,...
+        trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,cap_contemp_old,eff_o_begin,...
         age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st,...
         exit_n_1st,exit_o_1st] = ...
-        Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_1st,a_lamb,a_num_g,age_num,max_iter,...
-        v_tol,dist_tol,fco,e_p,d_0/tech_dist,c_of_e,c_e_new_1st,dem_tol,tech_dist,...
+        Two_tech_ss_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new_1st,mu,sigma,a_num_g,age_num,max_iter,...
+        v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0,rat*c_of_e,rat*c_e_new_1st,dem_tol,tech_dist,...
         e0_n_1st,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
     save 1stresult
@@ -196,11 +206,11 @@ title("probability of tech adoption");
 %% new tech ss (with two techs)
 tech_dist   = (1+diff_gr)^diff_gr_t;
 
-[trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,cap_contemp_n2,...
-    trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,cap_contemp_o2,...
+[trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,cap_contemp_n2,eff_n_final,...
+    trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,cap_contemp_o2,eff_o_final,...
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n_final,exit_o_final] = ...
-    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new,a_lamb,a_num_g,age_num,max_iter,...
-    v_tol,dist_tol,fco,e_p,d_0/(tech_dist^(1/(1-alpha))),c_of_e,c_e_new,dem_tol,tech_dist,...
+    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,a_lamb,a_num_g,age_num,max_iter,...
+    v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0*(1+d0_gr)^trans_t,rat*c_of_e,rat*c_e_new,dem_tol,tech_dist,...
     e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
 save ss_gas_solar
@@ -274,8 +284,8 @@ save ss_gas_solar
 % set(gcf,'position',[0,0,ScSz(3),ScSz(4)]);
 %%
 %%%% MIT transition 
-%%% In the transition each frim has firm on the old tech has would
-%%% eventually in the transition but it can still update its facility in
+%%% In the transition each old frim would face a very high cost to trun green
+%%% but it can still update its facility in
 %%% the path.
 final_dist_o    = dist_o;
 final_dist_n    = dist_n;
@@ -301,17 +311,17 @@ eff_n_vec           = min(eff_n_vec,e_max*(1+a_grid)');
 eff_o_vec           = (((1+a_grid).*alpha*p_E_old/p_e_o_1st.*(((1+a_grid).^gamma)./(1+a_grow)).^age_g)...
 .^(1/(1-alpha)))';
 eff_o_vec           = min(eff_o_vec,e_max*(1+a_grid)');
-init_input_n = dist_n_1st*eff_n_vec(:)
-init_input_o = dist_old*eff_o_vec(:)
+init_input_n = dist_n_1st*eff_n_vec(:);
+init_input_o = dist_old*eff_o_vec(:);
 
-[trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,...
-    trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_e_n_vec,...
-    age_g,a_grid,a_prob,p_E_vec,cap_old,cap_new] =...
-    MIT_transition_AC(a_grow,alpha,a_bar,beta,c_of_a,c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
-    v_tol,dist_tol,fco,e_p,d_0,c_of_e,c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
+[trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,input_all_o,...
+    trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_e_n_vec,input_all_n,...
+    age_g,a_grid,a_prob,p_E_vec,cap_old,cap_new,profit_o,profit_n] =...
+    MIT_transition_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
+    v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0,rat*c_of_e,rat*c_e_new_vec,dem_tol,init_dist_n,init_dist_o,final_val1,final_val2,...
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_1st,p_e_o,p_e_o_1st,...
-    rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final,exo_exit,...
+    rho,age_reduc,rat*c_conver,conv_rate,exit_n_final,exit_o_final,exo_exit,...
     e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p);
 
 
@@ -360,3 +370,165 @@ plot(cap_transition,LineWidth=2)
 ylabel('Share of capacity produced by old'), xlabel('years in to transition')
 title('Capacity transition pattern ')
 set(gca, 'FontSize', 24);
+
+%% let's do some comp stats now
+%%% we want to have an estimate of cost and effects of each oone of the
+%%% policies of taxes and subsidies, for the subsidy I can add (or
+%%% substract) the policy vector to the exisiting path of entry cost of the
+%%% new tech. For the effects of the taxes two new vector of inputs is used
+
+
+%%% let's first see the effect of different modes of subsidies with
+%%% different lengths and intensities
+c_e_new_vec_temp = c_e_new_vec;
+
+for i=1:1:4
+    for j=1:1:4
+        sub_vec = zeros(1,trans_t);
+        if j==1
+            sub_vec(1:25)   = i*ones(1,25);
+        elseif j==2
+            sub_vec(25:50)  = i*ones(1,25);
+        elseif j==3
+            sub_vec(1:50)   = i*ones(1,50);
+        else
+            sub_vec(1:50)   = i*linspace(1,50,50);
+        end
+        c_e_new_vec     = c_e_new_vec_temp - sub_vec;
+
+        [trans_prob_o,v_new_o,final_val1_s,final_dist_o_s,trans_matrix_n,p_e_n_s,cap_contemp_n2,...
+            trans_prob_n,v_new_n,final_val2_s,final_dist_n_s,trans_matrix_o,p_e_o_s,cap_contemp_o2,...
+            age_g,a_grid,a_prob,pi_contemp_new,final_p_E_s,m_of_firms_new,m_of_firms_old,exit_n_final_s,exit_o_final_s] = ...
+            Two_tech_ss_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,a_lamb,a_num_g,age_num,max_iter,...
+            v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0*(1+d0_gr)^trans_t,rat*c_of_e,rat*c_e_new,dem_tol,tech_dist,...
+            e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
+
+
+        [trans_prob_o_sub,v_new_resh_o_sub,dist_o_sub,measure_vec_o_sub,p_e_o_vec_sub,input_all_oS,...
+            trans_prob_n_sub,v_new_resh_n_sub,dist_n_sub,measure_vec_n_sub,p_e_n_vec_sub,input_all_nS,...
+            age_g,a_grid,a_prob,p_E_vec_sub,cap_old_sub,cap_new_sub,profit_oS,profit_nS,new_n_total] =...
+            MIT_transition_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
+            v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0,rat*c_of_e,rat*c_e_new_vec,...
+            dem_tol,init_dist_n,init_dist_o,final_val1_s,final_val2_s,...
+            diff_gr,diff_gr_t,init_p_E,final_p_E_s,trans_t,final_dist_n_s,final_dist_o_s,...
+            e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n_s,p_e_n_1st,p_e_o_s,p_e_o_1st,...
+            rho,age_reduc,rat*c_conver,conv_rate,exit_n_final_s,exit_o_final_s,exo_exit,...
+            e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p);
+
+        address_is = "sub_inten" + int2str(i) + "mode" + int2str(j);
+        save(address_is,"trans_prob_o_sub","v_new_resh_o_sub","dist_o_sub",...
+            "measure_vec_o_sub","p_e_o_vec_sub","trans_prob_n_sub","v_new_resh_n_sub","dist_n_sub",...
+            "measure_vec_n_sub","p_e_n_vec_sub","p_E_vec_sub","cap_old_sub",....
+            "cap_new_sub","profit_oS","profit_nS","new_n_total");
+    end
+end
+
+
+%%%% now let's see the effect of different tax policies
+
+c_e_new_vec = c_e_new_vec_temp;
+
+for i=1:1:4
+    for j=1:1:4
+        tax_vec = zeros(1,trans_t);
+        if j==1
+            tax_vec(1:25)   = i*ones(1,25);
+        elseif j==2
+            tax_vec(25:50)  = i*ones(1,25);
+        elseif j==3
+            tax_vec(1:50)   = i*ones(1,50);
+        else
+            tax_vec(1:50)   = i*linspace(1,50,50);
+        end
+
+
+
+
+        [trans_prob_o_tax,v_new_resh_o_tax,dist_o_tax,measure_vec_o_tax,p_e_o_vec_tax,input_all_oT,...
+            trans_prob_n_tax,v_new_resh_n_tax,dist_n_tax,measure_vec_n_tax,p_e_n_vec_tax,input_all_onT,...
+            age_g,a_grid,a_prob,p_E_vec_tax,cap_old_tax,cap_new_tax,profit_oT,profit_nT] =...
+            MIT_transition_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new_vec,a_lamb,a_num_g,age_num,max_iter,...
+            v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0,rat*c_of_e,rat*c_e_new_vec,dem_tol,...
+            init_dist_n,init_dist_o,final_val1_s,final_val2_s,...
+            diff_gr,diff_gr_t,init_p_E,final_p_E_s,trans_t,final_dist_n_s,final_dist_o_s,...
+            e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n_s,p_e_n_1st,p_e_o_s,p_e_o_1st,...
+            rho,age_reduc,rat*c_conver,conv_rate,exit_n_final_s,exit_o_final_s,exo_exit,...
+            e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p,tax_vec);
+
+        address_is = "tax_inten" + int2str(i) + "mode" + int2str(j);
+        save(address_is,"trans_prob_o_tax","v_new_resh_o_tax","dist_o_tax",...
+            "measure_vec_o_tax","p_e_o_vec_tax","trans_prob_n_tax","v_new_resh_n_tax","dist_n_tax",...
+            "measure_vec_n_tax","p_e_n_vec_tax","p_E_vec_tax","cap_old_tax",...
+            "cap_new_tax","profit_oT","profit_nT");
+    end
+end
+
+%% Welafare analysis
+%%%% if there is a reasonable linear response to the policies based on the
+%%%% previous section's result, we can define cost using a cobb douglas
+%%%% function for citizens' total consumption as C = c_oth^(1-eta)*c_E^eta
+%%%% where eta is determined using the share of electricity consumtpion out
+%%%% of total consumption (gdp). Also the policies will change the profit
+%%%% of the electricity sector which has a I_el_share share of total income of the
+%%%% household (calculated as the share of industry's profit over all
+%%%% firms'). The tax (subsidy) policy will also increase (decrease) the
+%%%% houshold income directly
+eta         = 0.05; %%% set from the data
+I0          = 1;    %%%
+I_el_share  = 0.01; %%% set from the data 
+Util_allpol = zeros(1,33);
+p_oth       = ones(trans_t,1); %%% relative price of the bundle good to electricity
+I_allt      = I0*(1-I_el_share)*(1+d0_gr).^(1:1:trans_t)+I0*I_el_share*(profit_o+profit_n);
+c_oth       = (I_allt-p_E_vec.*(cap_old+cap_new))./p_oth;
+
+Util_allpol(1) = (c_oth.^(1-eta)*(cap_old+cap_new).^eta)*beta.^(linspace(1,trans_t,1)');
+
+
+for i=1:1:4
+    for j=1:1:4
+
+        if j==1
+            sub_vec(1:25)   = i*ones(1,25);
+        elseif j==2
+            sub_vec(25:50)  = i*ones(1,25);
+        elseif j==3
+            sub_vec(1:50)   = i*ones(1,50);
+        else
+            sub_vec(1:50)   = i*linspace(1,50,50);
+        end
+
+        address_is = "tax_inten" + int2str(i) + "mode" + int2str(j);
+        load(address_is);
+
+
+        I_allt      = I0*(1-I_el_share)*(1+d0_gr).^(1:1:trans_t)+...
+            I0*I_el_share*(profit_oS+profit_nS)-sub_vec*new_n_total;
+        c_oth       = (I_allt-p_E_vec_sub.*(cap_old_sub+cap_new_sub))./p_oth;
+        Util_allpol(1+i+(j-1)*4) = (c_oth.^(1-eta)*(cap_old_sub+cap_new_sub).^eta)*beta.^(linspace(1,trans_t,1)');
+    end
+end
+
+for i=1:1:4
+    for j=1:1:4
+
+        tax_vec = zeros(1,trans_t);
+        if j==1
+            tax_vec(1:25)   = i*ones(1,25);
+        elseif j==2
+            tax_vec(25:50)  = i*ones(1,25);
+        elseif j==3
+            tax_vec(1:50)   = i*ones(1,50);
+        else
+            tax_vec(1:50)   = i*linspace(1,50,50);
+        end
+
+        address_is = "sub_inten" + int2str(i) + "mode" + int2str(j);
+        load(address_is);
+
+
+        I_allt      = I0*(1-I_el_share)*(1+d0_gr).^(1:1:trans_t)+...
+            I0*I_el_share*(profit_oT+profit_nT)+tax_vec*input_all_oT;
+        c_oth       = (I_allt-p_E_vec_tax.*(cap_old_tax+cap_new_tax))./p_oth;
+        Util_allpol(17+i+(j-1)*4) = (c_oth.^(1-eta)*(cap_old_tax+cap_new_tax).^eta)*beta.^(linspace(1,trans_t,1)');
+    end
+end

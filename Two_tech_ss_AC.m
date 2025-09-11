@@ -78,12 +78,12 @@ p_e_o   = 1;
 % them
 
 
-pi_contemp_new      = ((a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
+pi_contemp_new      = ((a_grid)*tech_dist.*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
     .^(1/(1-alpha))*(1-alpha);
 
 %%% I also consider the remainder of the firms that have not transitioned
 
-pi_contemp_old      = ((a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
+pi_contemp_old      = ((a_grid).*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
     .^(1/(1-alpha))*(1-alpha);
 
 
@@ -143,17 +143,21 @@ for h=1:1:max_iter_measure
     for k=1:1:max_iter_price
         
 
+
+        %%%% I've decided to put incorporate the tech growth directly for
+        %%%% the new instead of the old since the total growth is limited
+        %%%% and there is no need to consider relative efficiencies
         
         output_adjsut   = 0.15/(max(e_n_eps,e_o_eps))*(k<25) ...
            + 1.5/(max(e_n_eps,e_o_eps))*(k>=25); %%% max var in output prices
-        eff_n_vec           = (((a_grid).*alpha*p_E/p_e_n.*(((a_grid).^gamma)./(1+a_grow)).^age_g)...
+        eff_n_vec           = (((a_grid).*alpha*tech_dist*p_E/p_e_n.*(((a_grid).^gamma)./(1+a_grow)).^age_g)...
             .^(1/(1-alpha)))';
-        eff_n_vec           = min(eff_n_vec,e_max*(a_grid)'); %%% e_max is add to cap
+        eff_n_vec           = min(eff_n_vec,e_max*(a_grid)'*tech_dist); %%% e_max is add to cap
                         %%% the amount of input a generator can use
 
         % pi_contemp_new      = ((a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
         %     .^(1/(1-alpha))*(1-alpha);
-        cap_contemp_new     = (a_grid)'.*(((a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
+        cap_contemp_new     = (a_grid)'*tech_dist.*(((a_grid).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
         
         % cap_contemp_new     = (((a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
         %     .^(1/(1-alpha)))';
@@ -177,12 +181,12 @@ for h=1:1:max_iter_measure
 %         pi_contemp_neg_old  = pi_contemp_old<0;
 %         pi_contemp_old(pi_contemp_neg_old) = 0;
 
-        eff_o_vec           = (((a_grid)/tech_dist.*alpha*p_E/p_e_o.*(((a_grid).^gamma)...
+        eff_o_vec           = (((a_grid).*alpha*p_E/p_e_o.*(((a_grid).^gamma)...
             ./(1+a_grow)).^age_g).^(1/(1-alpha)))';
         eff_o_vec           = min(eff_o_vec,e_max*(a_grid)'); %%% e_max is add to cap
                         %%% the amount of input a generator can use
 
-        cap_contemp_old     = (a_grid')/tech_dist.*(((a_grid).^gamma)...
+        cap_contemp_old     = (a_grid').*(((a_grid).^gamma)...
             ./(1+a_grow)).^age_g'.*(eff_o_vec.^alpha);
         
         pi_contemp_old      = p_E.*cap_contemp_old'-p_e_o.*eff_o_vec'- fco_o;
