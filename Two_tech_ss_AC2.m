@@ -324,6 +324,9 @@ for h=1:1:max_iter_measure
             
         end
         
+        all_new_values_negative = all(v_n_neg,"all");
+        all_old_values_negative = all(v_o_neg,"all");
+
         %%
         %%% Here I derive the transition matrix; first those who don't adopt go to
         %%% the same technology state with a higher age, those who adopt go the
@@ -421,43 +424,54 @@ for h=1:1:max_iter_measure
         dist_ent_old    = zeros(1,age_num*a_num_g);
         dist_ent_old(1:a_num_g) = a_prob_old;
 
-        
-        for j=1:1:max_iter
-            dist_new_n    = dist_n *trans_matrix_n;
-            exit_n        = sum(dist_n-dist_new_n);
-            dist_new_n    = dist_new_n + (m_of_firms_new-sum(dist_new_n))*dist_ent_new;
-            error       = max(abs(dist_new_n-dist_n));
-            if error<dist_tol
-                fprintf("distribution of new converged in %4.1f periods\n",j);
-                break;
-            end
-            dist_n        = dist_new_n;
+        if all_new_values_negative
+            fprintf("all values of new tech are negative; setting distribution to zero\n");
+            dist_n = zeros(1,age_num*a_num_g);
+            exit_n = 0;
+        else
+            for j=1:1:max_iter
+                dist_new_n    = dist_n *trans_matrix_n;
+                exit_n        = sum(dist_n-dist_new_n);
+                dist_new_n    = dist_new_n + (m_of_firms_new-sum(dist_new_n))*dist_ent_new;
+                error       = max(abs(dist_new_n-dist_n));
+                if error<dist_tol
+                    fprintf("distribution of new converged in %4.1f periods\n",j);
+                    break;
+                end
+                dist_n        = dist_new_n;
 
-            if sum(isnan(dist_n),"all")>1
-                fprintf("there is nan\n at %2.1f",j);
-                break;
-                
+                if sum(isnan(dist_n),"all")>1
+                    fprintf("there is nan\n at %2.1f",j);
+                    break;
+                    
+                end
+            
             end
-        
         end
 
-        for j=1:1:max_iter
-            dist_new_o    = dist_o *trans_matrix_o;
-            exit_o        = sum(dist_o-dist_new_o);
-            dist_new_o    = dist_new_o + (m_of_firms_old-sum(dist_new_o))*dist_ent_old;
-            error       = max(abs(dist_new_o-dist_o));
-            if error<dist_tol
-                fprintf("distribution of old converged in %4.1f periods\n",j);
-                break;
-            end
-            dist_o        = dist_new_o;
+        if all_old_values_negative
+            fprintf("all values of old tech are negative; setting distribution to zero\n");
+            dist_o = zeros(1,age_num*a_num_g);
+            exit_o = 0;
+        else
+            for j=1:1:max_iter
+                dist_new_o    = dist_o *trans_matrix_o;
+                exit_o        = sum(dist_o-dist_new_o);
+                dist_new_o    = dist_new_o + (m_of_firms_old-sum(dist_new_o))*dist_ent_old;
+                error       = max(abs(dist_new_o-dist_o));
+                if error<dist_tol
+                    fprintf("distribution of old converged in %4.1f periods\n",j);
+                    break;
+                end
+                dist_o        = dist_new_o;
 
-            if sum(isnan(dist_o),"all")>1
-                fprintf("there is nan\n at %2.1f",j);
-                break;
-                
+                if sum(isnan(dist_o),"all")>1
+                    fprintf("there is nan\n at %2.1f",j);
+                    break;
+                    
+                end
+            
             end
-        
         end
         
         total_cap   = dist_n * cap_contemp_new(:) + dist_o * cap_contemp_old(:);
