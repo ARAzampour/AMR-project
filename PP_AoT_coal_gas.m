@@ -24,14 +24,14 @@ max_iter    = 30000;
 v_tol       = 10^-5;
 dist_tol    = 10^-7;
 
-alpha   = 0.7; 
+alpha   = 1.9;  %%% estimated from the data, not in the calibration anymore 1/5/2026
 p_e     = 1;
-mu      = 0.34;
-sigma   = sqrt(0.00157);
-mu2     = 0.5265;
-sigma2  = sqrt(0.000644); %%% these are used for cc generators
+mu      = 0.4;
+sigma   = sqrt(0.08^2);
+mu2     = 0.53;
+sigma2  = sqrt(0.025^2); %%% these are used for cc generators
 a_num_g = 50;
-age_num = 200;
+age_num = 80;
 
 
 fco_o   = 2;
@@ -56,7 +56,7 @@ trans_t  = 100;
 %%% growth; this would be the case for solar and gas
 diff_gr_t       = 10;
 diff_gr         = 0.03;
-a_grow          = 0.0237;
+a_grow          = 0.005;
 % diff_gr_cons    = (1+0.4)^diff_gr_t;    %%% to be used for solar case
 diff_gr_cons    = 1;                    %%% to be used for gas and coal
 
@@ -134,12 +134,12 @@ p_E_m = 12; p_e_n_m = 2.3; p_e_o_m = 1.3; inp_ratio = 7; m_ratio = 3;
 mean_eff = 0.37; tech_dist   = 1; feul_ce_ratio = 0.12; M_cap_age = 6.1;
 
 A = []; B = []; Aeq = []; Beq = []; nonlcon=[];
-lb  = [0.5,5,5,4.5,0.15,2.5,0.7,4];
-ub  = [0.75,15,15,10.5,0.75,4.5,1.0,12];
-[x,fval,exitflag,output]    = surrogateopt(@(x)simulator(a_grow,x(1),a_bar...
-    ,beta,x(2),x(3),mu,sigma,mu,sigma,a_num_g,age_num,max_iter,...
-        v_tol,dist_tol,fco_o,fco_n,e_p,x(4),c_of_e,c_e_new,dem_tol,tech_dist,...
-        x(5),x(6),e_n_eps,e_o_eps,rho,x(8),exo_exit,e_max,gamma,x(7),...
+lb  = [5,5,4.5,0.35,2.5,0.7,4];
+ub  = [15,15,10.5,0.75,4.5,1.0,12];
+[x,fval,exitflag,output]    = surrogateopt(@(x)simulator(a_grow,alpha,a_bar...
+    ,beta,x(1),x(2),mu,sigma,mu,sigma,a_num_g,age_num,max_iter,...
+        v_tol,dist_tol,fco_o,fco_n,e_p,x(3),c_of_e,c_e_new,dem_tol,tech_dist,...
+        x(4),x(5),e_n_eps,e_o_eps,rho,x(7),exo_exit,e_max,gamma,x(6),...
         p_E_m,p_e_n_m,p_e_o_m,inp_ratio,m_ratio,mean_eff,feul_ce_ratio,M_cap_age)...
         ,lb,ub,nonlcon,A,B,Aeq,Beq,options);
 

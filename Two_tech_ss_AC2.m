@@ -23,9 +23,15 @@ a_prob_old  = a_cdf_old(2:a_num_g+1)-a_cdf_old(1:a_num_g);
 prob_matrix_old     = auto_corr_prob(a_grid_old,a_prob_old,rho);
 
 
-x_new   = norminv(linspace(0,1,a_num_g+2),mu_new,sigma_new); %%% looking at the entrants of new, 
+x_new   = norminv(linspace(0,1,a_num_g+2),mu_new,sigma_new); %%% looking at the entrants of new,
+
+
 
 a_grid_new  = x_new(2:a_num_g+1);
+
+assert(all(a_grid_new>0),'variance of new tech efficiency draw is too large')
+assert(all(a_grid_old>0),'variance of old tech efficiency draw is too large')
+
 a_cdf_new   = normcdf(x_new,mu_new,sigma_new);
 a_prob_new  = a_cdf_new(2:a_num_g+1)-a_cdf_new(1:a_num_g);
 
@@ -166,6 +172,12 @@ for h=1:1:max_iter_measure
 
         for i1=1:1:max_iter
         
+%             if all(pi_contemp_new<=0)
+%                 fprintf("all profits of new tech is zero \n");
+% 
+%                 break;
+%             end
+
             v_p_n = v_of_new';
             v_p_n(:,1:age_num-1)  = v_p_n(:,2:age_num);
             v_p_n(:,age_num)      = 0;            %%% setting the
@@ -238,6 +250,10 @@ for h=1:1:max_iter_measure
         end
         
         for i2=1:1:max_iter
+%             if all(pi_contemp_old<=0)
+%                 fprintf("all profits of old tech is zero \n");
+%                 break;
+%             end
             v_p_o = v_of_old';
             v_p_o(:,1:age_num-1)  = v_p_o(:,2:age_num);
             v_p_o(:,age_num)      = 0;            %%% setting the
@@ -298,7 +314,7 @@ for h=1:1:max_iter_measure
             end
         
             if sum(isnan(v_new_resh_o),"all")>1
-            fprintf("there is nan\n at %2.1f",i2);
+                fprintf("there is nan\n at %2.1f",i2);
             break;
             
             end
@@ -445,8 +461,11 @@ for h=1:1:max_iter_measure
         end
         
         total_cap   = dist_n * cap_contemp_new(:) + dist_o * cap_contemp_old(:);
-        
-        suply_price = (d_0/total_cap)^(1/e_p);
+        if total_cap>0
+            suply_price = (d_0/total_cap)^(1/e_p);
+        else
+            suply_price = p_E+100;
+        end
         
         demand_err  = suply_price - p_E;
 
@@ -465,12 +484,17 @@ for h=1:1:max_iter_measure
         price_ratio_n = p_E/p_e_n;
         price_ratio_o = p_E/p_e_o;
 
-        p_e_n       = (dist_n * eff_n_vec(:)/e0_n).^(1/e_n_eps);
-        p_e_o       = (dist_o * eff_o_vec(:)/e0_o).^(1/e_o_eps);
+        
+        p_e_n   = (dist_n * eff_n_vec(:)/e0_n).^(1/e_n_eps);
+        
+
+        
+        p_e_o   = (dist_o * eff_o_vec(:)/e0_o).^(1/e_o_eps);
+        
 
 
         % if abs(p_e_o_pre-p_e_o)>input_adjsut/(ceil(k/10))
-        kk      = k*(k<10) + 10*(k>=10); 
+        kk      = k*(k<1000) + 1000*(k>=1000); 
         input_adjsut_of_o   = 0.1*input_adjsut/(ceil(kk/10))*(-p_e_o_pre+p_e_o);
         p_e_o   = p_e_o_pre*1+input_adjsut_of_o;
         % end
@@ -486,6 +510,14 @@ for h=1:1:max_iter_measure
         if sign(price_ratio_o-price_ratio_o_p)~=sign(price_ratio_o_p-price_ratio_o_q)
             p_e_o = (p_e_o_pre + p_e_o)/2;
         end
+
+%         if (dist_n * eff_n_vec(:))<0
+%             p_e_n   = p_e_n*0.9;
+%         end
+% 
+%         if (dist_o * eff_o_vec(:))<0
+%             p_e_o   = p_e_o*0.9;
+%         end
 
         if (abs(demand_err)<dem_tol || (abs(p_E_prev-p_E)<5*v_tol && k>max_iter_price/5))...
                 && (abs(input_adjsut_of_o)<5*v_tol) && (abs(input_adjsut_of_n)<5*v_tol)

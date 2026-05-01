@@ -26,8 +26,8 @@ save tracks tracks
         v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0/tech_dist,rat*c_of_e,rat*c_e_new,dem_tol,tech_dist,...
         e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
-eff_grid_expan_o= ((a_grid_old)./((1+a_grow).^age_g))';
-eff_grid_expan_n= ((a_grid_new)./((1+a_grow).^age_g))';
+eff_grid_expan_n= a_grid_new' .* max(1 - a_grow .* age_g', 0);   % (a_num_g x age_num)
+eff_grid_expan_o= a_grid_old' .* max(1 - a_grow .* age_g', 0);
 
 avr_cap_age     = ((dist_o+dist_n)*kron(age_g,ones(a_num_g,1)))/2;
 
