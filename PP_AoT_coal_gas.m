@@ -26,8 +26,10 @@ dist_tol    = 10^-7;
 
 alpha   = 0.7; 
 p_e     = 1;
-mu      = 0.29;
-sigma   = 0.1;
+mu      = 0.34;
+sigma   = sqrt(0.00157);
+mu2     = 0.5265;
+sigma2  = sqrt(0.000644); %%% these are used for cc generators
 a_num_g = 50;
 age_num = 200;
 
@@ -54,7 +56,7 @@ trans_t  = 100;
 %%% growth; this would be the case for solar and gas
 diff_gr_t       = 10;
 diff_gr         = 0.03;
-a_grow          = 0.02;
+a_grow          = 0.0237;
 % diff_gr_cons    = (1+0.4)^diff_gr_t;    %%% to be used for solar case
 diff_gr_cons    = 1;                    %%% to be used for gas and coal
 
@@ -93,8 +95,8 @@ e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-40,trans_t));
 
 
 %%% auto correlation case parameters
-rho         = 0.75;
-age_reduc   = 15;
+rho         = 0.6;
+age_reduc   = 10;
 
 
 %%% exogenous exit
@@ -109,35 +111,41 @@ e_max       = 30;
 %%% we have set that generators with a higher initial efficiency would
 %%% depreciate slower, this incorporated using ((a_grid).^gamma).^t
 
-gamma       = 0.0075;
+gamma       = -0.0189;
 alphas      = linspace(0.1,0.95,20);
 
 
 %%% we also incorporate the growth in baseline demand growth
 d0_gr   = 0.01;
 %% calibration first part
-%%% the unkown paramteres are d_0, e0_n, e0_o, alpha, c_of_a, c_a_new, rat and
+%%% the unkown paramteres are d_0, e0_n, e0_o, alpha, c_of_a, c_a_new, rat, age_reduc and
 %%% the moments are p_E, p_e_n, p_e_o, total_eff_ratio, measure_ratio, mean
-%%% efficiency, and ratio of input cost to instalation cost
+%%% efficiency, and ratio of input cost to instalation cost and also mean
+%%% of cap_Age
 
 rat     = 1; %%% this governs the ratio of the overhead costs to O&M cost in the model
 options = optimoptions('surrogateopt','Display','iter','PlotFcn',[]);
 
 global tracks JJ
-tracks  = zeros(15,100);
+tracks  = zeros(17,100);
 JJ      = 0;
 
 p_E_m = 12; p_e_n_m = 2.3; p_e_o_m = 1.3; inp_ratio = 7; m_ratio = 3;
-mean_eff = 0.33; tech_dist   = 0.9; feul_ce_ratio = 0.12;
+mean_eff = 0.37; tech_dist   = 1; feul_ce_ratio = 0.12; M_cap_age = 6.1;
 
 A = []; B = []; Aeq = []; Beq = []; nonlcon=[];
-lb  = [0.6,5,5,15,0.33,1,0.85];
-ub  = [0.75,15,15,30,0.9,3,1.15];
+lb  = [0.5,5,5,4.5,0.15,2.5,0.7,4];
+ub  = [0.75,15,15,10.5,0.75,4.5,1.0,12];
 [x,fval,exitflag,output]    = surrogateopt(@(x)simulator(a_grow,x(1),a_bar...
-    ,beta,x(2),x(3),mu,sigma,a_num_g,age_num,max_iter,...
+    ,beta,x(2),x(3),mu,sigma,mu,sigma,a_num_g,age_num,max_iter,...
         v_tol,dist_tol,fco_o,fco_n,e_p,x(4),c_of_e,c_e_new,dem_tol,tech_dist,...
-        x(5),x(6),e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma,x(7),...
-        p_E_m,p_e_n_m,p_e_o_m,inp_ratio,m_ratio,mean_eff,feul_ce_ratio),lb,ub,nonlcon,A,B,Aeq,Beq,options);
+        x(5),x(6),e_n_eps,e_o_eps,rho,x(8),exo_exit,e_max,gamma,x(7),...
+        p_E_m,p_e_n_m,p_e_o_m,inp_ratio,m_ratio,mean_eff,feul_ce_ratio,M_cap_age)...
+        ,lb,ub,nonlcon,A,B,Aeq,Beq,options);
+
+
+
+
 %% old tech ss
 vec_c_a_1st     = zeros(100,1);
 vec_c_e_1st     = zeros(100,1);
@@ -152,10 +160,11 @@ vec_c_e_1st     = zeros(100,1);
 %%%%% the fixed costs of new-tech would lead to the increase in their share
 %%%%% Or also use the two-tech system for a case when coal and gas
 %%%%% transition is happening
-tech_dist   = 0.9;
-
-tracks(15,tracks(15,:)==0)=30;
-track0  = tracks(1:7,tracks(15,:)==min(tracks(15,:)));
+tech_dist   = 1;
+% 
+% tracks(15,tracks(15,:)==0)=30;
+% track0  = tracks(1:7,tracks(15,:)==min(tracks(15,:)));
+track0 = tracks(:,3);
 alpha   = track0(1);
 c_of_a  = track0(2); 
 c_a_new = track0(3);
@@ -163,15 +172,17 @@ d_0     = 12;
 e0_n_1st= track0(5)*0.75;
 e0_o    = track0(6)*1.25;
 rat     = track0(7);
+age_reduc   = track0(8);
+
 % for i=1:1:20
 
 % for tt = 1:1:100 
     % alpha = alphas(i);
     [trans_prob_old,v_new_old,v_new_resh_old,dist_old,trans_matrix_n_1st,p_e_n_1st,cap_contemp_new,eff_n_final,...
         trans_prob_n_1st,v_new_n_1st,v_new_resh_n_1st,dist_n_1st,trans_matrix_old,p_e_o_1st,cap_contemp_old,eff_o_final,...
-        age_g,a_grid,a_prob,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st,...
+        age_g,a_grid,~,a_grid,~,pi_contemp_new_1st,p_E_old,m_of_firms_new_1st,m_of_firms_old_1st,...
         exit_n_1st,exit_o_1st] = ...
-        Two_tech_ss_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,a_num_g,age_num,max_iter,...
+        Two_tech_ss_AC2(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,mu,sigma,a_num_g,age_num,max_iter,...
         v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0/(tech_dist^(1/(1-alpha))),rat*c_of_e,rat*c_e_new_1st,dem_tol,tech_dist,...
         e0_n_1st/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
@@ -239,22 +250,23 @@ title("probability of tech adoption");
 % annotation('textarrow',[1,10],'String','y = x ')
 
 %% new tech ss(before observing the price shock)
-tech_dist   = (1+diff_gr)^diff_gr_t;
+% tech_dist   = (1+diff_gr)^diff_gr_t;
 
 [trans_prob_o1,v_new_o1,v_new_resh_o1,dist_o1,trans_matrix_n1,p_e_n1,cap_contemp_n21,eff_n_final21,...
     trans_prob_n1,v_new_n1,v_new_resh_n1,dist_n1,trans_matrix_o1,p_e_o1,cap_contemp_o21,eff_o_final21,...
-    age_g1,a_grid1,a_prob1,pi_contemp_new1,p_E1,m_of_firms_new1,m_of_firms_old1,exit_n_final1,exit_o_final1] = ...
-    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,a_num_g,age_num,max_iter,...
+    age_g1,a_grid_o,a_prob_o,a_grid_n,a_prob_n,...
+    pi_contemp_new1,p_E1,m_of_firms_new1,m_of_firms_old1,exit_n_final1,exit_o_final1] = ...
+    Two_tech_ss_AC2(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,mu2,sigma2,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0*(1+d0_gr)^trans_t/(tech_dist^(1/(1-alpha))),rat*c_of_e,rat*c_e_new,dem_tol,tech_dist,...
     e0_n_1st/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
 % new tech ss (with two techs)
-tech_dist   = (1+diff_gr)^diff_gr_t;
+% tech_dist   = (1+diff_gr)^diff_gr_t;
 
 [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,cap_contemp_n2,eff_n_final2,...
     trans_prob_n,v_new_n,v_new_resh_n,dist_n,trans_matrix_o,p_e_o,cap_contemp_o2,eff_o_final2,...
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n_final,exit_o_final] = ...
-    Two_tech_ss_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,a_num_g,age_num,max_iter,...
+    Two_tech_ss_AC2(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,mu2,sigma2,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0*(1+d0_gr)^trans_t/(tech_dist^(1/(1-alpha))),rat*c_of_e,rat*c_e_new,dem_tol,tech_dist,...
     e0_n/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
 
