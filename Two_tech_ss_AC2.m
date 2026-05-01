@@ -3,7 +3,7 @@ function [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,cap_cont
     age_g,a_grid_old,a_prob_old,a_grid_new,a_prob_new,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n,exit_o] = ...
     Two_tech_ss_AC2(a_grow,alpha,~,beta,c_of_a,c_a_new,mu_old,sigma_old,mu_new,sigma_new,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco_o,fco_n,e_p,d_0,c_of_e,c_e_new,dem_tol,tech_dist,...
-    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma)
+    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,~)
 
 % a_grid  =  expinv(linspace(0,0.999,a_num_g),a_lamb);
 x_old   = norminv(linspace(0,1,a_num_g+2),mu_old,sigma_old); %%% looking at the entrants, 
@@ -36,6 +36,10 @@ max_iter_measure    = max_iter_price*1;
  
 age_g   = (linspace(0,age_num-1,age_num))';
 exit_sm = 2;
+
+%%% effective productivity per state: a_{i,t} = a_i * (1 - a_grow*t), capped at zero
+a_eff_new = a_grid_new' .* max(1 - a_grow .* age_g', 0);   % (a_num_g x age_num)
+a_eff_old = (a_grid_old./tech_dist)' .* max(1 - a_grow .* age_g', 0);
 
 
 policy_choice_n   = zeros(age_num*a_num_g,a_num_g);
@@ -90,21 +94,11 @@ p_e_o   = 1;
 % them
 
 
-pi_contemp_new      = ((a_grid_new).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
-    .^(1/(1-alpha))*(1-alpha);
-
-%%% I also consider the remainder of the firms that have not transitioned
-
-pi_contemp_old      = ((a_grid_old)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
-    .^(1/(1-alpha))*(1-alpha);
-
-
-
-%%% here I'm adding fixed cost of operation to implement exit decision: it
-%%% should be calibrated
-
-pi_contemp_new      = pi_contemp_new - fco_n;
-pi_contemp_old      = pi_contemp_old - fco_o;
+%%% initial period profits via new production function (seeds value iteration)
+[~, ~, pi_n_init]   = static_solver(a_eff_new, p_E, p_e_n, alpha, fco_n, 1./a_grid_new(:));
+[~, ~, pi_o_init]   = static_solver(a_eff_old, p_E, p_e_o, alpha, fco_o, 1./a_grid_old(:));
+pi_contemp_new      = pi_n_init';   % (age_num x a_num_g)
+pi_contemp_old      = pi_o_init';
 
 %%% those with negative contemporary profit will exit
 % pi_contemp_neg_new  = pi_contemp_new<0;
@@ -163,46 +157,10 @@ for h=1:1:max_iter_measure
         
         output_adjsut   = 0.15/(max(e_n_eps,e_o_eps))*(k<25) ...
            + 1.5/(max(e_n_eps,e_o_eps))*(k>=25); %%% max var in output prices
-        eff_n_vec           = (((a_grid_new).*alpha*p_E/p_e_n.*(((a_grid_new).^gamma)./(1+a_grow)).^age_g)...
-            .^(1/(1-alpha)))';
-        eff_n_vec           = min(eff_n_vec,e_max*(a_grid_new)'); %%% e_max is added to cap
-                        %%% the amount of input a generator can use
-
-        % pi_contemp_new      = ((a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
-        %     .^(1/(1-alpha))*(1-alpha);
-        cap_contemp_new     = (a_grid_new)'.*(((a_grid_new).^gamma)./(1+a_grow)).^age_g'.*(eff_n_vec.^alpha);
-        
-        % cap_contemp_new     = (((a_grid).*(alpha*p_E/p_e_n)^alpha.*(1/(1+a_grow)).^age_g)...
-        %     .^(1/(1-alpha)))';
-        pi_contemp_new      = p_E.*cap_contemp_new'-p_e_n.*eff_n_vec'- fco_n;
-    
-        % pi_contemp_new      = pi_contemp_new - fco;
-    
-%         pi_contemp_neg_new  = pi_contemp_new<0;
-%         pi_contemp_new(pi_contemp_neg_new) = 0;
-
-        % pi_contemp_old      = ((a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
-        %     .^(1/(1-alpha))*(1-alpha);
-        % 
-        % eff_o_vec           = (((a_grid)/tech_dist.*alpha*p_E/p_e_o.*(1/(1+a_grow)).^age_g)...
-        %     .^(1/(1-alpha)))';
-        % 
-        % cap_contemp_old     = (((a_grid)/tech_dist.*(alpha*p_E/p_e_o)^alpha.*(1/(1+a_grow)).^age_g)...
-        %     .^(1/(1-alpha)))';
-        % pi_contemp_old      = pi_contemp_old - fco;
-        % 
-%         pi_contemp_neg_old  = pi_contemp_old<0;
-%         pi_contemp_old(pi_contemp_neg_old) = 0;
-
-        eff_o_vec           = (((a_grid_old)/tech_dist.*alpha*p_E/p_e_o.*(((a_grid_old).^gamma)...
-            ./(1+a_grow)).^age_g).^(1/(1-alpha)))';
-        eff_o_vec           = min(eff_o_vec,e_max*(a_grid_old)'); %%% e_max is add to cap
-                        %%% the amount of input a generator can use
-
-        cap_contemp_old     = (a_grid_old')/tech_dist.*(((a_grid_old).^gamma)...
-            ./(1+a_grow)).^age_g'.*(eff_o_vec.^alpha);
-        
-        pi_contemp_old      = p_E.*cap_contemp_old'-p_e_o.*eff_o_vec'- fco_o;
+        [eff_n_vec, cap_contemp_new, pi_n_mat] = static_solver(a_eff_new, p_E, p_e_n, alpha, fco_n, 1./a_grid_new(:));
+        [eff_o_vec, cap_contemp_old, pi_o_mat] = static_solver(a_eff_old, p_E, p_e_o, alpha, fco_o, 1./a_grid_old(:));
+        pi_contemp_new      = pi_n_mat';   % (age_num x a_num_g)
+        pi_contemp_old      = pi_o_mat';
 
 
 

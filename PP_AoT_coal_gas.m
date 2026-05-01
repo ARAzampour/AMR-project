@@ -371,14 +371,11 @@ penalty_o       = 1; %%% this is the effect of deviation from last year's input
                         %%% for the whole submarket, e.g. a 10% increase in
                         %%% demand would require 20% increase in supply
 
-eff_n_vec           = (((a_grid).*alpha*p_E_old/p_e_n_1st.*(((a_grid).^gamma)./(1+a_grow)).^age_g)...
-.^(1/(1-alpha)))';
-eff_n_vec           = min(eff_n_vec,e_max*(a_grid)');
-eff_o_vec           = (((a_grid).*alpha*p_E_old/p_e_o_1st.*(((a_grid).^gamma)./(1+a_grow)).^age_g)...
-.^(1/(1-alpha)))';
-eff_o_vec           = min(eff_o_vec,e_max*(a_grid)');
-init_input_n = dist_n_1st*eff_n_vec(:)
-init_input_o = dist_old*eff_o_vec(:)
+a_eff_init      = a_grid' .* max(1 - a_grow .* age_g', 0);
+[eff_n_vec, ~]  = static_solver(a_eff_init, p_E_old, p_e_n_1st, alpha, fco_n, 1./a_grid(:));
+[eff_o_vec, ~]  = static_solver(a_eff_init, p_E_old, p_e_o_1st, alpha, fco_o, 1./a_grid(:));
+init_input_n    = dist_n_1st * eff_n_vec(:)
+init_input_o    = dist_old * eff_o_vec(:)
 
 [trans_prob_o_all1,v_new_resh_o_all1,dist_o_all1,measure_vec_o1,p_e_o_vec1,input_all_o1,...
     trans_prob_n_all1,v_new_resh_n_all1,dist_n_all1,measure_vec_n1,p_e_n_vec1,input_all_n1,...
@@ -408,14 +405,12 @@ init_dist_n     = dist_n_all1(diff_gr_t,:);
 diff_gr         = 0.0;
 
 
-eff_n_vec           = (((a_grid).*alpha*p_E_vec1(diff_gr_t)/p_e_n_vec1(diff_gr_t).*...
-    (((a_grid).^gamma)./(1+a_grow)).^age_g).^(1/(1-alpha)))';
-eff_n_vec           = min(eff_n_vec,e_max*(a_grid)');
-eff_o_vec           = (((a_grid)/diff_gr_cons.*alpha*p_E_vec1(diff_gr_t)/p_e_o_vec1(diff_gr_t).*...
-    (((a_grid).^gamma)./(1+a_grow)).^age_g).^(1/(1-alpha)))';
-eff_o_vec           = min(eff_o_vec,e_max*(a_grid)');
-init_input_n = init_dist_n*eff_n_vec(:)
-init_input_o = init_dist_o*eff_o_vec(:)
+a_eff_n2        = a_grid' .* max(1 - a_grow .* age_g', 0);
+a_eff_o2        = (a_grid./diff_gr_cons)' .* max(1 - a_grow .* age_g', 0);
+[eff_n_vec, ~]  = static_solver(a_eff_n2, p_E_vec1(diff_gr_t), p_e_n_vec1(diff_gr_t), alpha, fco_n, 1./a_grid(:));
+[eff_o_vec, ~]  = static_solver(a_eff_o2, p_E_vec1(diff_gr_t), p_e_o_vec1(diff_gr_t), alpha, fco_o, 1./a_grid(:));
+init_input_n    = init_dist_n * eff_n_vec(:)
+init_input_o    = init_dist_o * eff_o_vec(:)
 
 [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,input_all_o2,...
     trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_e_n_vec,input_all_n2,...
