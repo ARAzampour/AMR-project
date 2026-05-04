@@ -98,6 +98,12 @@ e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-40,trans_t));
 rho         = 0.6;
 age_reduc   = 10;
 
+%%% branch-specific input price processes used by p_input_grid
+rho_p_n     = 0.95;
+sigma_p_n   = 0.2;
+rho_p_o     = 0.95;
+sigma_p_o   = 0.2;
+
 
 %%% exogenous exit
 exo_exit    = 0.01;
@@ -139,7 +145,7 @@ ub  = [15,15,10.5,0.75,4.5,1.0,12];
 [x,fval,exitflag,output]    = surrogateopt(@(x)simulator(a_grow,alpha,a_bar...
     ,beta,x(1),x(2),mu,sigma,mu,sigma,a_num_g,age_num,max_iter,...
         v_tol,dist_tol,fco_o,fco_n,e_p,x(3),c_of_e,c_e_new,dem_tol,tech_dist,...
-        x(4),x(5),e_n_eps,e_o_eps,rho,x(7),exo_exit,e_max,gamma,x(6),...
+        x(4),x(5),e_n_eps,e_o_eps,rho_p_n,sigma_p_n,rho_p_o,sigma_p_o,rho,x(7),exo_exit,e_max,gamma,x(6),...
         p_E_m,p_e_n_m,p_e_o_m,inp_ratio,m_ratio,mean_eff,feul_ce_ratio,M_cap_age)...
         ,lb,ub,nonlcon,A,B,Aeq,Beq,options);
 
@@ -184,7 +190,7 @@ age_reduc   = track0(8);
         exit_n_1st,exit_o_1st] = ...
         Two_tech_ss_AC2(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,mu,sigma,a_num_g,age_num,max_iter,...
         v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0/(tech_dist^(1/(1-alpha))),rat*c_of_e,rat*c_e_new_1st,dem_tol,tech_dist,...
-        e0_n_1st/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
+        e0_n_1st/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho_p_n,sigma_p_n,rho_p_o,sigma_p_o,rho,age_reduc,exo_exit,e_max,gamma);
 
     error_ss    = dist_n_1st*cap_contemp_new(:)/(dist_n_1st*cap_contemp_new(:)+dist_old*cap_contemp_old(:))-0.075;
     filensme = ['1st_ss_trial' num2str(i)];
@@ -258,7 +264,7 @@ title("probability of tech adoption");
     pi_contemp_new1,p_E1,m_of_firms_new1,m_of_firms_old1,exit_n_final1,exit_o_final1] = ...
     Two_tech_ss_AC2(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,mu2,sigma2,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0*(1+d0_gr)^trans_t/(tech_dist^(1/(1-alpha))),rat*c_of_e,rat*c_e_new,dem_tol,tech_dist,...
-    e0_n_1st/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
+    e0_n_1st/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho_p_n,sigma_p_n,rho_p_o,sigma_p_o,rho,age_reduc,exo_exit,e_max,gamma);
 
 % new tech ss (with two techs)
 % tech_dist   = (1+diff_gr)^diff_gr_t;
@@ -268,7 +274,7 @@ title("probability of tech adoption");
     age_g,a_grid,a_prob,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n_final,exit_o_final] = ...
     Two_tech_ss_AC2(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new,mu,sigma,mu2,sigma2,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0*(1+d0_gr)^trans_t/(tech_dist^(1/(1-alpha))),rat*c_of_e,rat*c_e_new,dem_tol,tech_dist,...
-    e0_n/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,gamma);
+    e0_n/(tech_dist^(1/(1-alpha))),e0_o/(tech_dist^(1/(1-alpha))),e_n_eps,e_o_eps,rho_p_n,sigma_p_n,rho_p_o,sigma_p_o,rho,age_reduc,exo_exit,e_max,gamma);
 
 save ss_gas_coal
 %
@@ -371,9 +377,15 @@ penalty_o       = 1; %%% this is the effect of deviation from last year's input
                         %%% for the whole submarket, e.g. a 10% increase in
                         %%% demand would require 20% increase in supply
 
+n_PE = 50;
+n_pe = 10;
+P_E_grid_norm = P_E_grid(n_PE,1);
+p_e_n_grid_norm = p_input_grid(n_pe,1,sigma_p_n,rho_p_n);
+p_e_o_grid_norm = p_input_grid(n_pe,1,sigma_p_o,rho_p_o);
+
 a_eff_init      = a_grid' .* max(1 - a_grow .* age_g', 0);
-[eff_n_vec, ~]  = static_solver(a_eff_init, p_E_old, p_e_n_1st, alpha, fco_n, 1./a_grid(:));
-[eff_o_vec, ~]  = static_solver(a_eff_init, p_E_old, p_e_o_1st, alpha, fco_o, 1./a_grid(:));
+[eff_n_vec, ~]  = static_solver(a_eff_init, p_E_old.*P_E_grid_norm, p_e_n_1st.*p_e_n_grid_norm, alpha, fco_n, 1./a_grid(:));
+[eff_o_vec, ~]  = static_solver(a_eff_init, p_E_old.*P_E_grid_norm, p_e_o_1st.*p_e_o_grid_norm, alpha, fco_o, 1./a_grid(:));
 init_input_n    = dist_n_1st * eff_n_vec(:)
 init_input_o    = dist_old * eff_o_vec(:)
 
@@ -385,7 +397,8 @@ init_input_o    = dist_old * eff_o_vec(:)
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec_1step,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n1,p_e_n_1st,p_e_o1,p_e_o_1st,...
     rho,age_reduc,rat*c_conver,conv_rate,exit_n_final1,exit_o_final1,exo_exit,...
-    e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p,d0_gr);
+    e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p,d0_gr,...
+    rho_p_n,sigma_p_n,rho_p_o,sigma_p_o);
 
 %%
 %%%% I implement the transition as first the shock of efficiency is
@@ -407,8 +420,8 @@ diff_gr         = 0.0;
 
 a_eff_n2        = a_grid' .* max(1 - a_grow .* age_g', 0);
 a_eff_o2        = (a_grid./diff_gr_cons)' .* max(1 - a_grow .* age_g', 0);
-[eff_n_vec, ~]  = static_solver(a_eff_n2, p_E_vec1(diff_gr_t), p_e_n_vec1(diff_gr_t), alpha, fco_n, 1./a_grid(:));
-[eff_o_vec, ~]  = static_solver(a_eff_o2, p_E_vec1(diff_gr_t), p_e_o_vec1(diff_gr_t), alpha, fco_o, 1./a_grid(:));
+[eff_n_vec, ~]  = static_solver(a_eff_n2, p_E_vec1(diff_gr_t).*P_E_grid_norm, p_e_n_vec1(diff_gr_t).*p_e_n_grid_norm, alpha, fco_n, 1./a_grid(:));
+[eff_o_vec, ~]  = static_solver(a_eff_o2, p_E_vec1(diff_gr_t).*P_E_grid_norm, p_e_o_vec1(diff_gr_t).*p_e_o_grid_norm, alpha, fco_o, 1./a_grid(:));
 init_input_n    = init_dist_n * eff_n_vec(:)
 init_input_o    = init_dist_o * eff_o_vec(:)
 
@@ -420,7 +433,8 @@ init_input_o    = init_dist_o * eff_o_vec(:)
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t-diff_gr_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,p_e_n,p_e_n_vec1(diff_gr_t),p_e_o,p_e_o_vec1(diff_gr_t),...
     rho,age_reduc,rat*c_conver,conv_rate,exit_n_final,exit_o_final,exo_exit,...
-    e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p,d0_gr);
+    e_max,gamma,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p,d0_gr,...
+    rho_p_n,sigma_p_n,rho_p_o,sigma_p_o);
 
 
 

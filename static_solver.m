@@ -1,63 +1,74 @@
-function [eff_vec, cap_vec, pi_vec] = static_solver(a_eff, p_E, p_e, alpha, fco, e_max_vec)
-% Solves the static production problem for all generator states.
+function [eff_vec, cap_vec, pi_vec] = static_solver(a_eff, P_E_vec, p_e_vec, alpha, fco, e_max_vec)
+% Solves the static hourly dispatch problem for all generator states.
 %
-% Production function (in terms of utilization x = a_eff * e,  x in [0,1]):
-%   q(x) = x * (1 - (1-x)^alpha)
+% For each realization of electricity and input prices, the generator chooses
+% utilization x in [0,1]. Expected input, output, and variable profit are
+% averaged across price realizations. The fixed operating cost is paid once
+% by every non-exited plant, so it is subtracted after taking expectations.
 %
-% Optimal input from utilization:
+% Production function:
+%   q(x) = x * (1 - (1-x)^alpha),  where x = a_eff * e
+%
+% Input:
 %   e = x / a_eff
 %
-% Per-unit profit:
-%   pi = p_E * q(x) - p_e * e - fco
+% Hourly variable profit:
+%   max_x P_E * q(x) - p_e * e(x)
 %
-% Subject to the per-generator input capacity constraint:  e <= e_M = 1/a_{i,0}
-% The constraint is generator-specific: a generator with base productivity a_i
-% can take at most 1/a_i units of fuel (the level that achieves full utilization).
-%
-% Solved by grid search over x in [0,1] for every state.
-%
-% Inputs:
-%   a_eff    : (a_num_g x age_num) effective productivity,
-%              a_eff(i,t) = a_i * max(1 - a_grow*t, 0)
-%   p_E      : electricity price (scalar)
-%   p_e      : fuel input price (scalar)
-%   alpha    : production function curvature  (0 < alpha < 1)
-%   fco      : fixed operating cost (scalar)
-%   e_max_vec: (a_num_g x 1) maximum fuel input per generator = 1./a_grid
-%
-% Outputs  (all a_num_g x age_num):
-%   eff_vec : optimal fuel input  e*
-%   cap_vec : optimal output      q*
-%   pi_vec  : optimal profit      pi*
+% Annual/current profit:
+%   E[hourly variable profit] - fco
 
 x_num  = 400;
-x_grid = linspace(0, 1, x_num)';             % (x_num x 1)
-q_of_x = x_grid .* (1 - (1-x_grid).^alpha); % (x_num x 1)
+x_grid = single(linspace(0, 1, x_num)');             % (x_num x 1)
+q_of_x = x_grid .* (1 - (1-x_grid).^single(alpha));  % (x_num x 1)
+
+P_E_vec = single(P_E_vec(:));
+p_e_vec = single(p_e_vec(:));
+n_PE    = numel(P_E_vec);
+n_pe    = numel(p_e_vec);
 
 [a_num_g, age_num] = size(a_eff);
 N = a_num_g * age_num;
 
-a_flat = reshape(a_eff, 1, N);               % (1 x N)  row of all states
-a_safe = max(a_flat, 1e-10);                 % guard against zero/negative a_eff
+a_flat = single(reshape(a_eff, 1, N));       % (1 x N)  row of all states
+a_safe = max(a_flat, single(1e-10));         % guard against zero/negative a_eff
 
-e_mat  = x_grid ./ a_safe;                  % (x_num x N)  input for each (x, state)
-q_mat  = repmat(q_of_x, 1, N);              % (x_num x N)  output (price-independent)
+e_base = x_grid ./ a_safe;                   % (x_num x N)
+q_base = repmat(q_of_x, 1, N);               % (x_num x N)
 
-pi_mat = p_E * q_mat - p_e * e_mat - fco;   % (x_num x N)
+%%% e_M = 1/a_{i,0}: capacity input limit is generator-specific.
+e_max_flat = single(reshape(repmat(e_max_vec(:), 1, age_num), 1, N));
+feasible = e_base <= e_max_flat;
+q_base_feasible = q_base;
+q_base_feasible(~feasible) = -inf;           % x=0 remains feasible and gives zero variable profit.
 
-%%% e_M = 1/a_{i,0}: capacity input limit is generator-specific (varies by a_grid row)
-e_max_flat = reshape(repmat(e_max_vec(:), 1, age_num), 1, N);  % (1 x N)
-pi_mat(e_mat > e_max_flat) = -inf;          % enforce per-generator input capacity
-% x=0 is always feasible (e=0 <= e_M for any generator), giving pi = -fco.
+eff_sum = zeros(N, 1, "single");
+cap_sum = zeros(N, 1, "single");
+pi_sum  = zeros(N, 1, "single");
 
-[pi_best, idx_best] = max(pi_mat, [], 1);   % (1 x N)
+state_idx = repmat(1:N, 1, n_pe);
+col_offset = uint32((state_idx-1) * x_num);
 
-lin_idx  = idx_best + (0:N-1) * x_num;      % linear indices into e_mat (column-major)
-eff_flat = e_mat(lin_idx);                  % (1 x N)  optimal fuel input
-cap_flat = q_of_x(idx_best);               % (1 x N)  optimal output
+for iPE = 1:n_PE
+    % pi_mat is the intentionally large object: x_grid x states x input prices.
+    % Keep it single precision to halve memory use.
+    pi_mat = P_E_vec(iPE) .* q_base_feasible - e_base .* reshape(p_e_vec, 1, 1, n_pe);
+    pi_mat = reshape(pi_mat, x_num, N*n_pe);
 
-eff_vec = reshape(eff_flat, a_num_g, age_num);
-cap_vec = reshape(cap_flat, a_num_g, age_num);
-pi_vec  = reshape(pi_best,  a_num_g, age_num);
+    [pi_best, idx_best] = max(pi_mat, [], 1);
+
+    lin_idx  = double(uint32(idx_best) + col_offset);
+    eff_best = e_base(lin_idx);
+    cap_best = q_base(lin_idx);
+
+    eff_sum = eff_sum + sum(reshape(eff_best, N, n_pe), 2);
+    cap_sum = cap_sum + sum(reshape(cap_best, N, n_pe), 2);
+    pi_sum  = pi_sum  + sum(reshape(pi_best,  N, n_pe), 2);
+end
+
+price_count = single(n_PE * n_pe);
+eff_vec = double(reshape(eff_sum ./ price_count, a_num_g, age_num));
+cap_vec = double(reshape(cap_sum ./ price_count, a_num_g, age_num));
+pi_vec  = double(reshape(pi_sum  ./ price_count, a_num_g, age_num)) - fco;
 
 end

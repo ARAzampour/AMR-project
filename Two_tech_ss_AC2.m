@@ -3,7 +3,7 @@ function [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,cap_cont
     age_g,a_grid_old,a_prob_old,a_grid_new,a_prob_new,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n,exit_o] = ...
     Two_tech_ss_AC2(a_grow,alpha,~,beta,c_of_a,c_a_new,mu_old,sigma_old,mu_new,sigma_new,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco_o,fco_n,e_p,d_0,c_of_e,c_e_new,dem_tol,tech_dist,...
-    e0_n,e0_o,e_n_eps,e_o_eps,rho,age_reduc,exo_exit,e_max,~)
+    e0_n,e0_o,e_n_eps,e_o_eps,rho_p_n,sigma_p_n,rho_p_o,sigma_p_o,rho,age_reduc,exo_exit,e_max,~)
 
 % a_grid  =  expinv(linspace(0,0.999,a_num_g),a_lamb);
 x_old   = norminv(linspace(0,1,a_num_g+2),mu_old,sigma_old); %%% looking at the entrants, 
@@ -47,6 +47,12 @@ exit_sm = 2;
 a_eff_new = a_grid_new' .* max(1 - a_grow .* age_g', 0);   % (a_num_g x age_num)
 a_eff_old = (a_grid_old./tech_dist)' .* max(1 - a_grow .* age_g', 0);
 
+%%% normalized price grids: scale by the mean prices that clear the markets
+n_PE = 50;
+n_pe = 10;
+P_E_grid_norm = P_E_grid(n_PE,1);
+p_e_n_grid_norm = p_input_grid(n_pe,1,sigma_p_n,rho_p_n);
+p_e_o_grid_norm = p_input_grid(n_pe,1,sigma_p_o,rho_p_o);
 
 policy_choice_n   = zeros(age_num*a_num_g,a_num_g);
 policy_choice_o   = zeros(age_num*a_num_g,a_num_g);
@@ -101,8 +107,8 @@ p_e_o   = 1;
 
 
 %%% initial period profits via new production function (seeds value iteration)
-[~, ~, pi_n_init]   = static_solver(a_eff_new, p_E, p_e_n, alpha, fco_n, 1./a_grid_new(:));
-[~, ~, pi_o_init]   = static_solver(a_eff_old, p_E, p_e_o, alpha, fco_o, 1./a_grid_old(:));
+[~, ~, pi_n_init]   = static_solver(a_eff_new, p_E.*P_E_grid_norm, p_e_n.*p_e_n_grid_norm, alpha, fco_n, 1./a_grid_new(:));
+[~, ~, pi_o_init]   = static_solver(a_eff_old, p_E.*P_E_grid_norm, p_e_o.*p_e_o_grid_norm, alpha, fco_o, 1./a_grid_old(:));
 pi_contemp_new      = pi_n_init';   % (age_num x a_num_g)
 pi_contemp_old      = pi_o_init';
 
@@ -163,8 +169,8 @@ for h=1:1:max_iter_measure
         
         output_adjsut   = 0.15/(max(e_n_eps,e_o_eps))*(k<25) ...
            + 1.5/(max(e_n_eps,e_o_eps))*(k>=25); %%% max var in output prices
-        [eff_n_vec, cap_contemp_new, pi_n_mat] = static_solver(a_eff_new, p_E, p_e_n, alpha, fco_n, 1./a_grid_new(:));
-        [eff_o_vec, cap_contemp_old, pi_o_mat] = static_solver(a_eff_old, p_E, p_e_o, alpha, fco_o, 1./a_grid_old(:));
+        [eff_n_vec, cap_contemp_new, pi_n_mat] = static_solver(a_eff_new, p_E.*P_E_grid_norm, p_e_n.*p_e_n_grid_norm, alpha, fco_n, 1./a_grid_new(:));
+        [eff_o_vec, cap_contemp_old, pi_o_mat] = static_solver(a_eff_old, p_E.*P_E_grid_norm, p_e_o.*p_e_o_grid_norm, alpha, fco_o, 1./a_grid_old(:));
         pi_contemp_new      = pi_n_mat';   % (age_num x a_num_g)
         pi_contemp_old      = pi_o_mat';
 

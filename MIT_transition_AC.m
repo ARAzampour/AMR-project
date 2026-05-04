@@ -6,7 +6,8 @@ function [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,i
     diff_gr,diff_gr_t,init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,...
     e0_n_vec,e0_o,e_n_eps,e_o_eps,diff_gr_cons,fin_p_e_n,init_p_e_n,...
     fin_p_e_o,init_p_e_o,rho,age_reduc,c_conver,conv_rate,exit_n_final,exit_o_final,...
-    exo_exit,~,~,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p,d0_gr)
+    exo_exit,~,~,init_input_n,init_input_o,penalty_o,penalty_n,penalty_p,d0_gr,...
+    rho_p_n,sigma_p_n,rho_p_o,sigma_p_o)
 
 %%% conv_rate is used to make the conversion slower, the reason is that
 %%% suddent conversion creates swinging features
@@ -35,6 +36,26 @@ exit_sm = 2;
 %%% new tech effective productivity: a_{i,t} = a_i*(1 - a_grow*t), capped at zero
 %%% constant across transition periods (does not depend on tech_dist_vec)
 a_eff_n = a_grid' .* max(1 - a_grow .* age_g', 0);   % (a_num_g x age_num)
+
+if ~exist("rho_p_n","var")
+    rho_p_n = 0.95;
+end
+if ~exist("sigma_p_n","var")
+    sigma_p_n = 0.2;
+end
+if ~exist("rho_p_o","var")
+    rho_p_o = 0.95;
+end
+if ~exist("sigma_p_o","var")
+    sigma_p_o = 0.2;
+end
+
+%%% normalized price grids: scaled by period-specific mean prices along the transition
+n_PE = 50;
+n_pe = 10;
+P_E_grid_norm = P_E_grid(n_PE,1);
+p_e_n_grid_norm = p_input_grid(n_pe,1,sigma_p_n,rho_p_n);
+p_e_o_grid_norm = p_input_grid(n_pe,1,sigma_p_o,rho_p_o);
 
 dist_o_all          = zeros(trans_t,age_num*a_num_g);
 dist_n_all          = zeros(trans_t,age_num*a_num_g);
@@ -234,7 +255,7 @@ for h=1:1:max_iter_measure
             % pi_contemp_new      = ((a_grid).*(alpha*p_E_vec(i1)/p_e_n_vec(i1))^alpha.*(1/(1+a_grow)).^age_g)...
             %     .^(1/(1-alpha))*(1-alpha);
 
-            [eff_n_vec, cap_contemp_new, pi_n_mat] = static_solver(a_eff_n, p_E_vec(i1), p_e_n_vec(i1), alpha, fco_n, 1./a_grid(:));
+            [eff_n_vec, cap_contemp_new, pi_n_mat] = static_solver(a_eff_n, p_E_vec(i1).*P_E_grid_norm, p_e_n_vec(i1).*p_e_n_grid_norm, alpha, fco_n, 1./a_grid(:));
             pi_contemp_new      = pi_n_mat';
         
 %             pi_contemp_neg_new  = pi_contemp_new<0;
@@ -322,7 +343,7 @@ for h=1:1:max_iter_measure
             %     .^(1/(1-alpha))*(1-alpha);
 
             a_eff_o             = (a_grid./tech_dist_vec(i2))' .* max(1 - a_grow .* age_g', 0);
-            [eff_o_vec, cap_contemp_old, pi_o_mat] = static_solver(a_eff_o, p_E_vec(i2), p_e_o_vec(i2), alpha, fco_o, 1./a_grid(:));
+            [eff_o_vec, cap_contemp_old, pi_o_mat] = static_solver(a_eff_o, p_E_vec(i2).*P_E_grid_norm, p_e_o_vec(i2).*p_e_o_grid_norm, alpha, fco_o, 1./a_grid(:));
             pi_contemp_old      = pi_o_mat';
             
 %             pi_contemp_neg_old  = pi_contemp_old<0;
@@ -493,7 +514,7 @@ for h=1:1:max_iter_measure
             % eff_n_vec         = (((a_grid).*alpha*p_E_vec(j)/p_e_n_vec(j).*(1/(1+a_grow)).^age_g)...
             % .^(1/(1-alpha)))';
 
-            [eff_n_vec, cap_contemp_new] = static_solver(a_eff_n, p_E_vec(j), p_e_n_vec(j), alpha, fco_n, 1./a_grid(:));
+            [eff_n_vec, cap_contemp_new] = static_solver(a_eff_n, p_E_vec(j).*P_E_grid_norm, p_e_n_vec(j).*p_e_n_grid_norm, alpha, fco_n, 1./a_grid(:));
             
             
             exit_vec_n                      = exit_vec_n_all(:,j);
@@ -653,7 +674,7 @@ for h=1:1:max_iter_measure
             % .^(1/(1-alpha)))';
 
             a_eff_o             = (a_grid./tech_dist_vec(j))' .* max(1 - a_grow .* age_g', 0);
-            [eff_o_vec, cap_contemp_old] = static_solver(a_eff_o, p_E_vec(j), p_e_o_vec(j), alpha, fco_o, 1./a_grid(:));
+            [eff_o_vec, cap_contemp_old] = static_solver(a_eff_o, p_E_vec(j).*P_E_grid_norm, p_e_o_vec(j).*p_e_o_grid_norm, alpha, fco_o, 1./a_grid(:));
 
             exit_vec_o                      = exit_vec_o_all(:,j);
             policy_choice_o                 = policy_choice_o_all(:,:,j);
