@@ -539,8 +539,8 @@ for h=1:1:max_iter_measure
 %             p_e_o   = p_e_o*0.9;
 %         end
 
-        if (abs(demand_err)<dem_tol || (abs(p_E_prev-p_E)<5*v_tol && k>max_iter_price/5))...
-                && (abs(input_adjsut_of_o)<5*v_tol) && (abs(input_adjsut_of_n)<5*v_tol)
+        if (abs(demand_err)<dem_tol || (abs(p_E_prev-p_E)/p_E<5*v_tol && k>max_iter_price/5))...
+                && (abs(input_adjsut_of_o/p_e_o)<5*v_tol) && (abs(input_adjsut_of_n/p_e_n)<5*v_tol)
             fprintf("demand and supply has converged and the prices is ..." + ...
                 "%2.4f in %2.1f periods\n",p_E,k);
             break;

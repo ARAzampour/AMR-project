@@ -100,9 +100,9 @@ age_reduc   = 10;
 
 %%% branch-specific input price processes used by p_input_grid
 rho_p_n     = 0.95;
-sigma_p_n   = 0.2;
+sigma_p_n   = 0.25;
 rho_p_o     = 0.95;
-sigma_p_o   = 0.2;
+sigma_p_o   = 0.15;
 
 
 %%% exogenous exit
@@ -136,12 +136,14 @@ global tracks JJ
 tracks  = zeros(17,100);
 JJ      = 0;
 
-p_E_m = 12; p_e_n_m = 2.3; p_e_o_m = 1.3; inp_ratio = 7; m_ratio = 3;
+p_E_m = 30; p_e_n_m = 12; p_e_o_m = 3.4;  %%% these numbers come from the papers
+        %%% in the literature (cited withthe help of gpt)
+inp_ratio = 7; m_ratio = 3;
 mean_eff = 0.37; tech_dist   = 1; feul_ce_ratio = 0.12; M_cap_age = 6.1;
 
 A = []; B = []; Aeq = []; Beq = []; nonlcon=[];
-lb  = [5,5,4.5,0.35,2.5,0.7,4];
-ub  = [15,15,10.5,0.75,4.5,1.0,12];
+lb  = [0.5,0.5,30,0.75,2.25,1.5,5];
+ub  = [3.0,3.0,80,2.0,6.0,2.5,15];
 [x,fval,exitflag,output]    = surrogateopt(@(x)simulator(a_grow,alpha,a_bar...
     ,beta,x(1),x(2),mu,sigma,mu,sigma,a_num_g,age_num,max_iter,...
         v_tol,dist_tol,fco_o,fco_n,e_p,x(3),c_of_e,c_e_new,dem_tol,tech_dist,...
@@ -174,9 +176,9 @@ track0 = tracks(:,3);
 alpha   = track0(1);
 c_of_a  = track0(2); 
 c_a_new = track0(3);
-d_0     = 12;
-e0_n_1st= track0(5)*0.75;
-e0_o    = track0(6)*1.25;
+d_0     = track0(4);;
+e0_n_1st= track0(5);
+e0_o    = track0(6);
 rat     = track0(7);
 age_reduc   = track0(8);
 
