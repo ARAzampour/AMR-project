@@ -1,0 +1,772 @@
+
+\documentclass{beamer}
+\usepackage{amsmath,amssymb,amsfonts,mathrsfs,accents}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage[utf8]{inputenc}
+\usetheme{Madrid}
+\usecolortheme{default}
+\usepackage{blindtext}
+\usepackage{hyperref}
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{page number in head/foot}[appendixframenumber]
+\usepackage{listings}
+\renewcommand{\lstlistingname}{Model}
+\lstset{frame=none, framexleftmargin=4pt, framexrightmargin=4pt, backgroundcolor=\color{code_bg}, basicstyle=\footnotesize\ttfamily, tabsize=2}
+
+
+%-----------------------------------------------------------------------------------%
+
+\begin{document}
+\title{Power sector transition dynamics}
+\author{Maija Kaartinen and Alireza Azampour}
+\date{\today}
+\maketitle
+	
+%----------------------------------------------------------------------------------
+
+\begin{frame}{Power sector transition dynamics}
+
+\begin{itemize}
+\item Firms' technology adoption decisions determine the pace of the green transition
+\item Their initial technological capital likely plays a role in this: differences between regions
+\item Need to analyze the impacts of climate policy through the lens of firm investment choices
+ \hfill \break
+ \item Climate policies impact firms' investment choices via
+ \begin{itemize}
+     \item Operation costs: carbon taxes
+     \item Fixed costs: installation subsidies
+     \item Demand side: feed-in tariffs and renewable energy mandates
+ \end{itemize}
+
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%
+
+
+\begin{frame}{Research question}
+\large 
+\begin{center}
+    \textbf{"What determines the pace of technological transition in the power sector?"}\\\\
+\hfill \break
+\hfill \break
+\begin{itemize}
+    \item A micro-founded alternative for canon CES models
+    \item Analyze the effects of power sector climate policies 
+\end{itemize}
+\end{center}
+\end{frame}
+
+%%%%%%%%%%%%%%%
+
+\begin{frame}{Outline of the project}
+
+\begin{itemize}
+    \item We present a heterogeneous agent power sector model
+    \item Data on US power generators is used to test its implications
+    \item The model is calibrated to match the transitions towards
+    \begin{enumerate}
+        \item Natural gas
+        \item Solar and wind
+    \end{enumerate}
+    \item Counterfactual analysis to test the implications of power sector policies
+\end{itemize}
+
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+
+\begin{frame}{Definitions}
+
+\begin{itemize}
+ \item The unit of our model is a power generator: an electricity production unit such as a natural gas steam turbine or a wind turbine.
+ \item The size of a generator is not uniform.
+ \item A power plant is a cluster of one or more generators and auxiliary equipment.
+ \item A power sector firm may own several power plants.
+ \item We assume perfect competition so generator decisions are independent of which power plant and firm they belong to.
+\end{itemize}
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+
+\begin{frame}{The model}
+
+\begin{itemize}
+ \item Generators produce in a competitive market using a fuel input
+ \item They belong to one of two technology types: old or new
+ \item The productivity of each generator depends on the effective age and efficiency of their technology
+ \item In each period, a generator can choose to pay an adoption cost and update to a new efficiency value (the value drawn is known before paying the cost). It exits if its present value goes to zero
+ \item Entrants can pay an entry cost and draw an initial efficiency value $a_{i,0}$ in either technology
+ \item Entry and exit is the main margin for transition from the old to new technology
+\end{itemize}
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{The model: market structure}
+\begin{itemize}
+ \item Generators use the fuel input $e_i^o$ or $e_i^n$ at prices $p_i^o$ or $p_i^n$, respectively
+  \item Both types sell electricity at the price $p_E$
+ \item Productivities are drawn from an exponential distribution with mean $\overline{a}^o$ or $\overline{a}^n$: productivity growth is exogenous
+ \item The two types pay technology adoption costs $c_a^o$ and $c_a^n$ and operation costs $c_f^o$ and $c_f^n$
+ \hfill \break
+ \item Electricity demand is given by: $\ln(d) = d_0-\varepsilon\ln(p_E)$
+ \item Fuel input supply is given by:  $e_i(p_{e,i}) = e_{0,i}p_{e,i}^{\epsilon_{i}}$
+
+\end{itemize}
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{The model: generator's problem}\label{gen_problem}
+\begin{itemize}
+\item The generator's period profits are given by:
+\begin{equation*}
+    p_E\frac{a_{i}^{1+\gamma t}}{(1+g_a)^t} e_i^\alpha -p_e e_i-c_f
+\end{equation*}
+
+\item Where $\alpha<1$ and $\gamma>0$
+ \item The term: \begin{equation*}
+     \frac{a_{i}^{1+\gamma t}}{(1+g_a)^t}
+ \end{equation*} is the generator's efficiency relative to the market
+ \item $g_a$ is the rate at which a generator's relative efficiency declines
+    
+\end{itemize}
+
+ \hyperlink{intra_period}{\beamerbutton{Intra-period problem}}  
+ \hyperlink{alt_model}{\beamerbutton{Alternative model}}   
+  \hyperlink{effic_between_model}{\beamerbutton{Calibration}}
+  \hyperlink{rel_eff_why}{\beamerbutton{Relativity}}
+
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{The model: generator's problem}\label{gen_problem}
+\begin{itemize}
+\item The value function is given by:
+\begin{align*} 
+    v(a_{i},t) &= \max_{e_i,aot=\{0,1\}} p_E\frac{a_{i}^{1+\gamma t}}{(1+g_a)^t} e_i^\alpha -p_e e_i-c_f\\ 
+    &+\beta \big(\mathbf{1}_{\{aot =0\}} \mathbb{E}[v(a_{i},t+1)] + \mathbf{1}_{\{aot =1\}}[ \mathbb{E}[v(a_{i}',t-\tau)]-c_a]\big)
+\end{align*}
+\hfill\break
+    \item Technology draws follow $a'_i\sim \rho a_i + (1-\rho)\epsilon_i$ where $\epsilon_i$ follows an $i.i.d$ exponential distribution
+     \item $\tau$ is the reduction in technological age following an update
+    
+\end{itemize}
+
+ \hyperlink{intra_period}{\beamerbutton{Intra-period problem}}  
+ \hyperlink{alt_model}{\beamerbutton{Alternative model}}   
+  \hyperlink{effic_between_model}{\beamerbutton{Calibration}}
+  \hyperlink{rel_eff_why}{\beamerbutton{Relativity}}
+
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+
+\begin{frame}{The model: switch from coal to gas}
+\begin{itemize}
+    \item Some fossil fuel generators can be converted from using one fuel to another
+    \item In the coal-gas transition we allow coal generators to switch to natural gas by paying a switching cost
+    \item The generator keeps it's initial productivity adjusted by the productivity gap between coal and natural gas
+\end{itemize}
+\begin{align*}
+    v_{c,conv}(a_i,t) = \max \big\{ v_c(a_i,t), v_g(\frac{a_i}{(1+\Delta_g)^{\Delta_t}},t)-c_{conv}\big\}
+\end{align*}
+Where $\Delta_g$ is the difference between the growth rate of gas and coal efficiency idiosyncratic distributions and $\Delta_t$ is the number of years this differential growth rate has been in place
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{The model: entry and exit}
+\begin{itemize}
+    \item The value of entry is given by: 
+    \begin{equation*}
+    \begin{aligned} 
+    E[v(a_{i,0},0)]-c_{e}&=\\\int \big\{ p_Ea_{i,0} e_i^\alpha &-p_e e_i+E[v(a_{i,0},1)] \big\} dD(a_{i,0})-c_{e}
+\end{aligned}
+    \end{equation*}
+    
+where $c_{e}$ is the entry cost and $a_{i,0}$ is drawn from the exponential distribution
+\hfill \break
+    \item If $v<0$ the generator exits
+\end{itemize}
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{Equilibrium}
+    \begin{itemize}
+        \item The Equilibrium consists of policy function $P(a_i,t)$, a stationary distribution of generators $\Gamma$ with the measure $m_{ss}$, and an equilibrium price $p_E$ where
+        \item  $P(a_i,t)$ is the answer to firms' problem at the price $p_E$
+        \item The electricity market clears at the price $p_E$ 
+        \item The fuel input markets clear at prices $p_e^o$ and $p_e^n$
+        \item The value of entry is zero, or the the mass of generators is zero for both technology types
+    \end{itemize}
+\end{frame}
+
+%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%
+\begin{frame}{Alternative model setup}\label{alt_model}
+\small 
+\begin{itemize}
+    \item Since we use an annual time interval, we could also set up a generator problem with a CRS function
+    \item The average price that a generator observes would decline as it increases its production
+    \item This is due to daily variation in electricity prices and the imperfect substitutability of generators
+    \item As a generator increases its production this will occur at times with lower electricity prices $p_E$. Lets say that for the average price that the generator observes we have:
+\end{itemize}   
+    \small\begin{align*}
+        p_E(e_i) = p_0e_i^{-\eta}
+    \end{align*}
+    \small Then for the intra-period problem it solve:
+    \small\begin{align*}
+        \max_{e_i} a_{i,t}e_ip_E(e_i) - p_ee_i \rightarrow e_i^* = (\frac{p_0a_{i,t}(1-\eta)}{p_e})^\frac{1}{\eta} \\\rightarrow \alpha = 1-\eta , p_E = p_0\frac{\eta}{1-\eta} \text{ equalizes the two settings}
+    \end{align*}
+    \hyperlink{gen_problem}{\beamerbutton{Generator problem}}   
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}{Why relative efficiency matters}\label{rel_eff_why}
+\small\begin{itemize}
+    \item Let's assume that the generators depreciate with rate $g_0$ and the distribution of the newcomers' efficiency is growing with the rate $g_n$
+    \item $c_f$, $c_a$ should also grow with the rate $g_n^\frac{1}{1-\alpha}$: otherwise they become negligible compared to operating costs, as profits are given by:\\
+    %
+\end{itemize}
+\begin{align*}
+        \pi_{ent,t+\hat{t}}(a_j) &= \left(\frac{p_E a_j\left(1+g_n\right)^\hat{t}}{p_e^\alpha}\right)^{\frac{1}{1-\alpha}} \frac{1-\alpha}{\alpha} - c_{f,t}\\
+        \pi_{update}(a_i,t) &= \left(\frac{p_E a_i^{1+\gamma (t-\tau)}}{p_e^\alpha\left(1+g_0\right)^{(t-\tau)}\left(1+g_n\right)^\tau}\right)^{\frac{1}{1-\alpha}} \frac{1-\alpha}{\alpha}-c_{f,t}, \\\\ \quad (\tau>t \rightarrow \tau = t)
+    \end{align*}
+\end{frame}
+\begin{frame}{Why relative efficiency matters}\label{rel_eff2}
+    \begin{itemize}
+        \item This means unless $c_{f,t}$ is growing with the rate $g_n^\frac{1}{1-\alpha}$, in the long term it has a negligible effect on the firm's profit. 
+        \item The profits of the updating and entrant firms grow at rate $g_n$. This implies that $c_{a,t}$ must grow at the rate $g_n^\frac{1}{1-\alpha}$ for there to be a stable solution to the firm's adoption problem
+        \item $c_{e,t}$ also needs to grow at the rate $g_n$ so the mass of firms is constant in steady state.
+        \item In that case we can normalize all values by the growth rate $(1+g_n)^\frac{1}{1-\alpha}$. 
+        \item This means that the value of entering and adopting firm doesn't grow but the effective efficiency of non-adopting firms depreciates at the rate $1+g_a = (1+g_0)(1+g_n)$
+        \item Alternatively we can set $g_n=0$ from the beginning and consider the effect of growth in absolute efficiencies
+    \end{itemize}
+    \hyperlink{gen_problem}{\beamerbutton{Generator problem}}
+    \hyperlink{mainss}{\beamerbutton{Main model results}}
+    \hyperlink{Data}{\beamerbutton{Main data results}}
+    
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}{Data: EIA power generator data}\label{Data}
+
+\begin{itemize}
+ \item EIA US power generator data from years 1991-2021
+ \item The data includes utility power plants until year 2000: all power plants included thereafter. Unbalanced panel
+ \item Generator data on capacity, energy sources, operating status, maintenance, first year of operation, location, owner, and power plant
+ \item Plant-level data on net generation and fuel consumption
+  \item The data analysis only covers operating generators that use a fuel
+
+
+\end{itemize}
+
+\hyperlink{effic_between_model}{\beamerbutton{Calibration}}
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{Variables constructed for analysis}
+
+ \begin{itemize}
+     \item Efficiency: fuel consumption per unit of net generation
+     \item Efficiency update dummy: 1 when efficiency increases by 5\% or more but the ratio between capacity and generation does not change by more than 10\% (we test several thresholds)
+     \item Technological age variable: number of years since the latest update
+ \end{itemize}
+
+    
+\end{frame}
+
+%%%%%%%%%%%%%%%
+\begin{frame}{Power plant efficiency distribution}\label{efficall_dist}
+
+\begin{figure}
+\centering
+\caption{Relative efficiency values of all plants, normalized}
+\includegraphics[scale=0.45]{EFFIC_effic_plant_norm_all_hist.png}
+\end{figure}
+\scriptsize{Note: Technological update implies an efficiency increase of at least 10 \%, with less than 5 \% variation in generator capacity-to-generation ratio}
+
+\hyperlink{efficnew_dist}{\beamerbutton{Efficiency values after update}}
+\hyperlink{Years since latest update}{\beamerbutton{Years since latest update}}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%
+
+\begin{frame}{Data: Adoption patterns}\label{patterns_1gen}
+\footnotesize
+\begin{table}
+\centering
+\caption{Technology adoption dummy regressed on covariates, single-generator plants}
+\input{EFFIC_capinc_effic_age_1gen}
+\end{table}
+\footnotesize{Note: Adoption dummy defined as efficiency increase of at least 5\% with less than 10\% variation in the capacity-to-generation dummy }
+
+\hyperlink{patterns_all}{\beamerbutton{All plants}}
+\hyperlink{obscount}{\beamerbutton{No of observations}}
+\end{frame}
+
+%%%%%%%%%%%%%
+
+\begin{frame}{Data: efficiency distribution}\label{obscount}
+
+\begin{figure}
+\caption{Number of observations, efficiency after previous update}
+\includegraphics[scale=0.3]{hist_effic_obscount_1gen.png}
+\end{figure}
+
+\hyperlink{patterns_1gen}{\beamerbutton{Efficiency Distribution}}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%
+
+
+\begin{frame}{Calibration}
+    \begin{itemize}
+        \item $c_e$ will be derived from data on average construction costs
+        \item $c_f$ will be calibrated to match data on average operation costs 
+        \item $c_a$ will be calibrated internally, matching the share of generators updating their technology each year
+        \item The distribution of $\epsilon$ and $a_0$ will be matched to generators' fuel cost efficiency distribution
+        \item $\alpha$ will be matched to the aggregate input$/$revenue share: $e^* = \big(\frac{\alpha P_E a_{eff}}{p_e}\big)^\frac{1}{1-\alpha}\rightarrow\frac{p_ee}{p_Ea_{eff}e^\alpha}=\alpha$, or use the price curvature instead?
+         \item $\rho$ will be calibrated equal to the autocorrelation in plant efficiency values (0.7)
+        \item Exit rate will be set equal to the plant retirement rate of around 1 \%
+        \item Supply and demand elasticities: from empirical estimates (Burke and Abayasekara, 2018)
+    \end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{Calibration: efficiency in periods between updates}\label{effic_between_model}
+Firm decision:\\
+\begin{align*} 
+    v(a_{i},t) &= \max_{e_i,aot=\{0,1\}} p_E\frac{a_{i}^{1+\gamma t}}{(1+g_a)^t} e_i^\alpha -p_e e_i-c_f\\ 
+    &+\beta \big(\mathbf{1}_{\{aot =0\}} \mathbb{E}[v(a_{i},t+1)] + \mathbf{1}_{\{aot =1\}}[ \mathbb{E}[v(a_{i}',t-\tau)]-c]\big)\\
+\end{align*}
+Between two updates the efficiency of a generator is then given by:\\
+\begin{align*}
+    a_{i,t} &= \frac{a_{i,t-s}}{(\frac{1+g_t}{a_{i,0}^\gamma})^s}  \rightarrow \ln a_{i,t} = \ln a_{i,t-s} -  s \ln(1+g_t) + s \gamma\ln a_{i,0} 
+\end{align*}
+where s is the number of years since the latest update.
+
+    \hyperlink{gen_problem}{\beamerbutton{Model}}
+    \hyperlink{transition1}{\beamerbutton{transition1}}
+\end{frame}
+
+%%%%%%%%%%%%%%%
+
+\begin{frame}{Regression results: efficiency in periods between updates}\label{effic_between_1gen}
+\scriptsize
+\begin{table}
+\centering
+\caption{Relative efficiency in periods between updates regressed on covariates}
+\input{EFFIC_noupd_capageinteract_LOG_1gen}
+\end{table}
+\scriptsize{Note: Relative efficiency denotes efficiency relative to newly updated generators}
+
+\hyperlink{effic_between_all}{\beamerbutton{All plants}}
+
+\end{frame}
+%%%%%%%%%%%%%%%%
+
+\begin{frame}{Summary and next steps}
+\begin{itemize}
+    \item It looks like our model can reproduce the general technology adoption and transition patterns
+    \item Need to adjust demand side to get the correct price path pattern
+    \item Next: calibration 
+\end{itemize}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+\begin{frame}{Appendix}
+\setbeamertemplate{page number in head/foot}{}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%
+\begin{frame}{Intra-period problem}\label{intra_period}
+\small
+    From solving the generator intra-period problem we get:\\
+    \begin{align*}
+        e_i^* = (\frac{a_{i,t}p_E\alpha}{p_e})^\frac{1}{1-\alpha}
+    \end{align*}
+    where \begin{align*}
+        a_{i,t}=\frac{a_{i}^{1+\gamma t}}{(1+g_a)^t}
+    \end{align*}
+    \begin{itemize} 
+        \item In the data $a_{i,t}$ is the relative efficiency of the generator
+        \item From the generator's perspective it faces the same problem if its own efficiency depreciates or if other generators' efficiency grows with rate $1+g$  
+        \item The latter implies that market base demand grows with rate $(1+g)^\frac{1}{1-\alpha}$
+        \item We therefore incorporate depreciation and growth in the average productivity of the market in the same depreciation term
+    \end{itemize}
+    
+ \hyperlink{gen_problem}{\beamerbutton{Generator problem}}    
+\end{frame}
+%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%
+
+
+\begin{frame}{Model: Steady state results}\label{mainss}
+\begin{figure}
+\centering
+\caption{Coal power plants: efficiency distribution before transition}
+\includegraphics[scale=0.25]{power plant efficiency dist (coal before).png}
+\end{figure}
+\hyperlink{moress}{\beamerbutton{More ...}}
+\end{frame}
+
+%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}{Model: More Steady state results}\label{moress}
+\begin{figure}
+\centering
+\caption{Coal power plants: technological age distribution before transition}
+\includegraphics[scale=0.25]{power plant age dist (coal before).png}
+\end{figure}
+\hyperlink{mainss}{\beamerbutton{Main results}}
+\end{frame}
+
+%%%%%%%%%%%%%%%%
+\begin{frame}{Model: More Steady state results}
+\begin{figure}
+\centering
+\caption{Coal power plants: likelihood of technological update}
+\includegraphics[scale=0.25]{update_coal_1st.png}
+\end{figure}
+\hyperlink{mainss}{\beamerbutton{Main results}}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%
+\begin{frame}{Model: More Steady state results}
+\begin{figure}
+\centering
+\caption{Conventional power plants: probability of technology adoption before transition}
+\includegraphics[scale=0.25]{prob_gas_before.png}
+\end{figure}
+\hyperlink{mainss}{\beamerbutton{Main results}}
+\end{frame}
+
+%%%%%%%%%%%%%%%%
+
+\begin{frame}{Model: More Steady state results}
+\begin{figure}
+\centering
+\caption{Solar and wind power plants: probability of technology adoption before transition}
+\includegraphics[scale=0.25]{prob_sola_before.png}
+\end{figure}
+\hyperlink{mainss}{\beamerbutton{Main results}}
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%
+
+\begin{frame}{Transition 2: Conventional fuels to solar and wind}\label{transition2}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.25]{solarwind_installedcosts_index.png}
+\end{figure}
+
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+
+\begin{frame}{Transition 2: Conventional fuels to solar and wind}
+\begin{figure}
+\centering
+\caption{The path of installation costs in the model}
+\includegraphics[scale=0.27]{shock path.png}
+\end{figure}
+
+\end{frame}
+%%%%%%%%%%%%%%%
+
+\begin{frame}{US power sector: two transitions}\label{transition0}
+
+
+\begin{table}
+\centering
+\includegraphics[scale=0.25]{US_powergeneration_trends.png}
+\end{table}
+
+\end{frame}
+    
+%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%
+\begin{frame}{Transition 1: Conventional fuels to natural gas}\label{transition1}
+
+\begin{center}
+\includegraphics[scale=0.65]{NG_cost_gen_effic.eps}
+\end{center}
+
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{Transition 1: Conventional fuels to natural gas}
+
+\begin{center}
+\includegraphics[scale=0.65]{Coal_cost_gen_effic.eps}
+\end{center}
+
+\end{frame}
+%%%%%%%%%%%%%%%
+
+\begin{frame}{Transition 1: Conventional fuels to natural gas}
+\begin{figure}
+\centering
+\caption{The path of installation costs in the model}
+\includegraphics[scale=0.27]{shock path cg.png}
+\end{figure}
+
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{Transition 1: Conventional fuels to natural gas}
+\begin{figure}
+\centering
+\caption{Share of solar and wind over the convergence path}
+\includegraphics[scale=0.3]{share path.png}
+\end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}{Transition 1: Conventional fuels to natural gas}
+\begin{figure}
+\centering
+\caption{Electricity price over the convergence path}
+\includegraphics[scale=0.28]{price path.png}
+\end{figure}
+
+\hyperlink{transition2}{\beamerbutton{transition2}}
+\hyperlink{effic_between_model}{\beamerbutton{back}}
+\end{frame}
+
+%%%%%%%%%%%%%%%
+
+\begin{frame}{Transition 2: Conventional fuels to solar and wind}
+\begin{figure}
+\centering
+\caption{Share of solar and wind over the convergence path}
+\includegraphics[scale=0.3]{share_path.png}
+\end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}{Transition 2: Conventional fuels to solar and wind}
+\begin{figure}
+\centering
+\caption{Electricity price over the convergence path}
+\includegraphics[scale=0.28]{price_path.png}
+\end{figure}
+
+\hyperlink{transition1}{\beamerbutton{transition1}}
+
+\end{frame}
+%%%%%%%%%%%%%%%
+
+
+\begin{frame}{Data: Adoption patterns}\label{updatespattern}
+
+\begin{figure}
+\caption{The likelihood of tech update and efficiency after previous update}
+\includegraphics[scale=0.32]{hist_effic_updatedummy_1gen.png}
+\end{figure}
+
+\hyperlink{patterns_1gen}{\beamerbutton{Efficiency Distribution}}
+
+\end{frame}
+%%%%%%%%%%%%%%%%
+\begin{frame}{Data: Adoption patterns}\label{patterns_all}
+\footnotesize
+\begin{table}
+\centering
+\caption{Technology adoption dummy regressed on covariates, all plants}
+\input{EFFIC_capinc_effic_age_all}
+\end{table}
+\footnotesize{Note: Adoption dummy defined as efficiency increase of at least 5\% with less than 10\% variation in the capacity-to-generation dummy }
+
+\hyperlink{patterns_1gen}{\beamerbutton{Single-generator plants}}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%
+\begin{frame}{Efficiency in periods between updates, all plants}\label{effic_between_all}
+\scriptsize
+\begin{table}
+\centering
+\caption{Relative efficiency in periods between updates regressed on covariates}
+\input{EFFIC_noupd_capageinteract_LOG_all}
+\end{table}
+\scriptsize{Note: Relative efficiency denotes efficiency relative to newly updated generators}
+
+\hyperlink{effic_between_1gen}{\beamerbutton{Single-generator plants}}
+
+\end{frame}
+
+
+%%%%%%%%%%%%%%%%
+
+\begin{frame}{Power plant efficiency distribution, after update}\label{efficnew_dist}
+
+\begin{figure}
+\centering
+\caption{Distribution of efficiency values after update, all plants}
+\includegraphics[scale=0.3]{EFFIC_all_efficnew_hist.png}
+\end{figure}
+\scriptsize{Note: Technological update implies an efficiency increase of at least 5 \%, with less than 10 \% variation in generator capacity-to-generation ratio}
+
+\hyperlink{efficall_dist}{\beamerbutton{Efficiency Distribution}}
+    
+\end{frame}
+
+%%%%%%%%%%%%%%%
+
+
+\begin{frame}{Years since latest update}\label{Years since latest update}
+
+\begin{figure}
+\centering
+\caption{Years since latest update, 2020}
+\includegraphics[scale=0.5]{hist_capage_2020_all.png}
+\end{figure}
+\scriptsize{Note: Technological update implies an efficiency increase of at least 10 \%, with less than 5 \% variation in generator capacity-to-generation ratio}
+
+\hyperlink{efficall_dist}{\beamerbutton{All efficiency values}}
+\end{frame}
+
+%%%%%%%%%%%%%%%
+
+\begin{frame}{Summary statistics, smaller sample}
+\input{summarystats_inpart4_10_5_all_sameN_small}
+\footnotesize{Note: Adoption dummy defined as efficiency increase of at least 10\% with less than 5\% variation in the capacity-to-generation dummy }
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{Power plant summary statistics}
+\footnotesize
+\input{summarystats_inpart4_10_5_all_small}
+\footnotesize{Note: Adoption dummy defined as efficiency increase of at least 10\% with less than 5\% variation in the capacity-to-generation dummy }
+
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{Summary statistics, smaller sample}
+\input{summarystats_inpart4_10_5_all_sameN_small}
+\footnotesize{Note: Adoption dummy defined as efficiency increase of at least 10\% with less than 5\% variation in the capacity-to-generation dummy }
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{Summary statistics, single-generator plants}
+\input{summarystats_inpart4_10_5_1gen_small}
+\footnotesize{Note: Adoption dummy defined as efficiency increase of at least 10\% with less than 5\% variation in the capacity-tp-generation dummy }
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{Data, part4: Adoption likelihood and efficiency}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.25]{hist_effic_updatedummy_all.png}
+\end{figure}
+
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{Data, part 4: Adoption likelihood and years since latest update}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.25]{hist_capage_updatedummy_all.png}
+\end{figure}
+
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+
+
+\begin{frame}{Data, part 4: Efficiency and years since latest update}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.25]{scatter_effic_capage_all.png}
+\end{figure}
+
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+\begin{frame}{Results for calibration: Efficiency in periods between updates and years since latest update}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.25]{5_scatter_effic_noupd_capage_all.png}
+\end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%
+\begin{frame}{Results for calibration: Efficiency in periods between updates and after latest update}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.25]{5_scatter_effic_noupd_effic_new_all.png}
+\end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%
+\begin{frame}{Results for calibration: Efficiency in periods between updates and plant average years since latest update}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.25]{5_scatter_effic_noupd_durab2_all.png}
+\end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%
+\begin{frame}{Results for calibration: Efficiency after latest update and plant average years since latest update}
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.25]{5_scatter_effic_new_durab2_all.png}
+\end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%
+\begin{frame}{The model: generator's problem}\label{gen_problem}
+\begin{align*} 
+    v(a_{i},t) &= \max_{e_i,aot=\{0,1\}} p_E\frac{a_{i}^{1+\gamma t}}{(1+g_a)^t} e_i^\alpha -p_e e_i-c_f\\ 
+    &+\beta \big(\mathbf{1}_{\{aot =0\}} \mathbb{E}[v(a_{i},t+1)] + \mathbf{1}_{\{aot =1\}}[ \mathbb{E}[v(a_{i}',t-\tau)]-c_a]\big)
+\end{align*}
+\begin{itemize}
+\item Where $\alpha<1$ and $\gamma>0$
+ \item $\frac{a_{i}^{1+\gamma t}}{(1+g_a)^t}$ is the generator's efficiency relative to the market
+ \item $g_a$ is the rate at which a generator's relative efficiency declines
+    \item Technology draws follow $a'_i\sim \rho a_i + (1-\rho)\epsilon_i$ where $\epsilon_i$ follows an $i.i.d$ exponential distribution
+     \item $\tau$ is the reduction in technological age following an update
+    
+\end{itemize}
+
+ \hyperlink{intra_period}{\beamerbutton{Intra-period problem}}  
+ \hyperlink{alt_model}{\beamerbutton{Alternative model}}   
+  \hyperlink{effic_between_model}{\beamerbutton{Calibration}}
+  \hyperlink{rel_eff_why}{\beamerbutton{Relativity}}
+
+    
+\end{frame}
+%%%%%%%%%%%%%%%
+
+
+\end{document}
+
