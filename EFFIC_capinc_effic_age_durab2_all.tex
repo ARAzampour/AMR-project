@@ -1,0 +1,27 @@
+\begin{table}[htbp]\centering
+\scriptsize
+\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+\caption{Technology update dummy regressed on covariates}
+\begin{tabular}{l*{1}{ccc}}
+\hline\hline
+ & (1) & (2) \\
+VARIABLES & Raw data & Fixed effects \\ \hline
+ &  &  \\
+Relative efficiency after latest upgrade & -0.0150*** & -0.208*** \\
+ & (0.00504) & (0.0688) \\
+Capacity weighted age & 0.00110*** & 0.00106*** \\
+ & (0.000293) & (0.000297) \\
+Average capacity age & -0.00543*** & 0.000278 \\
+ & (0.000558) & (0.000599) \\
+Constant & 0.0558*** & 0.242*** \\
+ & (0.00676) & (0.0761) \\
+ &  &  \\
+Observations & 9,209 & 8,991 \\
+ Adjusted R-squared & 0.014 & 0.080 \\ \hline
+\multicolumn{3}{c}{ Robust standard errors in parentheses} \\
+\multicolumn{3}{c}{ *** p$<$0.01, ** p$<$0.05, * p$<$0.1} \\
+
+\hline\hline
+\multicolumn{7}{l}{\footnotesize Note: Update: efficiency increase of at least 10 \\\%, with less than 5 \\% variation in capacity-to-generation ratio}\\
+\end{tabular}
+\end{table}
