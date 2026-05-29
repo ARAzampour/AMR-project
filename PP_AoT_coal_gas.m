@@ -12,97 +12,62 @@ clc
 %%
 a_bar   = 80;
 beta    = 0.97;
-c_of_a  = 5;   %%%% we should think more about how to enforce the fix cost
-                %%%% right now it's compared with the value of adoption
-                %%%% which can get really high so we need compare it to
-                %%%% some notion of contemporaneous profit
-c_a_new = 5; %20;   %%%% setting a different adoption cost for the new tech 
-                %%%% might be a solution to get a two tech SS; for gas and
-                %%%% coal case they will be set to be the same
 
 max_iter    = 30000;
 v_tol       = 10^-5;
 dist_tol    = 10^-7;
 
+a_grow      = 0.005; %%% obsoletion rate of generators
+
+e_n_eps = 0.8;
+e_o_eps = 1.1;  %%% elasticites of fuel price supply from literature
+
 alpha   = 1.9;  %%% estimated from the data, not in the calibration anymore 1/5/2026
 p_e     = 1;
-mu      = 0.4;
-sigma   = sqrt(0.08^2);
+mu      = 0.35;
+sigma   = sqrt(0.023^2);
 mu2     = 0.53;
 sigma2  = sqrt(0.025^2); %%% these are used for cc generators
 a_num_g = 50;
 age_num = 80;
 
 
-fco_o   = 2;
+fco_o   = 3;    %%% there are different types of old (boiler based) and new
+                %%% (combustion based) generator. The ratio of their O&M
+                %%% cost is between 2 and 4. We pick 3 and check for the
+                %%% sensivity
 fco_n   = 1;
-e_p     = 1;    %%% this demand elasticity is estimated around 0.1 but more 
-                %%% papers should be read about it (in the long run it's 1
-                %%% but I think we should use the short run estimate)
+e_p     = 0.75; %%% this demand elasticity is estimated around between 0.5 
+                %%% and 1 and we set it to 0.75 in the literature
+                %%% 
 
 d_0     = 100;   %%% what should this value be?? it has profound effect on 
                 %%% the final distribution of the firms due to low
                 %%% elacticity of demand
-c_of_e  = 130;
-c_e_new = 50 ;%10;   %%%% setting a different entry cost for the new tech 
+c_of_e  = 130;  %%% there are different types of old (boiler based) and new
+                %%% (combustion based) generator. The ratio of their
+                %%% Overhead cost (installation, entry cost) therefore can
+                %%% vary too both with respect to each other and their own
+                %%% fco. We pick these numbers from the average but we'll
+                %%% check for sensitivity
+c_e_new = 80 ;%10;   %%%% setting a different entry cost for the new tech 
                 %%%% might be a solution to get a two tech SS; for gas and
                 %%%% coal case they will be set to be the same
 dem_tol = 0.01;
 
 
-trans_t  = 100;
-
-%%% there can be also an efficiency wedge that has been there without any
-%%% growth; this would be the case for solar and gas
-diff_gr_t       = 10;
-diff_gr         = 0.03;
-a_grow          = 0.005;
-% diff_gr_cons    = (1+0.4)^diff_gr_t;    %%% to be used for solar case
-diff_gr_cons    = 1;                    %%% to be used for gas and coal
-
-
-%%% let's define a supply curve for the effort used in different techs
-e0_n    = 1;
-e0_o    = 10;
-e_n_eps = 0.4;
-e_o_eps = 0.4;
-
-%%% let's define a high fixed cost a starting point for the new_tech guys
-%%% and it's transition in a declining exponential phase; in this case
-%%% e0_n_vec would be a constant.
-% c_a_new_1st     = 3.35;
-% c_e_new_1st     = 33.5;
-% 
-% c_a_new_vec     = c_a_new + (c_a_new_1st-c_a_new)*exp(linspace(0,-20,trans_t));
-% c_e_new_vec     = c_e_new + (c_e_new_1st-c_e_new)*exp(linspace(0,-20,trans_t));
-
-
-%%% if the tech transition combined with supply expansion (for gas
-%%% transition) is in mind then the fix cost vectors are a constant and the
-%%% supply side would increase from on level to another one
-
-c_a_new_1st     = c_a_new;
-c_e_new_1st     = c_e_new;
-
-c_a_new_vec     = c_a_new*ones(1,trans_t);
-c_e_new_vec     = c_e_new*ones(1,trans_t);
-
-e0_n_1st        = 0.8;
-e0_n_vec_1step  = e0_n_1st*ones(1,trans_t);
-e0_n_1st_1step  = e0_n_1st;
-e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-40,trans_t));
 
 
 
 %%% auto correlation case parameters
 rho         = 0.6;
-age_reduc   = 10;
+
 
 %%% branch-specific input price processes used by p_input_grid
 rho_p_n     = 0.95;
-sigma_p_n   = 0.25;
+sigma_p_n   = 0.2;%0.25
 rho_p_o     = 0.95;
-sigma_p_o   = 0.15;
+sigma_p_o   = 0.2;%0.15
 
 
 %%% exogenous exit
@@ -111,18 +76,17 @@ exo_exit    = 0.01;
 %%% maximum input is put in place since there is naturally a maximum input
 %%% that a generator can take in
 
-e_max       = 30;
+e_max       = 30; %%% it's uselesss now
 
 
 %%% we have set that generators with a higher initial efficiency would
 %%% depreciate slower, this incorporated using ((a_grid).^gamma).^t
+ 
+gamma       = -0.0189; %%% it's uselesss now
 
-gamma       = -0.0189;
-alphas      = linspace(0.1,0.95,20);
 
 
-%%% we also incorporate the growth in baseline demand growth
-d0_gr   = 0.01;
+
 %% calibration first part
 %%% the unkown paramteres are d_0, e0_n, e0_o, alpha, c_of_a, c_a_new, rat, age_reduc and
 %%% the moments are p_E, p_e_n, p_e_o, total_eff_ratio, measure_ratio, mean
@@ -136,16 +100,17 @@ global tracks JJ
 tracks  = zeros(17,100);
 JJ      = 0;
 
-p_E_m = 30; p_e_n_m = 12; p_e_o_m = 3.4;  %%% these numbers come from the papers
+p_E_m = 35; p_e_n_m = 12; p_e_o_m = 3.4;  %%% these numbers come from the papers
         %%% in the literature (cited withthe help of gpt)
 inp_ratio = 7; m_ratio = 3;
 mean_eff = 0.37; tech_dist   = 1; feul_ce_ratio = 0.12; M_cap_age = 6.1;
-
+mu_old = mu;
+mu_new = mu-0.05;
 A = []; B = []; Aeq = []; Beq = []; nonlcon=[];
-lb  = [0.5,0.5,30,0.75,2.25,1.5,5];
-ub  = [3.0,3.0,80,2.0,6.0,2.5,15];
+lb  = [0.25,0.25,45,0.15,1.25,2.0,1.5];
+ub  = [2.00,2.00,65,0.95,3.50,3.5,7.5];
 [x,fval,exitflag,output]    = surrogateopt(@(x)simulator(a_grow,alpha,a_bar...
-    ,beta,x(1),x(2),mu,sigma,mu,sigma,a_num_g,age_num,max_iter,...
+    ,beta,x(1),x(2),mu_old,sigma,mu_new,sigma,a_num_g,age_num,max_iter,...
         v_tol,dist_tol,fco_o,fco_n,e_p,x(3),c_of_e,c_e_new,dem_tol,tech_dist,...
         x(4),x(5),e_n_eps,e_o_eps,rho_p_n,sigma_p_n,rho_p_o,sigma_p_o,rho,x(7),exo_exit,e_max,gamma,x(6),...
         p_E_m,p_e_n_m,p_e_o_m,inp_ratio,m_ratio,mean_eff,feul_ce_ratio,M_cap_age)...
@@ -176,7 +141,7 @@ track0 = tracks(:,3);
 alpha   = track0(1);
 c_of_a  = track0(2); 
 c_a_new = track0(3);
-d_0     = track0(4);;
+d_0     = track0(4);
 e0_n_1st= track0(5);
 e0_o    = track0(6);
 rat     = track0(7);
@@ -256,6 +221,49 @@ title("probability of tech adoption");
 % address = 'D:\AMR_github\graphs\transition_prob.png';
 % saveas(gcf,address)
 % annotation('textarrow',[1,10],'String','y = x ')
+%% MIT paramters
+trans_t  = 100;
+
+%%% we also incorporate the growth in baseline demand growth
+d0_gr   = 0.01;
+
+%%% there can be also an efficiency wedge that has been there without any
+%%% growth; this would be the case for solar and gas
+diff_gr_t       = 10;
+diff_gr         = 0.03;
+
+% diff_gr_cons    = (1+0.4)^diff_gr_t;    %%% to be used for solar case
+diff_gr_cons    = 1;                    %%% to be used for gas and coal
+
+
+%%% let's define a supply curve for the effort used in different techs
+e0_n    = 1;
+e0_o    = 10;
+
+
+%%% let's define a high fixed cost a starting point for the new_tech guys
+%%% and it's transition in a declining exponential phase; in this case
+%%% e0_n_vec would be a constant.
+% c_a_new_1st     = 3.35;
+% c_e_new_1st     = 33.5;
+% 
+% c_a_new_vec     = c_a_new + (c_a_new_1st-c_a_new)*exp(linspace(0,-20,trans_t));
+% c_e_new_vec     = c_e_new + (c_e_new_1st-c_e_new)*exp(linspace(0,-20,trans_t));
+
+
+%%% if the tech transition combined with supply expansion (for gas
+%%% transition) is in mind then the fix cost vectors are a constant and the
+%%% supply side would increase from on level to another one
+
+c_a_new_1st     = c_a_new;
+c_e_new_1st     = c_e_new;
+
+c_a_new_vec     = c_a_new*ones(1,trans_t);
+c_e_new_vec     = c_e_new*ones(1,trans_t);
+
+e0_n_vec_1step  = e0_n_1st*ones(1,trans_t);
+e0_n_1st_1step  = e0_n_1st;
+e0_n_vec        = e0_n + (e0_n_1st-e0_n)*exp(linspace(0,-40,trans_t));
 
 %% new tech ss(before observing the price shock)
 % tech_dist   = (1+diff_gr)^diff_gr_t;

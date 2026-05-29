@@ -3,7 +3,7 @@ function [trans_prob_o,v_new_o,v_new_resh_o,dist_o,trans_matrix_n,p_e_n,cap_cont
     age_g,a_grid_old,a_prob_old,a_grid_new,a_prob_new,pi_contemp_new,p_E,m_of_firms_new,m_of_firms_old,exit_n,exit_o] = ...
     Two_tech_ss_AC2(a_grow,alpha,~,beta,c_of_a,c_a_new,mu_old,sigma_old,mu_new,sigma_new,a_num_g,age_num,max_iter,...
     v_tol,dist_tol,fco_o,fco_n,e_p,d_0,c_of_e,c_e_new,dem_tol,tech_dist,...
-    e0_n,e0_o,e_n_eps,e_o_eps,rho_p_n,sigma_p_n,rho_p_o,sigma_p_o,rho,age_reduc,exo_exit,e_max,~)
+    e0_n,e0_o,e_n_eps,e_o_eps,rho_p_n,sigma_p_n,rho_p_o,sigma_p_o,rho,age_reduc,exo_exit)
 
 % a_grid  =  expinv(linspace(0,0.999,a_num_g),a_lamb);
 x_old   = norminv(linspace(0,1,a_num_g+2),mu_old,sigma_old); %%% looking at the entrants, 
@@ -90,16 +90,16 @@ p_e_o_pre_pre   = zeros(1,max_iter_measure);
 %%% equilibrium price satisfying this condition; first I start with p_E = 1
 
 
-p_E         = 1;
-p_E_prev    = 1;
+p_E         = 35;
+p_E_prev    = 35;
 dem_err_pre = 0;
 
 %%%% I think we need to have varying price of effort for the techs of
 %%%% course it can have an ifinite elasticity like the case of solar, 
 %%%% fist set it to be equal for both to one
 
-p_e_n   = 1;
-p_e_o   = 1;
+p_e_n   = 12;
+p_e_o   = 3.5;
 
 % eff_n_vec   = zeros(age_num,a_num_g);
 % eff_o_vec   = zeros(age_num,a_num_g); if mex gives error I'll pre define
@@ -129,8 +129,8 @@ v_of_old = pi_contemp_old;
 %%%% also to have the entry and exit equal to each other the measure of the
 %%%% firms should be the correct number
 
-m_of_firms_new  = 2;
-m_of_firms_old  = 2;
+m_of_firms_new  = 1;
+m_of_firms_old  = 3;
 m_of_new_all    = zeros(max_iter_measure,1);
 m_of_old_all    = zeros(max_iter_measure,1);
 
@@ -138,8 +138,8 @@ value_err_n_pre = 0;
 value_err_o_pre = 0;
 value_err_n_all = zeros(max_iter_measure,1);
 value_err_o_all = zeros(max_iter_measure,1);
-m_of_new_pre    = 0.1;
-m_of_old_pre    = 4;
+m_of_new_pre    = 0.9;
+m_of_old_pre    = 3.1;
 
 p_e_n_pre       = 1;
 p_e_o_pre       = 1;
