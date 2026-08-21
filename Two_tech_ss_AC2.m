@@ -19,6 +19,7 @@ x_old   = norminv(linspace(0,1,a_num_g+2),mu_old,sigma_old); %%% looking at the 
 a_grid_old  = x_old(2:a_num_g+1);
 a_cdf_old   = normcdf(x_old,mu_old,sigma_old);
 a_prob_old  = a_cdf_old(2:a_num_g+1)-a_cdf_old(1:a_num_g);
+a_prob_old  = a_prob_old/sum(a_prob_old);
 
 prob_matrix_old     = auto_corr_prob(a_grid_old,a_prob_old,rho);
 
@@ -34,6 +35,7 @@ assert(all(a_grid_old>0),'variance of old tech efficiency draw is too large')
 
 a_cdf_new   = normcdf(x_new,mu_new,sigma_new);
 a_prob_new  = a_cdf_new(2:a_num_g+1)-a_cdf_new(1:a_num_g);
+a_prob_new  = a_prob_new/sum(a_prob_new);
 
 prob_matrix_new     = auto_corr_prob(a_grid_new,a_prob_new,rho);
 

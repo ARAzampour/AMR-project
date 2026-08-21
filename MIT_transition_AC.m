@@ -31,6 +31,7 @@ a_grid_old  = x_old(2:a_num_g+1);
 % a_g_nex = (a_grid_old)'/(1+diff_gr);
 a_cdf_old   = normcdf(x_old,mu_old,sigma_old);
 a_prob_old  = a_cdf_old(2:a_num_g+1)-a_cdf_old(1:a_num_g);
+a_prob_old  = a_prob_old/sum(a_prob_old);
 
 prob_matrix_old     = auto_corr_prob(a_grid_old,a_prob_old,rho);
 
@@ -60,6 +61,7 @@ for ii=1:1:trans_t
 
     a_cdf_new   = normcdf(x_new,mu_new_vec(ii),sigma_new_vec(ii));
     a_prob_new  = a_cdf_new(2:a_num_g+1)-a_cdf_new(1:a_num_g);
+    a_prob_new  = a_prob_new/sum(a_prob_new);
 
     a_prob_n_all(:,ii) = a_prob_new;
 
@@ -74,6 +76,7 @@ for ii=1:1:trans_t
     a_grid_next  = x_new_next(2:a_num_g+1);
     
     a_prob_Next  = a_cdf_Next(2:a_num_g+1)-a_cdf_Next(1:a_num_g);
+    a_prob_Next  = a_prob_Next/sum(a_prob_Next);
 
     
     prob_matrix_tr      = auto_corr_prob_transition2(a_grid_new,a_prob_Next,rho,a_grid_next);
@@ -142,13 +145,14 @@ measure_vec_o       = linspace(sum(init_dist_o,'all'),sum(final_dist_o,'all'),tr
 m_of_entry_n        = 1+exp(linspace(0,-10,trans_t));
 m_of_entry_n        = trans_t*m_of_entry_n/(sum(m_of_entry_n))*...
     ((sum(final_dist_n,'all')-sum(init_dist_n,'all')+...
-    (sum(final_dist_o,'all')-sum(init_dist_o,'all')))/trans_t...
-    +exit_n_final/sum(final_dist_n,'all')*sum(init_dist_n+final_dist_n,'all')/2*1.5);
+    0)/trans_t)... %% (sum(final_dist_o,'all')-sum(init_dist_o,'all'))
+    +exo_exit*linspace(sum(init_dist_n),sum(final_dist_n),trans_t);
+    
 m_of_entry_o        = 1+exp(linspace(0,-10,trans_t));
 m_of_entry_o        = trans_t*m_of_entry_o/(sum(m_of_entry_o))*...
     ((sum(final_dist_o,'all')-sum(init_dist_o,'all')-...
-    (sum(final_dist_n,'all')-sum(init_dist_n,'all')))/trans_t...
-    +exit_o_final/sum(final_dist_o,'all')*sum(init_dist_o+final_dist_o,'all')/2*1.5);
+    0)/trans_t)... %% (sum(final_dist_n,'all')-sum(init_dist_n,'all'))
+    +exo_exit*linspace(sum(init_dist_o),sum(final_dist_o),trans_t);
 
 m_of_entry_n(m_of_entry_n<0)    = 0;
 m_of_entry_o(m_of_entry_o<0)    = 0;
@@ -169,8 +173,6 @@ p_conv_o_all_prev   = zeros(age_num*a_num_g,trans_t);
 converion_o_all     = zeros(age_num*a_num_g,trans_t);
 converion_o_all_pre = zeros(age_num*a_num_g,trans_t);
 conv_decrease_all   = zeros(age_num*a_num_g,trans_t);
-tech_con_exp_all    = zeros(age_num*a_num_g,trans_t);
-ratio_tech_conv_all = zeros(age_num*a_num_g,trans_t);
 
 
 measure_vec_n_rec   = zeros(max_iter_measure,trans_t);
@@ -212,11 +214,30 @@ input_all_o         = init_input_o*ones(trans_t,1);
 %%% following variables are used to ensure that
 input_adjsut_o_all  = 0.01*ones(trans_t,1);
 input_adjsut_n_all  = 0.01*ones(trans_t,1);
-i_a_param           = 0.4;
+i_a_param           = 0.1;
+
+%%% Static decisions are solved once per technology and transition period
+%%% in each price iteration, then reused by both backward and forward loops.
+eff_n_cache = zeros(a_num_g,age_num,trans_t,"single");
+cap_n_cache = zeros(a_num_g,age_num,trans_t,"single");
+pi_n_cache  = zeros(a_num_g,age_num,trans_t,"single");
+eff_o_cache = zeros(a_num_g,age_num,trans_t,"single");
+cap_o_cache = zeros(a_num_g,age_num,trans_t,"single");
+pi_o_cache  = zeros(a_num_g,age_num,trans_t,"single");
 
 %%% The adjustment in the price of electricity will be bounded and weight_adj_p
 %%% will determine the amount of adjustment when bound is reached
 weight_adj_p        = 0.2;
+
+%%% Grid interpolation and sparse-transition addresses depend only on the
+%%% fixed grids and dimensions, so construct them once rather than in every
+%%% value/distribution iteration.
+[temp_index_grid_exp_all,rat_of_tran_exp_all,tech_con_exp_all,...
+    ratio_tech_conv_all,state_if_adopt_y,state_if_adopt_x,temp_address,...
+    state_if_naot_n_y_all,state_if_naot_n_x_all,state_if_naot_o_y,...
+    state_if_naot_o_x,conv_address_y1_all,conv_address_y2_all,...
+    conv_address_x1_all,conv_address_x2_all] = precompute_mit_mappings(...
+    a_grid_n_all,a_grid_old,age_num,a_num_g,age_reduc,trans_t);
 
 %%%%%% Important note %%%%%%%%
 %%% In the transition first the output (and its decision) happens and then
@@ -278,28 +299,30 @@ for h=checkpoint_h_start:1:max_iter_measure
         price_ratio_n = p_E_vec./p_e_n_vec;
         price_ratio_o = p_E_vec./p_e_o_vec;
 
+        for it=1:trans_t
+            a_grid_new = a_grid_n_all(:,it);
+            a_eff_n = a_grid_new .* max(1 - a_grow .* age_g', 0);
+            [eff_temp,cap_temp,pi_temp] = static_solver(a_eff_n,...
+                p_E_vec(it).*P_E_grid_norm,p_e_n_vec(it).*p_e_n_grid_norm,...
+                alpha,fco_n,1./a_grid_new(:));
+            eff_n_cache(:,:,it) = single(eff_temp);
+            cap_n_cache(:,:,it) = single(cap_temp);
+            pi_n_cache(:,:,it)  = single(pi_temp);
+
+            a_eff_o = (a_grid_old./tech_dist_vec(it))' .* max(1 - a_grow .* age_g', 0);
+            [eff_temp,cap_temp,pi_temp] = static_solver(a_eff_o,...
+                p_E_vec(it).*P_E_grid_norm,p_e_o_vec(it).*p_e_o_grid_norm,...
+                alpha,fco_o,1./a_grid_old(:));
+            eff_o_cache(:,:,it) = single(eff_temp);
+            cap_o_cache(:,:,it) = single(cap_temp);
+            pi_o_cache(:,:,it)  = single(pi_temp);
+        end
+
         for i1=trans_t:-1:1
 
-            if i1<trans_t
-                a_grid_next = a_grid_n_all(:,i1+1);
-            else
-                a_grid_next = a_grid_n_all(:,end);
-            end
-
             a_grid_new  = a_grid_n_all(:,i1);
-            %%% this part is used to model the decay of the new generators in the
-            %%% period of growth in new generators' productivity, this is beacuse the
-            %%% new ones that have not updated are lagging behind
-            temp_index_grid_cell    = arrayfun(@(x) find(x<=a_grid_next,1,'first'),a_grid_new,'UniformOutput',false);
-            temp_index_grid         = cellfun(@(x) iif_empty(x,a_num_g),temp_index_grid_cell);
-            temp_index_grid(temp_index_grid<2) = 2;
-            temp_index_grid(temp_index_grid>a_num_g) = a_num_g;
-            
-            ratio_of_transition     = (a_grid_next(temp_index_grid)-a_grid_new)./(a_grid_next(temp_index_grid)-a_grid_next(temp_index_grid-1));
-            ratio_of_transition(ratio_of_transition>1)  = 1;
-            ratio_of_transition(ratio_of_transition<0)  = 0;
-            temp_index_grid_exp = repmat(temp_index_grid,age_num,1)+kron((0:1:age_num-1)',a_num_g*ones(a_num_g,1));
-            rat_of_tran_exp     = repmat(ratio_of_transition,age_num,1);
+            temp_index_grid_exp = temp_index_grid_exp_all{i1};
+            rat_of_tran_exp     = rat_of_tran_exp_all{i1};
 
 
             v_p_n                 = v_of_new';
@@ -320,11 +343,7 @@ for h=checkpoint_h_start:1:max_iter_measure
             v_p_n_vec       = v_p_n_vec(temp_index_grid_exp).*(1-rat_of_tran_exp)+...
                 v_p_n_vec(temp_index_grid_exp-1).*(rat_of_tran_exp);
 
-            a_eff_n         = a_grid_new .* max(1 - a_grow .* age_g', 0);
-
-            [~, ~, pi_n_mat]    = static_solver(a_eff_n, p_E_vec(i1).*P_E_grid_norm,...
-                p_e_n_vec(i1).*p_e_n_grid_norm, alpha, fco_n, 1./a_grid_new(:));
-            pi_contemp_new      = pi_n_mat';
+            pi_contemp_new = double(pi_n_cache(:,:,i1))';
         
 %             pi_contemp_neg_new  = pi_contemp_new<0;
 %             pi_contemp_new(pi_contemp_neg_new) = 0;
@@ -410,10 +429,7 @@ for h=checkpoint_h_start:1:max_iter_measure
             %     .*(alpha*p_E_vec(i2)/p_e_o_vec(i2))^alpha.*(1/(1+a_grow)).^age_g)...
             %     .^(1/(1-alpha))*(1-alpha);
 
-            a_eff_o             = (a_grid_old./tech_dist_vec(i2))' .* max(1 - a_grow .* age_g', 0);
-            [~, ~, pi_o_mat]    = static_solver(a_eff_o, p_E_vec(i2).*P_E_grid_norm,...
-                p_e_o_vec(i2).*p_e_o_grid_norm, alpha, fco_o, 1./a_grid_old(:));
-            pi_contemp_old      = pi_o_mat';
+            pi_contemp_old = double(pi_o_cache(:,:,i2))';
             
 %             pi_contemp_neg_old  = pi_contemp_old<0;
 %             pi_contemp_old(pi_contemp_neg_old) = 0;
@@ -454,20 +470,8 @@ for h=checkpoint_h_start:1:max_iter_measure
             %%%% is such that a generator with old tech would go to two
             %%%% closest new tech states when adjusted for it's decay
 
-            if i2<trans_t
-                a_grid_convert = a_grid_n_all(:,i2+1);
-                
-            else
-                a_grid_convert = a_grid_n_all(:,end);
-            end
-            tech_conver_h_cell = arrayfun(@(x) find(x<=a_grid_convert,1,'first'),a_grid_old','UniformOutput',false);
-            tech_conver_h = cellfun(@(x) iif_empty(x,a_num_g),tech_conver_h_cell);
-            tech_conver_h(tech_conver_h<2) = 2;
-            tech_conver_h(tech_conver_h>a_num_g) = a_num_g;
-            ratio_tech_conver = (a_grid_old' - a_grid_convert(tech_conver_h-1))...
-                ./(a_grid_convert(tech_conver_h)-a_grid_convert(tech_conver_h-1));
-            ratio_tech_conver(ratio_tech_conver<0) = 0;
-            ratio_tech_conver(ratio_tech_conver>1) = 1;
+            tech_con_exp      = tech_con_exp_all(:,i2);
+            ratio_tech_conver = ratio_tech_conv_all(:,i2);
 
         
             v_o_best_resh = (reshape(v_o_best,a_num_g,age_num*a_num_g))';
@@ -479,9 +483,6 @@ for h=checkpoint_h_start:1:max_iter_measure
             v_new_re_temp(:,age_num)     = 0;
 
             v_new_temp    = v_new_re_temp(:);
-            tech_con_exp  = repmat(tech_conver_h,age_num,1) + ...
-                kron((0:1:age_num-1)',a_num_g*ones(a_num_g,1));
-            
 %             v_o_con_vec   = v_o_convert';
 %             v_o_con_vec   = v_o_con_vec(:);
         
@@ -498,8 +499,8 @@ for h=checkpoint_h_start:1:max_iter_measure
 %                 + v_new_temp(tech_con_exp-1).*(1-repmat(ratio_tech_conver,age_num,1))-c_conver)...
 %                 +(1-conv_rate)*v_new_o;
 
-            v_o_convert   = (v_new_temp(tech_con_exp).*repmat(ratio_tech_conver,age_num,1)...
-                + v_new_temp(tech_con_exp-1).*(1-repmat(ratio_tech_conver,age_num,1))-c_conver);
+            v_o_convert   = (v_new_temp(tech_con_exp).*ratio_tech_conver...
+                + v_new_temp(tech_con_exp-1).*(1-ratio_tech_conver)-c_conver);
 
 
             v_new_o(v_new_o==0) = 10^-9;
@@ -546,8 +547,6 @@ for h=checkpoint_h_start:1:max_iter_measure
 
             trans_prob_o_all(:,i2)      = sum(policy_choice_o.*repmat(prob_matrix,age_num,1),2);
             p_conv_o_all(:,i2)          = p_conversion_o;
-            tech_con_exp_all(:,i2)      = tech_con_exp;
-            ratio_tech_conv_all(:,i2)   = repmat(ratio_tech_conver,age_num,1);
         end
         
         fprintf("MIT value function of old is done\n");
@@ -585,54 +584,17 @@ for h=checkpoint_h_start:1:max_iter_measure
 
             prob_matrix     = prob_mat_n_all{j};
             
+            temp_index_grid_exp = temp_index_grid_exp_all{j};
+            rat_of_tran_exp     = rat_of_tran_exp_all{j};
 
-            a_grid_new      = a_grid_n_all(:,j);
-            if j<trans_t
-                a_grid_next = a_grid_n_all(:,j+1);
-            else
-                a_grid_next = a_grid_n_all(:,j);
-            end
-            temp_index_grid_cell = arrayfun(@(x) find(x<=a_grid_next,1,'first'),a_grid_new,'UniformOutput',false);
-            temp_index_grid = cellfun(@(x) iif_empty(x,a_num_g),temp_index_grid_cell);
-            temp_index_grid(temp_index_grid<2) = 2;
-            temp_index_grid(temp_index_grid>a_num_g) = a_num_g;
-            ratio_of_transition = (a_grid_next(temp_index_grid)-a_grid_new)./(a_grid_next(temp_index_grid)-a_grid_next(temp_index_grid-1));
-            ratio_of_transition(ratio_of_transition>1) = 1;
-            ratio_of_transition(ratio_of_transition<0) = 0;
-            temp_index_grid_exp = repmat(temp_index_grid,age_num,1)+kron((0:1:age_num-1)',a_num_g*ones(a_num_g,1));
-            rat_of_tran_exp = repmat(ratio_of_transition,age_num,1);
-
-            a_eff_n         = a_grid_new .* max(1 - a_grow .* age_g', 0);
-
-            [eff_n_vec, cap_contemp_new] = static_solver(a_eff_n, p_E_vec(j).*P_E_grid_norm, ...
-                p_e_n_vec(j).*p_e_n_grid_norm, alpha, fco_n, 1./a_grid_new(:));
+            eff_n_vec       = double(eff_n_cache(:,:,j));
+            cap_contemp_new = double(cap_n_cache(:,:,j));
             
             
             exit_vec_n                      = exit_vec_n_all(:,j);
             policy_choice_n                 = policy_choice_n_all(:,:,j);
             
             temp_n                          = exit_vec_n(1:(age_num-1)*a_num_g,1);
-            state_if_adopt_n                = zeros(1,a_num_g*age_num*a_num_g);
-            state_if_adopt_n(1:age_reduc*a_num_g*a_num_g)     = ...
-                repmat(1:1:age_reduc*a_num_g,1,a_num_g)...
-                + kron(0:1:a_num_g-1,a_num_g*age_num*ones(1,age_reduc*a_num_g));
-            if age_reduc<age_num
-            state_if_adopt_n(age_reduc*a_num_g*a_num_g+1:end) = ...
-                kron(age_reduc*a_num_g+(0:1:(age_num-age_reduc-1))*a_num_g,ones(1,a_num_g^2)) +...
-                repmat(1:1:a_num_g,1,(age_num-age_reduc)*a_num_g)+...
-                kron((0:1:a_num_g*(age_num-age_reduc-1)+a_num_g-1),a_num_g*age_num*ones(1,a_num_g));
-            end
-    
-            temp_address_n                  = zeros(1,a_num_g*age_num*a_num_g);
-            temp_address_n(1:age_reduc*a_num_g*a_num_g)       = ...
-                repmat(1:1:age_reduc*a_num_g,1,a_num_g)...
-                + kron(0:1:a_num_g-1,a_num_g*age_num*ones(1,age_reduc*a_num_g));
-            if age_reduc<age_num
-            temp_address_n(age_reduc*a_num_g*a_num_g+1:end)   = ...
-                kron(age_reduc*a_num_g+(0:1:(age_num-age_reduc-1))*a_num_g,ones(1,a_num_g^2)) +...
-                repmat(1:1:a_num_g,1,(age_num-age_reduc)*a_num_g)+...
-                repmat(kron(0:1:a_num_g-1,a_num_g*age_num*ones(1,(a_num_g))),1,age_num-age_reduc);
-            end
     
             temp_matrix_n                       = policy_choice_n.*repmat(prob_matrix,age_num,1)...
                 .*(1-exit_vec_n)*(1-exo_exit);
@@ -641,23 +603,13 @@ for h=checkpoint_h_start:1:max_iter_measure
                 .*prob_of_naot_n(1:(age_num-1)*a_num_g)*(1-exo_exit);
             stay_alive_besideold_n              = (ones((age_num-1)*a_num_g,1)-temp_n);
 
-            state_if_naot_n     =  [((1:1:((age_num-1)*a_num_g))...
-                +age_num*a_num_g^2+...
-                (temp_index_grid_exp(1:(age_num-1)*a_num_g)'-1)*age_num*a_num_g),...
-                ((1:1:((age_num-1)*a_num_g))...
-                +age_num*a_num_g^2+...
-                (temp_index_grid_exp(1:(age_num-1)*a_num_g)'-2)*age_num*a_num_g)];
             values_of_naot      = [p_of_naot_besideold_n.*stay_alive_besideold_n.*(1-rat_of_tran_exp(1:(age_num-1)*a_num_g));...
                 p_of_naot_besideold_n.*stay_alive_besideold_n.*(rat_of_tran_exp(1:(age_num-1)*a_num_g))]';
 
-            state_if_adopt_n_y  = mod(state_if_adopt_n,a_num_g*age_num);
-            state_if_naot_n_y   = mod(state_if_naot_n,a_num_g*age_num);
-            state_if_adopt_n_y(state_if_adopt_n_y<1) = a_num_g*age_num;
-            state_if_naot_n_y(state_if_naot_n_y<1) = a_num_g*age_num;
-            state_if_naot_n_x   = ceil((state_if_naot_n-0.1)/(a_num_g*age_num));
-            state_if_adopt_n_x  = ceil((state_if_adopt_n-0.1)/(a_num_g*age_num));
-            values_of_adopt     = temp_matrix_n(temp_address_n);
-            trans_matrix_n      = sparse([state_if_adopt_n_y,state_if_naot_n_y],[state_if_adopt_n_x,state_if_naot_n_x]...
+            state_if_naot_n_y = state_if_naot_n_y_all{j};
+            state_if_naot_n_x = state_if_naot_n_x_all{j};
+            values_of_adopt   = temp_matrix_n(temp_address);
+            trans_matrix_n    = sparse([state_if_adopt_y,state_if_naot_n_y],[state_if_adopt_x,state_if_naot_n_x]...
                 ,[values_of_adopt,values_of_naot],a_num_g*age_num,a_num_g*age_num);
 
             %%% also those who are at the last period would die if they don't adopt to
@@ -683,16 +635,10 @@ for h=checkpoint_h_start:1:max_iter_measure
 
             tech_con_exp        = (tech_con_exp_all(:,j));
             ratio_tech_conver   = (ratio_tech_conv_all(:,j));
-
-            conv_address_x1     = ceil(((tech_con_exp-1)*a_num_g*age_num...
-                +(1:1:a_num_g*age_num)'-0.1)/(a_num_g*age_num));
-            conv_address_x2     = ceil(((tech_con_exp-2)*a_num_g*age_num...
-                +(1:1:a_num_g*age_num)'-0.1)/(a_num_g*age_num));
-
-            conv_address_y1     = mod((tech_con_exp-1)*a_num_g*age_num+(1:1:a_num_g*age_num)',a_num_g*age_num);
-            conv_address_y1(conv_address_y1<1) = a_num_g*age_num;
-            conv_address_y2     = mod((tech_con_exp-2)*a_num_g*age_num+(1:1:a_num_g*age_num)',a_num_g*age_num);
-            conv_address_y2(conv_address_y2<1) = a_num_g*age_num;
+            conv_address_x1     = conv_address_x1_all{j};
+            conv_address_x2     = conv_address_x2_all{j};
+            conv_address_y1     = conv_address_y1_all{j};
+            conv_address_y2     = conv_address_y2_all{j};
 
             conv_matrix         = sparse([conv_address_y1;conv_address_y2],...
                 [conv_address_x1;conv_address_x2],...
@@ -751,56 +697,25 @@ for h=checkpoint_h_start:1:max_iter_measure
 
 %              tic  
 
-            a_eff_o             = (a_grid_old./tech_dist_vec(j))' .* max(1 - a_grow .* age_g', 0);
-            [eff_o_vec, cap_contemp_old] = static_solver(a_eff_o, p_E_vec(j).*P_E_grid_norm,...
-                p_e_o_vec(j).*p_e_o_grid_norm, alpha, fco_o, 1./a_grid_old(:));
+            eff_o_vec       = double(eff_o_cache(:,:,j));
+            cap_contemp_old = double(cap_o_cache(:,:,j));
 
             exit_vec_o                      = exit_vec_o_all(:,j);
             policy_choice_o                 = policy_choice_o_all(:,:,j);
 
             temp_o                          = exit_vec_o(1:(age_num-1)*a_num_g,1);
-            state_if_adopt_o                = zeros(1,a_num_g*age_num*a_num_g);
-            state_if_adopt_o(1:age_reduc*a_num_g*a_num_g)     = ...
-                repmat(1:1:age_reduc*a_num_g,1,a_num_g)...
-                + kron(0:1:a_num_g-1,a_num_g*age_num*ones(1,age_reduc*a_num_g));
-            if age_reduc<age_num
-            state_if_adopt_o(age_reduc*a_num_g*a_num_g+1:end) = ...
-                kron(age_reduc*a_num_g+(0:1:(age_num-age_reduc-1))*a_num_g,ones(1,a_num_g^2)) +...
-                repmat(1:1:a_num_g,1,(age_num-age_reduc)*a_num_g)+...
-                kron((0:1:a_num_g*(age_num-age_reduc-1)+a_num_g-1),a_num_g*age_num*ones(1,a_num_g));
-            end
-    
-            temp_address_o                  = zeros(1,a_num_g*age_num*a_num_g);
-            temp_address_o(1:age_reduc*a_num_g*a_num_g)       = ...
-                repmat(1:1:age_reduc*a_num_g,1,a_num_g)...
-                + kron(0:1:a_num_g-1,a_num_g*age_num*ones(1,age_reduc*a_num_g));
-            if age_reduc<age_num
-            temp_address_o(age_reduc*a_num_g*a_num_g+1:end)   = ...
-                kron(age_reduc*a_num_g+(0:1:(age_num-age_reduc-1))*a_num_g,ones(1,a_num_g^2)) +...
-                repmat(1:1:a_num_g,1,(age_num-age_reduc)*a_num_g)+...
-                repmat(kron(0:1:a_num_g-1,a_num_g*age_num*ones(1,(a_num_g))),1,age_num-age_reduc);
-            end
     
             temp_matrix_o                       = policy_choice_o.*repmat(prob_matrix,age_num,1)...
                 .*(1-exit_vec_o)*(1-exo_exit);
             prob_of_naot_o                      = sum((1-policy_choice_o).*repmat(prob_matrix,age_num,1),2);
-            state_if_naot_o                     =  kron([1:age_num-1],ones(1,a_num_g))*age_num*a_num_g^2+...
-                [1:(age_num-1)*a_num_g]+kron(ones(1,age_num-1),[0:a_num_g-1])*age_num*a_num_g;
             p_of_naot_besideold_o               = ones((age_num-1)*a_num_g,1)...
                 .*prob_of_naot_o(1:(age_num-1)*a_num_g)*(1-exo_exit);
             stay_alive_besideold_o              = (ones((age_num-1)*a_num_g,1)-temp_o);
             p_conversion_o                      = p_conv_o_all_prev(:,j);
             
-
-            state_if_adopt_o_y  = mod(state_if_adopt_o,a_num_g*age_num);
-            state_if_naot_o_y   = mod(state_if_naot_o,a_num_g*age_num);
-            state_if_adopt_o_y(state_if_adopt_o_y<1) = a_num_g*age_num;
-            state_if_naot_o_y(state_if_naot_o_y<1) = a_num_g*age_num;
-            state_if_naot_o_x   = ceil((state_if_naot_o-0.1)/(a_num_g*age_num));
-            state_if_adopt_o_x  = ceil((state_if_adopt_o-0.1)/(a_num_g*age_num));
-            values_of_adopt_o   = temp_matrix_o(temp_address_o);
+            values_of_adopt_o   = temp_matrix_o(temp_address);
             values_of_naot_o    = (p_of_naot_besideold_o.*stay_alive_besideold_o)';
-            trans_matrix_o      = sparse([state_if_adopt_o_y,state_if_naot_o_y],[state_if_adopt_o_x,state_if_naot_o_x]...
+            trans_matrix_o      = sparse([state_if_adopt_y,state_if_naot_o_y],[state_if_adopt_x,state_if_naot_o_x]...
                 ,[values_of_adopt_o,values_of_naot_o],a_num_g*age_num,a_num_g*age_num);
     
             trans_matrix_o((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = ...
@@ -885,7 +800,7 @@ for h=checkpoint_h_start:1:max_iter_measure
         demand_err(demand_err<-25)  = -25;
         
         
-        p_E_vec     = p_E_vec + 0.5*output_adjsut*demand_err/((ceil(k/20)));
+        p_E_vec     = p_E_vec + 0.1*output_adjsut*demand_err/(min(ceil(k/10),20));
 
         p_E_vec     = p_E_vec.*(sign(demand_err)==sign(dem_err_pre)) +...
             (p_E_vec+p_E_prev)/2.*(sign(demand_err)~=sign(dem_err_pre));
@@ -966,28 +881,22 @@ for h=checkpoint_h_start:1:max_iter_measure
     end
 %+0.0001*value_err_n'
     if abs(measure_vec_n(end)-sum(final_dist_n))<0.1
-        if k>1
-            m_of_entry_n    = (m_of_entry_n.*(1+0.4*measure_adj_n*value_err_n')).*(value_err_n'>0)...
-                + m_of_entry_n.*(1+0.4*measure_adj_n*value_err_n').*(value_err_n'<0);
-        else
-            m_of_entry_n    = (m_of_entry_n.*(1+0.2*value_err_n')).*(value_err_n'>0)...
-                + m_of_entry_n.*(1+0.2*value_err_n').*(value_err_n'<0);
-        end
+        
+        m_of_entry_n    = (m_of_entry_n.*(1+0.1*measure_adj_n*value_err_n')).*(abs(value_err_n')>50)...
+            + m_of_entry_n.*(1+0.2*measure_adj_n*value_err_n').*(abs(value_err_n')<=50);
+        
     else
-        m_of_entry_n    = (m_of_entry_n+0.00001)/sum(m_of_entry_n+0.00001)*...
+        m_of_entry_n    = (m_of_entry_n+10^-6)/sum(m_of_entry_n+10^-6)*...
             (sum(m_of_entry_n)+0.1*(sum(final_dist_n)-measure_vec_n(end)));
     end
 %+0.0001*value_err_o'
     if abs(measure_vec_o(end)-sum(final_dist_o))<0.1
-        if k>1
-            m_of_entry_o    = (m_of_entry_o.*(1+0.4*measure_adj_o*value_err_o')).*(value_err_o'>0)...
-                + m_of_entry_o.*(1+0.4*measure_adj_o*value_err_o').*(value_err_o'<0);
-        else
-            m_of_entry_o    = (m_of_entry_o.*(1+0.2*value_err_o')).*(value_err_o'>0)...
-                + m_of_entry_o.*(1+0.2*value_err_o').*(value_err_o'<0);
-        end
+        
+        m_of_entry_o    = (m_of_entry_o.*(1+0.1*measure_adj_o*value_err_o')).*(abs(value_err_o')>50)...
+            + m_of_entry_o.*(1+0.2*measure_adj_o*value_err_o').*(abs(value_err_o')<=50);
+       
     else
-        m_of_entry_o    = (m_of_entry_o+0.00001)/sum(m_of_entry_o+0.00001)*...
+        m_of_entry_o    = (m_of_entry_o+10^-6)/sum(m_of_entry_o+10^-6)*...
             (sum(m_of_entry_o)+0.1*(sum(final_dist_o)-measure_vec_o(end)));
     end
     
@@ -1047,6 +956,113 @@ end
 if strlength(checkpoint_file)>0 && ~endsWith(checkpoint_file,".mat")
     checkpoint_file = checkpoint_file + ".mat";
 end
+end
+
+function [temp_index_grid_exp_all,rat_of_tran_exp_all,tech_con_exp_all,...
+    ratio_tech_conv_all,state_if_adopt_y,state_if_adopt_x,temp_address,...
+    state_if_naot_n_y_all,state_if_naot_n_x_all,state_if_naot_o_y,...
+    state_if_naot_o_x,conv_address_y1_all,conv_address_y2_all,...
+    conv_address_x1_all,conv_address_x2_all] = precompute_mit_mappings(...
+    a_grid_n_all,a_grid_old,age_num,a_num_g,age_reduc,trans_t)
+
+state_num = age_num*a_num_g;
+age_offset = kron((0:age_num-1)',a_num_g*ones(a_num_g,1));
+temp_index_grid_exp_all = cell(trans_t,1);
+rat_of_tran_exp_all = cell(trans_t,1);
+state_if_naot_n_y_all = cell(trans_t,1);
+state_if_naot_n_x_all = cell(trans_t,1);
+conv_address_y1_all = cell(trans_t,1);
+conv_address_y2_all = cell(trans_t,1);
+conv_address_x1_all = cell(trans_t,1);
+conv_address_x2_all = cell(trans_t,1);
+tech_con_exp_all = zeros(state_num,trans_t);
+ratio_tech_conv_all = zeros(state_num,trans_t);
+
+for t=1:trans_t
+    a_grid_new = a_grid_n_all(:,t);
+    if t<trans_t
+        a_grid_next = a_grid_n_all(:,t+1);
+    else
+        a_grid_next = a_grid_n_all(:,t);
+    end
+
+    index_cell = arrayfun(@(x) find(x<=a_grid_next,1,'first'),...
+        a_grid_new,'UniformOutput',false);
+    grid_index = cellfun(@(x) iif_empty(x,a_num_g),index_cell);
+    grid_index = min(max(grid_index,2),a_num_g);
+    grid_ratio = (a_grid_next(grid_index)-a_grid_new)./...
+        (a_grid_next(grid_index)-a_grid_next(grid_index-1));
+    grid_ratio = min(max(grid_ratio,0),1);
+    grid_index_exp = repmat(grid_index,age_num,1)+age_offset;
+    grid_ratio_exp = repmat(grid_ratio,age_num,1);
+    temp_index_grid_exp_all{t} = grid_index_exp;
+    rat_of_tran_exp_all{t} = grid_ratio_exp;
+
+    active_state_num = (age_num-1)*a_num_g;
+    state_if_naot_n = [(1:active_state_num)+age_num*a_num_g^2+...
+        (grid_index_exp(1:active_state_num)'-1)*state_num,...
+        (1:active_state_num)+age_num*a_num_g^2+...
+        (grid_index_exp(1:active_state_num)'-2)*state_num];
+    [state_if_naot_n_y_all{t},state_if_naot_n_x_all{t}] = ...
+        sparse_subscripts(state_if_naot_n,state_num);
+
+    a_grid_convert = a_grid_next;
+    conv_cell = arrayfun(@(x) find(x<=a_grid_convert,1,'first'),...
+        a_grid_old','UniformOutput',false);
+    tech_conver_h = cellfun(@(x) iif_empty(x,a_num_g),conv_cell);
+    tech_conver_h = min(max(tech_conver_h,2),a_num_g);
+    ratio_tech_conver = (a_grid_old'-a_grid_convert(tech_conver_h-1))./...
+        (a_grid_convert(tech_conver_h)-a_grid_convert(tech_conver_h-1));
+    ratio_tech_conver = min(max(ratio_tech_conver,0),1);
+    tech_con_exp = repmat(tech_conver_h,age_num,1)+age_offset;
+    ratio_tech_conv = repmat(ratio_tech_conver,age_num,1);
+    tech_con_exp_all(:,t) = tech_con_exp;
+    ratio_tech_conv_all(:,t) = ratio_tech_conv;
+
+    state_sequence = (1:state_num)';
+    conv_state_1 = (tech_con_exp-1)*state_num+state_sequence;
+    conv_state_2 = (tech_con_exp-2)*state_num+state_sequence;
+    [conv_address_y1_all{t},conv_address_x1_all{t}] = ...
+        sparse_subscripts(conv_state_1,state_num);
+    [conv_address_y2_all{t},conv_address_x2_all{t}] = ...
+        sparse_subscripts(conv_state_2,state_num);
+end
+
+mapping_num = a_num_g*age_num*a_num_g;
+state_if_adopt = zeros(1,mapping_num);
+first_mapping_num = age_reduc*a_num_g^2;
+state_if_adopt(1:first_mapping_num) = ...
+    repmat(1:age_reduc*a_num_g,1,a_num_g)+...
+    kron(0:a_num_g-1,state_num*ones(1,age_reduc*a_num_g));
+if age_reduc<age_num
+    state_if_adopt(first_mapping_num+1:end) = ...
+        kron(age_reduc*a_num_g+(0:age_num-age_reduc-1)*a_num_g,ones(1,a_num_g^2))+...
+        repmat(1:a_num_g,1,(age_num-age_reduc)*a_num_g)+...
+        kron(0:a_num_g*(age_num-age_reduc)-1,state_num*ones(1,a_num_g));
+end
+[state_if_adopt_y,state_if_adopt_x] = sparse_subscripts(state_if_adopt,state_num);
+
+temp_address = zeros(1,mapping_num);
+temp_address(1:first_mapping_num) = ...
+    repmat(1:age_reduc*a_num_g,1,a_num_g)+...
+    kron(0:a_num_g-1,state_num*ones(1,age_reduc*a_num_g));
+if age_reduc<age_num
+    temp_address(first_mapping_num+1:end) = ...
+        kron(age_reduc*a_num_g+(0:age_num-age_reduc-1)*a_num_g,ones(1,a_num_g^2))+...
+        repmat(1:a_num_g,1,(age_num-age_reduc)*a_num_g)+...
+        repmat(kron(0:a_num_g-1,state_num*ones(1,a_num_g)),1,age_num-age_reduc);
+end
+
+state_if_naot_o = kron(1:age_num-1,ones(1,a_num_g))*age_num*a_num_g^2+...
+    (1:(age_num-1)*a_num_g)+...
+    kron(ones(1,age_num-1),0:a_num_g-1)*state_num;
+[state_if_naot_o_y,state_if_naot_o_x] = sparse_subscripts(state_if_naot_o,state_num);
+end
+
+function [row_index,column_index] = sparse_subscripts(linear_state,state_num)
+row_index = mod(linear_state,state_num);
+row_index(row_index<1) = state_num;
+column_index = ceil((linear_state-0.1)/state_num);
 end
 
 function save_mit_checkpoint(checkpoint_file,checkpoint_h_start,checkpoint_k_start,...
