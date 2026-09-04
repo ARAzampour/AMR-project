@@ -23,7 +23,7 @@ function Pgrid = P_E_grid(np,E_P)
     pbar = log(target_mean) - 0.5 * var_p;
 
     % SIMULATION
-    T = 200000;
+    T = 10000000;
     burn = 50000;
 
     p = zeros(T,1);
