@@ -122,11 +122,13 @@ p_e_n_vec       = linspace(init_p_e_n,fin_p_e_n,trans_t);
 p_e_o_vec       = linspace(init_p_e_o,fin_p_e_o,trans_t);
 p_e_n_vec_pre   = linspace(init_p_e_n,fin_p_e_n,trans_t);
 p_e_o_vec_pre   = linspace(init_p_e_o,fin_p_e_o,trans_t);
-p_e_o_vec_pre2  = p_e_o_vec_pre;
-p_e_n_vec_pre2  = p_e_n_vec_pre;
 
 dem_err_pre     = 1;
 demand_err      = 1;
+input_err_n_pre = 1;
+input_err_o_pre = 1;
+input_err_n     = 1;
+input_err_o     = 1;
 
 growth_t_line   = diff_gr_t*ones(1,trans_t);
 growth_t_line(1:diff_gr_t) = linspace(1,diff_gr_t,diff_gr_t);
@@ -196,8 +198,9 @@ price_ratio_n_q = 0.9*ones(1,trans_t);  %%%% ratio of price of electricity to in
 price_ratio_o_q = 0.9*ones(1,trans_t);
 
 %%%
-input_adjsut    = 0.2;         %%%% the maximum variation in input price
-% output_adjsut   = 0.1/(max(e_n_eps,e_o_eps)); %%% max var in output prices
+output_adjsut   = 0.1/(max(e_n_eps,e_o_eps))*ones(1,trans_t);
+input_adjsut_n  = 0.2*ones(1,trans_t);
+input_adjsut_o  = 0.2*ones(1,trans_t);
 measure_adj_n   = min(0.02/(e_n_eps),1); %%%% the maximum variation in newtech measure
 measure_adj_o   = min(0.02/(e_o_eps),1); %%%% the maximum variation in newtech measure
 
@@ -220,7 +223,6 @@ input_all_o         = init_input_o*ones(trans_t,1);
 %%% following variables are used to ensure that
 input_adjsut_o_all  = 0.01*ones(trans_t,1);
 input_adjsut_n_all  = 0.01*ones(trans_t,1);
-i_a_param           = 0.1;
 
 %%% Static decisions are solved once per technology and transition period
 %%% in each price iteration, then reused by both backward and forward loops.
@@ -285,8 +287,6 @@ for h=checkpoint_h_start:1:max_iter_measure
 
     for k=k_first:1:max_iter_price
 
-        output_adjsut   = 0.1/(max(e_n_eps,e_o_eps))*(k<50) ...
-           + 1/(max(e_n_eps,e_o_eps))*(k>=50); %%% max var in output prices
         v_of_new    = final_val2;
         v_of_old    = final_val1;
 
@@ -304,6 +304,8 @@ for h=checkpoint_h_start:1:max_iter_measure
 
         price_ratio_n = p_E_vec./p_e_n_vec;
         price_ratio_o = p_E_vec./p_e_o_vec;
+        p_e_n_implied = p_e_n_vec;
+        p_e_o_implied = p_e_o_vec;
 
         for it=1:trans_t
             a_grid_new = a_grid_n_all(:,it);
@@ -654,16 +656,8 @@ for h=checkpoint_h_start:1:max_iter_measure
             cap_new(j)    = dist_n * cap_contemp_new(:);
             input_use_n   = dist_n * eff_n_vec(:);
             
-            p_e_n_vec(j)  = (input_use_n/(e0_n_vec(j)/tech_dist_vec(j).^(1/(1-alpha)))*...
+            p_e_n_implied(j)  = (input_use_n/(e0_n_vec(j)/tech_dist_vec(j).^(1/(1-alpha)))*...
                 (input_use_n/input_all_n(j))^penalty_n).^(1/e_n_eps);
-            kk      = i_a_param*k*(k<10) + 10*(k>=10); 
-            input_adjsut_n_all(j)   = input_adjsut/(ceil(kk/10))...
-                *(-p_e_n_vec_pre(j)+p_e_n_vec(j));
-            if median(abs(input_adjsut_n_all))*10<abs(input_adjsut_n_all(j))
-                input_adjsut_n_all(j)   = (median(abs(input_adjsut_n_all))*10)*...
-                    sign(input_adjsut_n_all(j));
-            end
-            p_e_n_vec(j)  = p_e_n_vec_pre(j) + input_adjsut_n_all(j);
             exit_n(j)     = sum(dist_n-dist_new_n);
             dist_conv     = dist_o_prev*conv_matrix;
             conv_entry(j) = sum(dist_conv);
@@ -733,19 +727,8 @@ for h=checkpoint_h_start:1:max_iter_measure
 
             input_use_o   = dist_o * eff_o_vec(:);
             
-            p_e_o_vec(j)  = (input_use_o/(e0_o/tech_dist_vec(j).^(1/(1-alpha)))*...
+            p_e_o_implied(j)  = (input_use_o/(e0_o/tech_dist_vec(j).^(1/(1-alpha)))*...
                 (input_use_o/input_all_o(j))^penalty_o).^(1/e_o_eps);
-
-            kk      = i_a_param*k*(k<10) + 10*(k>=10); 
-
-            input_adjsut_o_all(j)   = input_adjsut/(ceil(kk/10))...
-                *(-p_e_o_vec_pre(j)+p_e_o_vec(j));
-            if median(abs(input_adjsut_o_all))*10<abs(input_adjsut_o_all(j))
-                input_adjsut_o_all(j)   = (median(abs(input_adjsut_o_all))*10)*...
-                    sign(input_adjsut_o_all(j));
-            end
-            % p_e_o_vec(j)  = (dist_o * eff_o_vec(:)/e0_o).^e_o_eps;
-            p_e_o_vec(j)  = p_e_o_vec_pre(j)*1+input_adjsut_o_all(j);
             dist_new_o    = (dist_o.*(1-p_conversion_o')) *trans_matrix_o;
             exit_o(j)     = sum(dist_o-dist_new_o);
             dist_new_o    = dist_new_o + m_of_entry_o(j)*dist_ent_old;
@@ -806,35 +789,53 @@ for h=checkpoint_h_start:1:max_iter_measure
         demand_err(demand_err<-25)  = -25;
         
         
-        p_E_vec_temp= p_E_vec + 0.1*output_adjsut*demand_err; %%/(min(ceil(k/10),20))
+        p_E_vec_temp= p_E_vec + 0.1*output_adjsut.*demand_err; %%/(min(ceil(k/10),20))
         dem_oscill  = (sign(demand_err)~=sign(dem_err_pre));
 
         p_E_vec     = p_E_vec_temp.*(sign(demand_err)==sign(dem_err_pre)) +...
             (p_E_vec.*abs(dem_err_pre)+p_E_prev.*abs(demand_err))...
             ./(abs(demand_err)+abs(dem_err_pre)).*dem_oscill;
+        output_adjsut = output_adjsut.*(0.95.^double(dem_oscill));
+
+        %%% Input-market clearing uses the same error/oscillation algorithm
+        p_e_n_lag = p_e_n_vec;
+        p_e_n_d   = abs((p_e_n_implied-p_e_n_lag)./p_e_n_lag);
+        p_e_n_implied(p_e_n_d>0.5) = exp((1-weight_adj_p)*log(p_e_n_lag(p_e_n_d>0.5)) + ...
+            weight_adj_p.*log(p_e_n_implied(abs(p_e_n_d)>0.5)));
+        input_err_n = p_e_n_implied - p_e_n_vec;
+        input_err_n(input_err_n>25) = 25;
+        input_err_n(input_err_n<-25) = -25;
+        p_e_n_temp  = p_e_n_vec + 0.1*input_adjsut_n.*input_err_n;
+        input_n_oscill = (sign(input_err_n)~=sign(input_err_n_pre));
+        p_e_n_vec   = p_e_n_temp.*(sign(input_err_n)==sign(input_err_n_pre)) +...
+            (p_e_n_vec.*abs(input_err_n_pre)+p_e_n_vec_pre.*abs(input_err_n))...
+            ./(abs(input_err_n)+abs(input_err_n_pre)).*input_n_oscill;
+        input_adjsut_n = input_adjsut_n.*(0.95.^double(input_n_oscill));
+
+        p_e_o_lag = p_e_o_vec;
+        p_e_o_d   = abs((p_e_o_implied-p_e_o_lag)./p_e_o_lag);
+        p_e_o_implied(p_e_o_d>0.5) = exp((1-weight_adj_p)*log(p_e_o_lag(p_e_o_d>0.5)) + ...
+            weight_adj_p.*log(p_e_o_implied(abs(p_e_o_d)>0.5)));
+        input_err_o = p_e_o_implied - p_e_o_vec;
+        input_err_o(input_err_o>25) = 25;
+        input_err_o(input_err_o<-25) = -25;
+        p_e_o_temp  = p_e_o_vec + 0.1*input_adjsut_o.*input_err_o;
+        input_o_oscill = (sign(input_err_o)~=sign(input_err_o_pre));
+        p_e_o_vec   = p_e_o_temp.*(sign(input_err_o)==sign(input_err_o_pre)) +...
+            (p_e_o_vec.*abs(input_err_o_pre)+p_e_o_vec_pre.*abs(input_err_o))...
+            ./(abs(input_err_o)+abs(input_err_o_pre)).*input_o_oscill;
+        input_adjsut_o = input_adjsut_o.*(0.95.^double(input_o_oscill));
+
+        input_adjsut_n_all = (p_e_n_vec - p_e_n_vec_pre)';
+        input_adjsut_o_all = (p_e_o_vec - p_e_o_vec_pre)';
 
         if mean(abs(demand_err)<dem_tol | (abs(p_E_prev-p_E_vec)<5*v_tol & k>max_iter_price/5))>0.99 ...
-                && mean(abs(input_adjsut_o_all)<5*v_tol)>0.99 ...
-                && mean(abs(input_adjsut_n_all)<5*v_tol)>0.99
+                && mean(abs(input_err_o)<dem_tol | (abs(p_e_o_vec_pre-p_e_o_vec)<5*v_tol & k>max_iter_price/5))>0.99 ...
+                && mean(abs(input_err_n)<dem_tol | (abs(p_e_n_vec_pre-p_e_n_vec)<5*v_tol & k>max_iter_price/5))>0.99
             fprintf("demand and supply has converged and the prices is ..." + ...
                 "%2.4f in %2.1f periods\n",mean(p_E_vec),k);
             break;
         end
-        
-
-
-        if k<50
-            p_n_oscill = sign(price_ratio_n-price_ratio_n_p)~=sign(price_ratio_n_p-price_ratio_n_q);
-            p_o_oscill = sign(price_ratio_o-price_ratio_o_p)~=sign(price_ratio_o_p-price_ratio_o_q);
-        else
-            p_n_oscill = sign(p_e_n_vec-p_e_n_vec_pre)~=sign(p_e_n_vec_pre-p_e_n_vec_pre2);
-            p_o_oscill = sign(p_e_o_vec-p_e_o_vec_pre)~=sign(p_e_o_vec_pre-p_e_o_vec_pre2);
-        end
-
-        p_e_n_vec   = p_e_n_vec.*(~p_n_oscill)...
-            + (p_e_n_vec_pre + p_e_n_vec)/2.*(p_n_oscill);
-        p_e_o_vec   = p_e_o_vec.*(~p_o_oscill)...
-            + (p_e_o_vec_pre + p_e_o_vec)/2.*(p_o_oscill);
 %         [~,loc1] = max(abs(dem_err_pre));
 %         [~,loc2] = max(abs(demand_err));
 % 
@@ -853,8 +854,8 @@ for h=checkpoint_h_start:1:max_iter_measure
 
         p_E_prev            = p_E_vec;
         dem_err_pre         = demand_err;
-        p_e_n_vec_pre2      = p_e_n_vec_pre;
-        p_e_o_vec_pre2      = p_e_o_vec_pre;
+        input_err_n_pre     = input_err_n;
+        input_err_o_pre     = input_err_o;
         p_e_o_vec_pre       = p_e_o_vec;
         p_e_n_vec_pre       = p_e_n_vec;
         price_ratio_n_q     = price_ratio_n_p;
@@ -870,9 +871,9 @@ for h=checkpoint_h_start:1:max_iter_measure
                 conv_decrease_all,...
                 trans_prob_n_all,trans_prob_o_all,v_new_resh_n_all,v_new_resh_o_all,...
                 dist_n_all,dist_o_all,measure_vec_n,measure_vec_o,p_E_vec,p_E_prev,p_e_n_vec,p_e_o_vec,...
-                p_e_n_vec_pre,p_e_o_vec_pre,dem_err_pre,demand_err,price_ratio_n_p,...
+                p_e_n_vec_pre,p_e_o_vec_pre,dem_err_pre,demand_err,input_err_n_pre,input_err_o_pre,price_ratio_n_p,...
                 price_ratio_o_p,price_ratio_n_q,price_ratio_o_q,input_all_n,input_all_o,...
-                input_adjsut_n_all,input_adjsut_o_all,cap_new,cap_old,...
+                input_adjsut_n_all,input_adjsut_o_all,output_adjsut,input_adjsut_n,input_adjsut_o,cap_new,cap_old,...
                 m_of_entry_n,m_of_entry_o,value_err_n_pre,value_err_o_pre,...
                 entry_new_pre,entry_old_pre,c_conver,measure_adj_n,measure_adj_o);
         end
@@ -949,9 +950,9 @@ for h=checkpoint_h_start:1:max_iter_measure
             conv_decrease_all,...
             trans_prob_n_all,trans_prob_o_all,v_new_resh_n_all,v_new_resh_o_all,...
             dist_n_all,dist_o_all,measure_vec_n,measure_vec_o,p_E_vec,p_E_prev,p_e_n_vec,p_e_o_vec,...
-            p_e_n_vec_pre,p_e_o_vec_pre,dem_err_pre,demand_err,price_ratio_n_p,...
+            p_e_n_vec_pre,p_e_o_vec_pre,dem_err_pre,demand_err,input_err_n_pre,input_err_o_pre,price_ratio_n_p,...
             price_ratio_o_p,price_ratio_n_q,price_ratio_o_q,input_all_n,input_all_o,...
-            input_adjsut_n_all,input_adjsut_o_all,cap_new,cap_old,...
+            input_adjsut_n_all,input_adjsut_o_all,output_adjsut,input_adjsut_n,input_adjsut_o,cap_new,cap_old,...
             m_of_entry_n,m_of_entry_o,value_err_n_pre,value_err_o_pre,...
             entry_new_pre,entry_old_pre,c_conver,measure_adj_n,measure_adj_o);
     end
@@ -1088,9 +1089,9 @@ function save_mit_checkpoint(checkpoint_file,checkpoint_h_start,checkpoint_k_sta
     conv_decrease_all,...
     trans_prob_n_all,trans_prob_o_all,v_new_resh_n_all,v_new_resh_o_all,...
     dist_n_all,dist_o_all,measure_vec_n,measure_vec_o,p_E_vec,p_E_prev,p_e_n_vec,p_e_o_vec,...
-    p_e_n_vec_pre,p_e_o_vec_pre,dem_err_pre,demand_err,price_ratio_n_p,...
+    p_e_n_vec_pre,p_e_o_vec_pre,dem_err_pre,demand_err,input_err_n_pre,input_err_o_pre,price_ratio_n_p,...
     price_ratio_o_p,price_ratio_n_q,price_ratio_o_q,input_all_n,input_all_o,...
-    input_adjsut_n_all,input_adjsut_o_all,cap_new,cap_old,...
+    input_adjsut_n_all,input_adjsut_o_all,output_adjsut,input_adjsut_n,input_adjsut_o,cap_new,cap_old,...
     m_of_entry_n,m_of_entry_o,value_err_n_pre,value_err_o_pre,...
     entry_new_pre,entry_old_pre,c_conver,measure_adj_n,measure_adj_o)
 
@@ -1099,9 +1100,9 @@ save(checkpoint_file,"checkpoint_h_start","checkpoint_k_start",...
     "conv_decrease_all",...
     "trans_prob_n_all","trans_prob_o_all","v_new_resh_n_all","v_new_resh_o_all",...
     "dist_n_all","dist_o_all","measure_vec_n","measure_vec_o","p_E_vec","p_E_prev","p_e_n_vec","p_e_o_vec",...
-    "p_e_n_vec_pre","p_e_o_vec_pre","dem_err_pre","demand_err","price_ratio_n_p",...
+    "p_e_n_vec_pre","p_e_o_vec_pre","dem_err_pre","demand_err","input_err_n_pre","input_err_o_pre","price_ratio_n_p",...
     "price_ratio_o_p","price_ratio_n_q","price_ratio_o_q","input_all_n","input_all_o",...
-    "input_adjsut_n_all","input_adjsut_o_all","cap_new","cap_old",...
+    "input_adjsut_n_all","input_adjsut_o_all","output_adjsut","input_adjsut_n","input_adjsut_o","cap_new","cap_old",...
     "m_of_entry_n","m_of_entry_o","value_err_n_pre","value_err_o_pre",...
     "entry_new_pre","entry_old_pre","c_conver","measure_adj_n","measure_adj_o");
 end
