@@ -932,6 +932,8 @@ for h=checkpoint_h_start:1:max_iter_measure
                 ./max(sum(final_dist_o),measure_vec_o(end)));
             m_of_entry_n = m_of_entry_n + (sum(final_dist_n)-measure_vec_n(end))/trans_t;
             m_of_entry_o = m_of_entry_o + (sum(final_dist_o)-measure_vec_o(end))/trans_t;
+            m_of_entry_n(m_of_entry_n<0) = 0;
+            m_of_entry_o(m_of_entry_o<0) = 0;
         end
     end
     value_err_n_row = value_err_n';
