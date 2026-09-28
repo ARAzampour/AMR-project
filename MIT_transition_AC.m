@@ -107,6 +107,9 @@ end
 n_pe = 10;
 p_e_n_grid_norm = p_input_grid(n_pe,1,sigma_p_n,rho_p_n);
 p_e_o_grid_norm = p_input_grid(n_pe,1,sigma_p_o,rho_p_o);
+dlog_weight_PE  = log_scale_weight_derivative(P_E_grid_norm);
+dlog_weight_pe_n = log_scale_weight_derivative(p_e_n_grid_norm);
+dlog_weight_pe_o = log_scale_weight_derivative(p_e_o_grid_norm);
 
 dist_o_all          = zeros(trans_t,age_num*a_num_g);
 dist_n_all          = zeros(trans_t,age_num*a_num_g);
@@ -231,6 +234,12 @@ eff_o_cache = zeros(a_num_g,age_num,trans_t,"single");
 cap_o_cache = zeros(a_num_g,age_num,trans_t,"single");
 pi_o_cache  = zeros(a_num_g,age_num,trans_t,"single");
 
+%%% Exact static-solver anchors and first-order log-price slopes.
+static_anchor_n = cell(trans_t,1);
+static_anchor_o = cell(trans_t,1);
+static_approx_threshold = 0.01;
+static_solver_workers = 4; % Process-based parfor; compatible with MATLAB R2022 on Linux.
+
 %%% The adjustment in the price of electricity will be bounded and weight_adj_p
 %%% will determine the amount of adjustment when bound is reached
 weight_adj_p        = 0.2;
@@ -308,24 +317,30 @@ for h=checkpoint_h_start:1:max_iter_measure
         p_e_n_implied = p_e_n_vec;
         p_e_o_implied = p_e_o_vec;
 
-        for it=1:trans_t
+        static_result_n = cell(trans_t,1);
+        static_result_o = cell(trans_t,1);
+        parfor (it=1:trans_t,static_solver_workers)
             a_grid_new = a_grid_n_all(:,it);
             a_eff_n = a_grid_new .* max(1 - a_grow .* age_g', 0);
-            [eff_temp,cap_temp,pi_temp] = static_solver(a_eff_n,...
-                p_E_vec(it).*P_E_grid_norm,p_e_n_vec(it).*p_e_n_grid_norm,...
-                alpha,fco_n,1./a_grid_new(:));
-            eff_n_cache(:,:,it) = single(eff_temp);
-            cap_n_cache(:,:,it) = single(cap_temp);
-            pi_n_cache(:,:,it)  = single(pi_temp);
+            static_result_n{it} = static_solver_anchor(a_eff_n,p_E_vec(it),p_e_n_vec(it),...
+                P_E_grid_norm,p_e_n_grid_norm,alpha,fco_n,1./a_grid_new(:),...
+                dlog_weight_PE,dlog_weight_pe_n,static_anchor_n{it},static_approx_threshold);
 
             a_eff_o = (a_grid_old./tech_dist_vec(it))' .* max(1 - a_grow .* age_g', 0);
-            [eff_temp,cap_temp,pi_temp] = static_solver(a_eff_o,...
-                p_E_vec(it).*P_E_grid_norm,p_e_o_vec(it).*p_e_o_grid_norm,...
-                alpha,fco_o,1./a_grid_old(:));
-            eff_o_cache(:,:,it) = single(eff_temp);
-            cap_o_cache(:,:,it) = single(cap_temp);
-            pi_o_cache(:,:,it)  = single(pi_temp);
+            static_result_o{it} = static_solver_anchor(a_eff_o,p_E_vec(it),p_e_o_vec(it),...
+                P_E_grid_norm,p_e_o_grid_norm,alpha,fco_o,1./a_grid_old(:),...
+                dlog_weight_PE,dlog_weight_pe_o,static_anchor_o{it},static_approx_threshold);
         end
+        for it=1:trans_t
+            eff_n_cache(:,:,it) = static_result_n{it}.eff;
+            cap_n_cache(:,:,it) = static_result_n{it}.cap;
+            pi_n_cache(:,:,it)  = static_result_n{it}.pi;
+            eff_o_cache(:,:,it) = static_result_o{it}.eff;
+            cap_o_cache(:,:,it) = static_result_o{it}.cap;
+            pi_o_cache(:,:,it)  = static_result_o{it}.pi;
+        end
+        static_anchor_n = static_result_n;
+        static_anchor_o = static_result_o;
 
         for i1=trans_t:-1:1
 
