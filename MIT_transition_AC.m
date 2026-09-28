@@ -620,7 +620,8 @@ for h=checkpoint_h_start:1:max_iter_measure
             %%% technology they adopt with the age zero meaning we have:
 %             tic
             dist_ent_new     = zeros(1,age_num*a_num_g);
-            dist_ent_new(1:a_num_g) = a_prob_n_all(:,j);
+            entry_prob_period = min(j+1,trans_t);
+            dist_ent_new(1:a_num_g) = a_prob_n_all(:,entry_prob_period);
 
             prob_matrix     = prob_mat_n_all{j};
             
@@ -658,7 +659,8 @@ for h=checkpoint_h_start:1:max_iter_measure
             %%% randomly to age 0 and tech in [0, a_max]
             
             trans_matrix_n((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = ...
-                repmat(a_prob_n_all(:,j)',a_num_g,1).*(1-exit_vec_n((age_num-1)*a_num_g+1:(age_num)*a_num_g));
+                repmat(a_prob_n_all(:,entry_prob_period)',a_num_g,1).*...
+                (1-exit_vec_n((age_num-1)*a_num_g+1:(age_num)*a_num_g));
 %             trans_matrix_n = sparse(trans_matrix_n);
 
             p_conversion_o = p_conv_o_all_prev(:,j);
@@ -911,12 +913,25 @@ for h=checkpoint_h_start:1:max_iter_measure
         end
         
     end
-    v_new_resh_n_all(:,:,1:end-1)   = v_new_resh_n_all(:,:,2:end);
-    v_new_resh_n_all(:,:,end)       = final_val2;
-    v_new_resh_o_all(:,:,1:end-1)   = v_new_resh_o_all(:,:,2:end);
-    v_new_resh_o_all(:,:,end)       = final_val1;
-    value_err_n   = sum(a_prob_n_all.*squeeze(v_new_resh_n_all(1,:,:)),1)'-c_e_new_vec';
-    value_err_o   = sum(a_prob_old(:).*squeeze(v_new_resh_o_all(1,:,:)),1)'-c_of_e;
+    %%% Entry in period t is added after the period-t transition and starts
+    %%% operating in t+1, so free entry uses the next period's expected value.
+    entry_value_n = zeros(trans_t,1);
+    entry_value_o = zeros(trans_t,1);
+    if trans_t>1
+        next_value_n = reshape(v_new_resh_n_all(1,:,2:end),a_num_g,trans_t-1);
+        next_value_o = reshape(v_new_resh_o_all(1,:,2:end),a_num_g,trans_t-1);
+        entry_value_n(1:end-1) = sum(a_prob_n_all(:,2:end).*next_value_n,1)';
+        entry_value_o(1:end-1) = sum(a_prob_old(:).*next_value_o,1)';
+    end
+    entry_value_n(end) = sum(a_prob_n_all(:,end).*final_val2(1,:)');
+    entry_value_o(end) = sum(a_prob_old(:).*final_val1(1,:)');
+    value_err_n = entry_value_n-c_e_new_vec(:);
+    value_err_o = entry_value_o-c_of_e;
+
+    %%% A multiplicative entry update cannot restart a zero mass.
+    entry_seed = max(10*v_tol,1e-8);
+    m_of_entry_n(m_of_entry_n==0 & value_err_n'>0) = entry_seed;
+    m_of_entry_o(m_of_entry_o==0 & value_err_o'>0) = entry_seed;
     if mean((abs(value_err_n))<5*dem_tol|(m_of_entry_n)'<v_tol)>=0.95 && ...
             mean((abs(value_err_o))<5*dem_tol|(m_of_entry_o)'<v_tol)>=0.95 && ...
             mean(sum(p_conv_o_all_prev.*conv_decrease_all.*dist_o_all',1)./measure_vec_o<10^-4)==1
