@@ -915,6 +915,9 @@ for h=checkpoint_h_start:1:max_iter_measure
     end
     %%% Entry in period t is added after the period-t transition and starts
     %%% operating in t+1, so free entry uses the next period's expected value.
+    %%% The last entry value is the final steady state, so it does not update
+    %%% m_of_entry(end). That mass is the residual which carries measure(end-1)
+    %%% into the final steady-state measure.
     entry_value_n = zeros(trans_t,1);
     entry_value_o = zeros(trans_t,1);
     if trans_t>1
@@ -928,52 +931,72 @@ for h=checkpoint_h_start:1:max_iter_measure
     value_err_n = entry_value_n-c_e_new_vec(:);
     value_err_o = entry_value_o-c_of_e;
 
+    %%% Growth stops at the final steady state, so the last two entry cohorts'
+    %%% capacity gap should match one period of demand growth, total_cap(end)*d0_gr.
+    if trans_t>1
+        cap_ent_n = dist_ent_new*cap_contemp_new(:);
+        cap_ent_o = dist_ent_old*cap_contemp_old(:);
+        entry_cap_gap = (m_of_entry_n(end-1)-m_of_entry_n(end))*cap_ent_n ...
+            + (m_of_entry_o(end-1)-m_of_entry_o(end))*cap_ent_o;
+        growth_cap = total_cap(end)*d0_gr;
+    else
+        entry_cap_gap = 0;
+        growth_cap = total_cap(end)*d0_gr;
+    end
+
     %%% A multiplicative entry update cannot restart a zero mass.
+    %%% Do not seed the terminal mass from the fixed steady-state entry value.
     entry_seed = max(10*v_tol,1e-8);
-    m_of_entry_n(m_of_entry_n==0 & value_err_n'>0) = entry_seed;
-    m_of_entry_o(m_of_entry_o==0 & value_err_o'>0) = entry_seed;
-    if mean((abs(value_err_n))<5*dem_tol|(m_of_entry_n)'<v_tol)>=0.95 && ...
-            mean((abs(value_err_o))<5*dem_tol|(m_of_entry_o)'<v_tol)>=0.95 && ...
+    seed_n = false(1,trans_t);
+    seed_o = false(1,trans_t);
+    if trans_t>1
+        seed_n(1:end-1) = m_of_entry_n(1:end-1)==0 & value_err_n(1:end-1)'>0;
+        seed_o(1:end-1) = m_of_entry_o(1:end-1)==0 & value_err_o(1:end-1)'>0;
+        entry_value_converged = ...
+            mean(abs(value_err_n(1:end-1))<1*dem_tol | m_of_entry_n(1:end-1)'<v_tol)>=0.99 && ...
+            mean(abs(value_err_o(1:end-1))<1*dem_tol | m_of_entry_o(1:end-1)'<v_tol)>=0.99;
+        mean_err_n = mean(value_err_n(1:end-1));
+        mean_err_o = mean(value_err_o(1:end-1));
+    else
+        entry_value_converged = true;
+        mean_err_n = value_err_n(1);
+        mean_err_o = value_err_o(1);
+    end
+    m_of_entry_n(seed_n) = entry_seed;
+    m_of_entry_o(seed_o) = entry_seed;
+    if entry_value_converged && ...
             mean(sum(p_conv_o_all_prev.*conv_decrease_all.*dist_o_all',1)./measure_vec_o<10^-4)==1
         if (abs(sum(final_dist_n)-measure_vec_n(end))<dem_tol)&&...
                 (abs(sum(final_dist_o)-measure_vec_o(end))<dem_tol)
-            fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
-                "is %2.4f and %2.4f in %2.1f periods \n"...
-                ,mean(value_err_n),mean(value_err_o),h);
+            fprintf("entry and exit have converged and E(v_new) and E(v_old) is %2.4f and %2.4f in %2.1f periods; entry-cap gap %g vs total_cap(end)*d0_gr %g\n",...
+                mean_err_n,mean_err_o,h,entry_cap_gap,growth_cap);
             break;
         else
             c_conver    = c_conver*(1-(sum(final_dist_n)-measure_vec_n(end))...
                 ./max(sum(final_dist_n),measure_vec_n(end))+(sum(final_dist_o)-measure_vec_o(end))...
                 ./max(sum(final_dist_o),measure_vec_o(end)));
-            m_of_entry_n = m_of_entry_n + (sum(final_dist_n)-measure_vec_n(end))/trans_t;
-            m_of_entry_o = m_of_entry_o + (sum(final_dist_o)-measure_vec_o(end))/trans_t;
-            m_of_entry_n(m_of_entry_n<0) = 0;
-            m_of_entry_o(m_of_entry_o<0) = 0;
+            if trans_t>1
+                m_of_entry_n(1:end-1) = m_of_entry_n(1:end-1) + (sum(final_dist_n)-measure_vec_n(end))/trans_t;
+                m_of_entry_o(1:end-1) = m_of_entry_o(1:end-1) + (sum(final_dist_o)-measure_vec_o(end))/trans_t;
+                m_of_entry_n(1:end-1) = max(m_of_entry_n(1:end-1),0);
+                m_of_entry_o(1:end-1) = max(m_of_entry_o(1:end-1),0);
+            end
         end
     end
     value_err_n_row = value_err_n';
     value_err_o_row = value_err_o';
     entry_n_lag = m_of_entry_n;
     entry_o_lag = m_of_entry_o;
-    entry_n_oscill = h>1 & sign(value_err_n_row)~=sign(value_err_n_pre');
-    entry_o_oscill = h>1 & sign(value_err_o_row)~=sign(value_err_o_pre');
-
-%+0.0001*value_err_n'
-    % if abs(measure_vec_n(end)-sum(final_dist_n))<0.1
-    entry_step_n = 0.1*(abs(value_err_n_row)>50) + 0.2*(abs(value_err_n_row)<=50) + 0.2*(abs(value_err_n_row)<=1);
-    m_of_entry_n = m_of_entry_n.*(1+entry_step_n.*measure_adj_n.*value_err_n_row);
-    % else
-    %     m_of_entry_n    = (m_of_entry_n+10^-6)/sum(m_of_entry_n+10^-6)*...
-    %         (sum(m_of_entry_n)+0.1*(sum(final_dist_n)-measure_vec_n(end)));
-    % end
-%+0.0001*value_err_o'
-    % if abs(measure_vec_o(end)-sum(final_dist_o))<0.1
-    entry_step_o = 0.1*(abs(value_err_o_row)>50) + 0.2*(abs(value_err_o_row)<=50) + 0.2*(abs(value_err_o_row)<=1);
-    m_of_entry_o = m_of_entry_o.*(1+entry_step_o.*measure_adj_o.*value_err_o_row);
-    % else
-    %     m_of_entry_o    = (m_of_entry_o+10^-6)/sum(m_of_entry_o+10^-6)*...
-    %         (sum(m_of_entry_o)+0.1*(sum(final_dist_o)-measure_vec_o(end)));
-    % end
+    entry_n_oscill = false(1,trans_t);
+    entry_o_oscill = false(1,trans_t);
+    if trans_t>1
+        entry_n_oscill(1:end-1) = h>1 & sign(value_err_n_row(1:end-1))~=sign(value_err_n_pre(1:end-1)');
+        entry_o_oscill(1:end-1) = h>1 & sign(value_err_o_row(1:end-1))~=sign(value_err_o_pre(1:end-1)');
+        entry_step_n = 0.1*(abs(value_err_n_row(1:end-1))>50) + 0.2*(abs(value_err_n_row(1:end-1))<=50) + 0.2*(abs(value_err_n_row(1:end-1))<=1);
+        entry_step_o = 0.1*(abs(value_err_o_row(1:end-1))>50) + 0.2*(abs(value_err_o_row(1:end-1))<=50) + 0.2*(abs(value_err_o_row(1:end-1))<=1);
+        m_of_entry_n(1:end-1) = m_of_entry_n(1:end-1).*(1+entry_step_n.*measure_adj_n(1:end-1).*value_err_n_row(1:end-1));
+        m_of_entry_o(1:end-1) = m_of_entry_o(1:end-1).*(1+entry_step_o.*measure_adj_o(1:end-1).*value_err_o_row(1:end-1));
+    end
 
     entry_n_den = abs(value_err_n_row)+abs(value_err_n_pre');
     entry_o_den = abs(value_err_o_row)+abs(value_err_o_pre');
@@ -992,13 +1015,22 @@ for h=checkpoint_h_start:1:max_iter_measure
 % %         0.2*abs(measure_vec_o(end)-sum(final_dist_o))/max(measure_vec_o(end),sum(final_dist_o)));
 
     if h>=h_check
-        h
+        fprintf("h=%g, entry-cap gap=%g, total_cap(end)*d0_gr=%g\n",h,entry_cap_gap,growth_cap);
     end
     value_err_n_pre = value_err_n;
     value_err_o_pre = value_err_o;
     entry_new_pre   = entry_n_lag;
     entry_old_pre   = entry_o_lag;
-    
+
+    if trans_t>1
+        m_of_entry_n(1:end-1) = max(m_of_entry_n(1:end-1),0);
+        m_of_entry_o(1:end-1) = max(m_of_entry_o(1:end-1),0);
+        m_of_entry_n(end) = sum(final_dist_n,"all")-(1-exo_exit)*measure_vec_n(end-1);
+        m_of_entry_o(end) = sum(final_dist_o,"all")-(1-exo_exit)*measure_vec_o(end-1);
+    else
+        m_of_entry_n(end) = sum(final_dist_n,"all")-(1-exo_exit)*sum(init_dist_n,"all");
+        m_of_entry_o(end) = sum(final_dist_o,"all")-(1-exo_exit)*sum(init_dist_o,"all");
+    end
 
     m_of_entry_n(m_of_entry_n<0) = 0;
     m_of_entry_o(m_of_entry_o<0) = 0;
