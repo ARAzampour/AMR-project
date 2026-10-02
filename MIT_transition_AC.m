@@ -202,8 +202,8 @@ price_ratio_o_q = 0.9*ones(1,trans_t);
 
 %%%
 
-measure_adj_n   = 0.1;%min(0.02/(e_n_eps),1)*ones(1,trans_t); %%%% period-specific entry adjustment
-measure_adj_o   = 0.1;%min(0.02/(e_o_eps),1)*ones(1,trans_t);
+measure_adj_n   = 0.1*ones(1,trans_t);%min(0.02/(e_n_eps),1)*ones(1,trans_t); %%%% period-specific entry adjustment
+measure_adj_o   = 0.1*ones(1,trans_t);%min(0.02/(e_o_eps),1)*ones(1,trans_t);
 
 
 
