@@ -7,8 +7,11 @@ function [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,i
     init_p_E,final_p_E,trans_t,final_dist_n,final_dist_o,e0_o,e_o_eps,...
     fin_p_e_o,init_p_e_o,rho,age_reduc,exit_n_final,exit_o_final,exo_exit,...
     init_input_o,penalty_o,penalty_p,d0_gr,rho_p_o,sigma_p_o,solar_cap_mean,...
-    solar_price_corr,fossil_tax_vec,fossil_path,P_E_grid_norm,checkpoint_name)
+    solar_price_corr,fossil_tax_vec,fossil_path,P_E_grid_norm,checkpoint_name,...
+    static_solver_workers)
 % Optimized fossil-green MIT with time-varying aggregate fossil technology.
+% static_solver_workers is optional: above 1 selects parfor with that many
+% workers; 0 or 1 runs the static loop serially. Empty keeps the default.
 
 age_g = (0:age_num-1)';
 P_E_grid_norm = P_E_grid_norm(:);
@@ -117,24 +120,43 @@ if strlength(checkpoint_file)>0 && isfile(checkpoint_file)
 end
 
 max_iter_price = max(1,floor(max_iter/10));
-static_solver_workers = 4*(trans_t>=8);
+if nargin<51 || isempty(static_solver_workers)
+    static_solver_workers = 4*(trans_t>=8);
+end
 for h=h_start:max_iter
     for k=1:max_iter_price
         static_result_n = cell(trans_t,1);
         static_result_o = cell(trans_t,1);
-        parfor (tt=1:trans_t,static_solver_workers)
-            a_eff_n = a_grid_n_all(:,tt).*max(1-a_grow.*age_g',0);
-            [eff_n,cap_n,pi_n] = solar_static_solver(a_eff_n,...
-                p_E_vec(tt).*P_E_grid_norm,solar_cap_norm,fco_n);
-            result_n = struct("eff",single(eff_n),"cap",single(cap_n),"pi",single(pi_n));
-            static_result_n{tt} = result_n;
+        if static_solver_workers>1
+            parfor (tt=1:trans_t,static_solver_workers)
+                a_eff_n = a_grid_n_all(:,tt).*max(1-a_grow.*age_g',0);
+                [eff_n,cap_n,pi_n] = solar_static_solver(a_eff_n,...
+                    p_E_vec(tt).*P_E_grid_norm,solar_cap_norm,fco_n);
+                result_n = struct("eff",single(eff_n),"cap",single(cap_n),"pi",single(pi_n));
+                static_result_n{tt} = result_n;
 
-            a_eff_o = a_grid_o_all(:,tt).*max(1-a_grow.*age_g',0);
-            p_e_plant = p_e_o_vec(tt)+fossil_tax_vec(tt);
-            static_result_o{tt} = static_solver_anchor(a_eff_o,p_E_vec(tt),p_e_plant,...
-                P_E_grid_norm,p_e_grid_norm_all{tt},alpha,fco_o_vec(tt),...
-                1./a_grid_o_all(:,tt),dlog_weight_PE,dlog_weight_pe_all{tt},...
-                static_anchor_o{tt},0.01);
+                a_eff_o = a_grid_o_all(:,tt).*max(1-a_grow.*age_g',0);
+                p_e_plant = p_e_o_vec(tt)+fossil_tax_vec(tt);
+                static_result_o{tt} = static_solver_anchor(a_eff_o,p_E_vec(tt),p_e_plant,...
+                    P_E_grid_norm,p_e_grid_norm_all{tt},alpha,fco_o_vec(tt),...
+                    1./a_grid_o_all(:,tt),dlog_weight_PE,dlog_weight_pe_all{tt},...
+                    static_anchor_o{tt},0.01);
+            end
+        else
+            for tt=1:trans_t
+                a_eff_n = a_grid_n_all(:,tt).*max(1-a_grow.*age_g',0);
+                [eff_n,cap_n,pi_n] = solar_static_solver(a_eff_n,...
+                    p_E_vec(tt).*P_E_grid_norm,solar_cap_norm,fco_n);
+                result_n = struct("eff",single(eff_n),"cap",single(cap_n),"pi",single(pi_n));
+                static_result_n{tt} = result_n;
+
+                a_eff_o = a_grid_o_all(:,tt).*max(1-a_grow.*age_g',0);
+                p_e_plant = p_e_o_vec(tt)+fossil_tax_vec(tt);
+                static_result_o{tt} = static_solver_anchor(a_eff_o,p_E_vec(tt),p_e_plant,...
+                    P_E_grid_norm,p_e_grid_norm_all{tt},alpha,fco_o_vec(tt),...
+                    1./a_grid_o_all(:,tt),dlog_weight_PE,dlog_weight_pe_all{tt},...
+                    static_anchor_o{tt},0.01);
+            end
         end
         static_anchor_o = static_result_o;
 

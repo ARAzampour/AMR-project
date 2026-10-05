@@ -51,7 +51,7 @@ if abs(age_num-round(age_num))>0
 end
 age_num = round(age_num);
 
-d_0 = sum(dist_fossil_old)*max(p_E_initial,1)^e_p;
+d_0 = fossil_paths_full.d_0;
 e0_o = fossil_path.e0(1);
 
 %% Green/solar parameters
@@ -74,6 +74,8 @@ solar_cap_mean   = 0.25;
 solar_price_corr = 0.6;
 
 trans_t = 120;
+%%% Above 1 runs the static loop with parfor. Set to 0 for a serial loop.
+static_solver_workers = 4*(trans_t>=8);
 d0_gr   = field_or(fossil_paths_full,"d0_gr",0.01);
 fossil_path = extend_fossil_path(fossil_path,trans_t);
 
@@ -130,7 +132,8 @@ catch
         dist_n_final,dist_o_final,e0_o,e_o_eps,p_e_o_final,p_e_fossil_initial,...
         rho,10,exit_n_final,exit_o_final,exo_exit,init_input_o,...
         1,1,d0_gr,rho_p_fossil,sigma_p_fossil,solar_cap_mean,solar_price_corr,...
-        zeros(1,trans_t),fossil_path,P_E_grid_norm,"checkpoint_fossil_green_baseline");
+        zeros(1,trans_t),fossil_path,P_E_grid_norm,"checkpoint_fossil_green_baseline",...
+        static_solver_workers);
     green_mit_cost_scale_used = green_cost_scale;
     save transition_fossil_green_baseline
 end
@@ -164,7 +167,7 @@ for pp = 1:numel(subsidy_cases)
         dist_n_final,dist_o_final,e0_o,e_o_eps,p_e_o_final,p_e_fossil_initial,...
         rho,10,exit_n_final,exit_o_final,exo_exit,init_input_o,...
         1,1,d0_gr,rho_p_fossil,sigma_p_fossil,solar_cap_mean,solar_price_corr,...
-        zeros(1,trans_t),fossil_path,P_E_grid_norm,"");
+        zeros(1,trans_t),fossil_path,P_E_grid_norm,"",static_solver_workers);
 
     green_share_sub = cap_new_sub./(cap_old_sub+cap_new_sub);
     subsidy_outlay = sum(subsidy_vec.*(entry_sub+adopt_sub));
@@ -205,7 +208,7 @@ for pp = 1:numel(tax_cases)
         dist_n_final,dist_o_final,e0_o,e_o_eps,p_e_o_final,p_e_fossil_initial,...
         rho,10,exit_n_final,exit_o_final,exo_exit,init_input_o,...
         1,1,d0_gr,rho_p_fossil,sigma_p_fossil,solar_cap_mean,solar_price_corr,...
-        fossil_tax_vec,fossil_path,P_E_grid_norm,"");
+        fossil_tax_vec,fossil_path,P_E_grid_norm,"",static_solver_workers);
 
     green_share_tax = cap_new_tax./(cap_old_tax+cap_new_tax);
     policy_expenditure = electricity_expenditure_path(p_E_tax,d_0,d0_gr,e_p);
