@@ -76,15 +76,15 @@ for h=1:max_iter_measure
 
         pi_contemp_new = pi_n_mat';
         pi_contemp_old = pi_o_mat';
-        [v_new_resh_n,policy_choice_n,exit_vec_n] = solve_branch_value_fast(...
+        [v_new_resh_n,policy_choice_n,exit_vec_n,value_converged_n,value_precision_n,value_iterations_n] = solve_branch_value_fast(...
             pi_contemp_new,prob_matrix_new,beta,c_a_new,v_tol,max_iter,age_reduc,exo_exit);
-        [v_new_resh_o,policy_choice_o,exit_vec_o] = solve_branch_value_fast(...
+        [v_new_resh_o,policy_choice_o,exit_vec_o,value_converged_o,value_precision_o,value_iterations_o] = solve_branch_value_fast(...
             pi_contemp_old,prob_matrix_old,beta,c_of_a,v_tol,max_iter,age_reduc,exo_exit);
 
         trans_matrix_n = build_branch_transition_fast(policy_choice_n,exit_vec_n,...
-            prob_matrix_new,a_prob_new,age_reduc,exo_exit,a_num_g,age_num);
+            prob_matrix_new,age_reduc,exo_exit,a_num_g,age_num);
         trans_matrix_o = build_branch_transition_fast(policy_choice_o,exit_vec_o,...
-            prob_matrix_old,a_prob_old,age_reduc,exo_exit,a_num_g,age_num);
+            prob_matrix_old,age_reduc,exo_exit,a_num_g,age_num);
         [dist_n,exit_n] = stationary_branch_dist_fast(trans_matrix_n,m_of_firms_new,...
             a_prob_new,a_num_g,age_num,dist_tol,max_iter);
         [dist_o,exit_o] = stationary_branch_dist_fast(trans_matrix_o,m_of_firms_old,...
@@ -157,11 +157,19 @@ trans_prob_n = sum(policy_choice_n.*repmat(prob_matrix_new,age_num,1),2);
 trans_prob_o = sum(policy_choice_o.*repmat(prob_matrix_old,age_num,1),2);
 eff_n_final = eff_n_vec(:);
 eff_o_final = eff_o_vec(:);
+fprintf("New-tech value function: converged=%d, precision=%g, iterations=%d (tolerance=%g).\n",...
+    value_converged_n,value_precision_n,value_iterations_n,v_tol);
+fprintf("Old-tech value function: converged=%d, precision=%g, iterations=%d (tolerance=%g).\n",...
+    value_converged_o,value_precision_o,value_iterations_o,v_tol);
 end
 
-function [value,policy,exit_vec] = solve_branch_value_fast(pi_mat,prob,beta,cost,tol,max_iter,age_reduc,exo_exit)
+function [value,policy,exit_vec,converged,precision,iterations] = ...
+    solve_branch_value_fast(pi_mat,prob,beta,cost,tol,max_iter,age_reduc,exo_exit)
 [age_num,a_num_g] = size(pi_mat);
 value = max(pi_mat,0);
+converged = false;
+precision = inf;
+iterations = 0;
 for ii=1:max_iter
     continuation = [value(2:end,:);zeros(1,a_num_g)];
     adopt_age = max((1:age_num)-age_reduc,1);
@@ -170,8 +178,11 @@ for ii=1:max_iter
     best = continuation+(adoption-continuation).*choice_age;
     value_new = pi_mat+beta*(1-exo_exit)*(best*prob');
     value_new = max(value_new,0);
-    if max(abs(value_new-value),[],"all")<tol
+    precision = max(abs(value_new-value),[],"all");
+    iterations = ii;
+    if precision<tol
         value = value_new;
+        converged = true;
         break
     end
     value = value_new;
@@ -187,7 +198,7 @@ exit_vec = exit_vec(:);
 policy = policy.*(1-exit_vec);
 end
 
-function transition = build_branch_transition_fast(policy,exit_vec,prob,a_prob,age_reduc,exo_exit,a_num_g,age_num)
+function transition = build_branch_transition_fast(policy,exit_vec,prob,age_reduc,exo_exit,a_num_g,age_num)
 n_state = age_num*a_num_g;
 source = repelem((1:n_state)',a_num_g);
 dest_type = repmat((1:a_num_g)',n_state,1);
@@ -201,25 +212,97 @@ target = (target_age-1)*a_num_g+dest_type;
 prob_expanded = prob(sub2ind(size(prob),state_type,dest_type));
 values = prob_expanded*(1-exo_exit);
 transition = sparse(source(keep),target(keep),values(keep),n_state,n_state);
-last = (age_num-1)*a_num_g+1:n_state;
-transition(last,1:a_num_g) = repmat(a_prob,a_num_g,1).*(1-exit_vec(last));
 end
 
 function [dist,exit_mass] = stationary_branch_dist_fast(transition,entry_mass,a_prob,a_num_g,age_num,tol,max_iter)
-dist = entry_mass*ones(1,age_num*a_num_g)/(age_num*a_num_g);
 entrant = zeros(1,age_num*a_num_g);
 entrant(1:a_num_g) = a_prob;
+
+% Closing each row's missing survival mass with the entrant distribution
+% turns the substochastic plant transition into a row-stochastic transition.
+row_deficit = 1-full(sum(transition,2));
+valid_transition = all(row_deficit>=-1e-10) && all(isfinite(row_deficit));
+if valid_transition
+    row_deficit = max(row_deficit,0);
+    invariant_transition = transition+sparse(row_deficit)*sparse(entrant);
+    [unit_dist,direct_ok] = invariant_from_transition(invariant_transition,tol);
+else
+    direct_ok = false;
+    invariant_transition = transition;
+end
+
+if ~direct_ok
+    [unit_dist,iter_ok,iter_precision] = invariant_by_multiplication(...
+        invariant_transition,entrant,tol,max_iter);
+    if ~iter_ok
+        warning("Two_tech_ss_AC3:DistributionNotConverged",...
+            "Invariant distribution fallback stopped at precision %g (tolerance %g).",...
+            iter_precision,tol);
+    end
+end
+dist = max(entry_mass,0)*unit_dist;
+exit_mass = sum(dist-dist*transition);
+end
+
+function [dis,ok] = invariant_from_transition(TMsp,tol)
+% Solve the left invariant distribution directly, then validate its residual.
+nstate = size(TMsp,1);
+dis = ones(1,nstate)/nstate;
+ok = false;
+if size(TMsp,2)~=nstate || any(~isfinite(nonzeros(TMsp)))
+    return
+end
+A = TMsp'-speye(nstate);
+A(end,:) = 1;
+b = zeros(nstate,1);
+b(end) = 1;
+try
+    pi_col = A\b;
+catch
+    return
+end
+if ~(isnumeric(pi_col) && isvector(pi_col) && numel(pi_col)==nstate) || ...
+        any(~isfinite(pi_col))
+    return
+end
+pi_col = real(pi_col);
+if any(pi_col<-1e-8)
+    return
+end
+pi_col = max(pi_col,0);
+mass = sum(pi_col);
+if ~(mass>0) || ~isfinite(mass)
+    return
+end
+dis = (pi_col/mass)';
+residual = max(abs(dis*TMsp-dis));
+row_error = max(abs(full(sum(TMsp,2))-1));
+ok = residual<=max(10*tol,1e-10) && row_error<=max(10*tol,1e-10);
+end
+
+function [dis,ok,precision] = invariant_by_multiplication(TMsp,initial_dist,tol,max_iter)
+% Power-iteration fallback when the sparse direct solve is inaccurate.
+if abs(sum(initial_dist)-1)>sqrt(eps) || any(initial_dist<0)
+    dis = ones(1,size(TMsp,1))/size(TMsp,1);
+else
+    dis = initial_dist/sum(initial_dist);
+end
+ok = false;
+precision = inf;
 for ii=1:max_iter
-    dist_new = dist*transition;
-    exit_mass = sum(dist-dist_new);
-    dist_new = dist_new+max(entry_mass-sum(dist_new),0)*entrant;
-    if max(abs(dist_new-dist))<tol
-        dist = dist_new;
+    dis_new = dis*TMsp;
+    mass = sum(dis_new);
+    if ~(mass>0) || any(~isfinite(dis_new))
         return
     end
-    dist = dist_new;
+    dis_new = max(dis_new,0)/mass;
+    precision = max(abs(dis_new-dis));
+    dis = dis_new;
+    if precision<tol
+        ok = true;
+        return
+    end
 end
-exit_mass = sum(dist-dist*transition);
 end
 
 function [cap,order] = solar_availability_grid(P_E_grid_norm,mean_cap,corr)
