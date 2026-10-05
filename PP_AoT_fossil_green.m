@@ -1,37 +1,43 @@
 %%%% Fossil to green transition dynamics
-%%%% Old tech: capacity-weighted aggregate fossil branch from coal-gas transition
+%%%% Old tech: time-varying aggregate fossil branch from coal-gas transition
 %%%% New tech: intermittent green/solar branch
 
 clear
 close
 clc
 
-%% Load fossil old state from coal-gas transition
+%% Load fossil paths from coal-gas transition
 fossil_state_file = "fossil_old_aggregated_for_green.mat";
 if exist(fossil_state_file,"file") ~= 2
     error("Missing %s. Run PP_AoT_coal_gas.m first or update fossil_state_file.",fossil_state_file);
 end
 S = load(fossil_state_file);
 
-dist_fossil_old = S.dist_fossil_old;
-a_grid_fossil_old = S.a_grid_fossil_old(:)';
-a_prob_fossil_old = S.a_prob_fossil_old(:)'/sum(S.a_prob_fossil_old);
-p_E_initial = S.p_E_fossil_old;
-p_e_fossil_initial = S.p_e_fossil_old;
-fco_fossil = S.fco_fossil_old;
-c_e_fossil = S.c_e_fossil_old;
-c_a_fossil = S.c_a_fossil_old;
-rho_p_fossil = S.rho_p_fossil_old;
-sigma_p_fossil = S.sigma_p_fossil_old;
+if ~isfield(S,"fossil_paths")
+    error("The fossil aggregation file predates the path export. Re-run the export section of PP_AoT_coal_gas.m.");
+end
+fossil_paths_full = S.fossil_paths;
+fossil_path = slice_fossil_path(fossil_paths_full,fossil_paths_full.green_start_index);
+dist_fossil_old = fossil_path.dist(1,:);
+a_grid_fossil_old = fossil_path.grid_stock(:,1)';
+a_prob_fossil_old = fossil_path.prob_entry(:,1)'/sum(fossil_path.prob_entry(:,1));
+p_E_initial = fossil_path.p_E(1);
+p_e_fossil_initial = fossil_path.price(1);
+fco_fossil = fossil_path.fco(1);
+c_e_fossil = fossil_path.entry_cost(1);
+c_a_fossil = fossil_path.adopt_cost(1);
+rho_p_fossil = fossil_path.rho_p(1);
+sigma_p_fossil = fossil_path.sigma_p(1);
+P_E_grid_norm = fossil_paths_full.P_E_grid_norm;
 
 %% Core parameters
 beta      = 0.97;
-alpha     = 1.9;
+alpha     = field_or(fossil_paths_full,"alpha",1.9);
 a_grow    = 0.005;
-rho       = 0.6;
-exo_exit  = 0.01;
-e_p       = 0.75;
-e_o_eps   = 1.0;
+rho       = field_or(fossil_paths_full,"rho",0.6);
+exo_exit  = field_or(fossil_paths_full,"exo_exit",0.01);
+e_p       = field_or(fossil_paths_full,"e_p",0.75);
+e_o_eps   = fossil_path.fuel_elasticity;
 dem_tol   = 0.01;
 v_tol     = 1e-5;
 dist_tol  = 1e-7;
@@ -45,8 +51,8 @@ if abs(age_num-round(age_num))>0
 end
 age_num = round(age_num);
 
-d_0 = (sum(dist_fossil_old) * max(p_E_initial,1)^e_p);
-e0_o = max(sum(dist_fossil_old),1);
+d_0 = sum(dist_fossil_old)*max(p_E_initial,1)^e_p;
+e0_o = fossil_path.e0(1);
 
 %% Green/solar parameters
 mu_green_initial    = 0.10;
@@ -64,7 +70,8 @@ solar_cap_mean   = 0.25;
 solar_price_corr = 0.6;
 
 trans_t = 120;
-d0_gr   = 0.01;
+d0_gr   = field_or(fossil_paths_full,"d0_gr",0.01);
+fossil_path = extend_fossil_path(fossil_path,trans_t);
 
 mu_green_vec    = linspace(mu_green_initial,mu_green_final,trans_t);
 sigma_green_vec = linspace(sigma_green_initial,sigma_green_final,trans_t);
@@ -75,30 +82,35 @@ c_a_green_vec   = c_a_green_low + (c_a_green_high-c_a_green_low)*exp(linspace(0,
 try
     load ss_fossil_green_final
 catch
+    fossil_terminal = struct("grid",fossil_paths_full.terminal_grid,...
+        "prob",fossil_paths_full.terminal_prob,"p_E",fossil_paths_full.p_E(end),...
+        "p_e",fossil_paths_full.price(end),...
+        "fossil_measure_guess",sum(fossil_paths_full.dist(end,:)));
     [trans_prob_o_final,v_new_o_final,v_new_resh_o_final,dist_o_final,trans_matrix_n_final,p_e_n_final,cap_contemp_green_final,eff_green_final,...
         trans_prob_n_final,v_new_n_final,v_new_resh_n_final,dist_n_final,trans_matrix_o_final,p_e_o_final,cap_contemp_fossil_final,eff_fossil_final,...
         age_g_final,a_grid_old_final,a_prob_old_final,a_grid_green_final,a_prob_green_final,pi_contemp_green_final,p_E_final,...
         m_of_firms_green_final,m_of_firms_fossil_final,exit_n_final,exit_o_final] = ...
         Two_tech_ss_AC3(a_grow,alpha,a_bar,beta,c_a_fossil,c_a_green_low,...
         mean(a_grid_fossil_old),std(a_grid_fossil_old),mu_green_final,sigma_green_final,...
-        a_num_g,age_num,max_iter,v_tol,dist_tol,fco_fossil,fco_green,e_p,...
-        d_0*(1+d0_gr)^trans_t,c_e_fossil,c_e_green_low,dem_tol,1,...
-        e0_o,e_o_eps,rho_p_fossil,sigma_p_fossil,rho,10,exo_exit,...
-        solar_cap_mean,solar_price_corr);
+        a_num_g,age_num,max_iter,v_tol,dist_tol,fossil_path.fco(end),fco_green,e_p,...
+        d_0*(1+d0_gr)^trans_t,fossil_path.entry_cost_stock(end),c_e_green_low,dem_tol,1,...
+        fossil_path.e0(end),fossil_path.fuel_elasticity,fossil_path.rho_p(end),...
+        fossil_path.sigma_p(end),rho,10,exo_exit,solar_cap_mean,solar_price_corr,...
+        P_E_grid_norm,fossil_terminal);
     save ss_fossil_green_final
 end
 
 %% No-policy green transition
 init_dist_o = dist_fossil_old;
 init_dist_n = zeros(1,age_num*a_num_g);
-init_input_o = max(sum(init_dist_o),1);
+init_input_o = max(fossil_path.quantity(1),sqrt(eps));
 
 try
     load transition_fossil_green_baseline
 catch
     [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,input_all_o,...
         trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_E_vec,cap_old,cap_new,...
-        age_g,a_grid_old,a_prob_old,a_grid_n_all,a_prob_n_all,entry_n_path,adopt_n_path,tax_revenue_path] = ...
+        age_g,a_grid_old,a_prob_old,a_grid_n_all,a_prob_n_all,entry_n_path,adopt_n_path,tax_revenue_path,entry_o_path] = ...
         MIT_transition_green(a_grow,alpha,beta,c_a_fossil,c_a_green_vec,...
         a_grid_fossil_old,a_prob_fossil_old,mu_green_vec,sigma_green_vec,...
         a_num_g,age_num,max_iter,v_tol,fco_fossil,fco_green,e_p,d_0,...
@@ -106,7 +118,8 @@ catch
         v_new_resh_o_final,v_new_resh_n_final,p_E_initial,p_E_final,trans_t,...
         dist_n_final,dist_o_final,e0_o,e_o_eps,p_e_o_final,p_e_fossil_initial,...
         rho,10,exit_n_final,exit_o_final,exo_exit,init_input_o,...
-        1,1,d0_gr,rho_p_fossil,sigma_p_fossil,solar_cap_mean,solar_price_corr,zeros(1,trans_t));
+        1,1,d0_gr,rho_p_fossil,sigma_p_fossil,solar_cap_mean,solar_price_corr,...
+        zeros(1,trans_t),fossil_path,P_E_grid_norm,"checkpoint_fossil_green_baseline");
     save transition_fossil_green_baseline
 end
 
@@ -114,6 +127,8 @@ end
 baseline.p_E_vec = p_E_vec;
 baseline.green_share = cap_new./(cap_old+cap_new);
 baseline.consumer_expenditure = electricity_expenditure_path(p_E_vec,d_0,d0_gr,e_p);
+baseline.entry_green = entry_n_path;
+baseline.entry_fossil = entry_o_path;
 
 subsidy_cases = struct( ...
     "name",{"subsidy_small_once","subsidy_small_10period","subsidy_large_once"}, ...
@@ -136,7 +151,8 @@ for pp = 1:numel(subsidy_cases)
         v_new_resh_o_final,v_new_resh_n_final,p_E_initial,p_E_final,trans_t,...
         dist_n_final,dist_o_final,e0_o,e_o_eps,p_e_o_final,p_e_fossil_initial,...
         rho,10,exit_n_final,exit_o_final,exo_exit,init_input_o,...
-        1,1,d0_gr,rho_p_fossil,sigma_p_fossil,solar_cap_mean,solar_price_corr,zeros(1,trans_t));
+        1,1,d0_gr,rho_p_fossil,sigma_p_fossil,solar_cap_mean,solar_price_corr,...
+        zeros(1,trans_t),fossil_path,P_E_grid_norm,"");
 
     green_share_sub = cap_new_sub./(cap_old_sub+cap_new_sub);
     subsidy_outlay = sum(subsidy_vec.*(entry_sub+adopt_sub));
@@ -176,7 +192,8 @@ for pp = 1:numel(tax_cases)
         v_new_resh_o_final,v_new_resh_n_final,p_E_initial,p_E_final,trans_t,...
         dist_n_final,dist_o_final,e0_o,e_o_eps,p_e_o_final,p_e_fossil_initial,...
         rho,10,exit_n_final,exit_o_final,exo_exit,init_input_o,...
-        1,1,d0_gr,rho_p_fossil,sigma_p_fossil,solar_cap_mean,solar_price_corr,fossil_tax_vec);
+        1,1,d0_gr,rho_p_fossil,sigma_p_fossil,solar_cap_mean,solar_price_corr,...
+        fossil_tax_vec,fossil_path,P_E_grid_norm,"");
 
     green_share_tax = cap_new_tax./(cap_old_tax+cap_new_tax);
     policy_expenditure = electricity_expenditure_path(p_E_tax,d_0,d0_gr,e_p);
@@ -229,4 +246,69 @@ function expenditure = electricity_expenditure_path(p_E_vec,d_0,d0_gr,e_p)
 d0_vec = d_0*(1+d0_gr).^(1:numel(p_E_vec));
 quantity = d0_vec./(p_E_vec.^e_p);
 expenditure = p_E_vec.*quantity;
+end
+
+function out = slice_fossil_path(path,start_index)
+out = path;
+row_fields = ["measure_coal","measure_gas","stock_weight_coal","entry_weight_coal",...
+    "entry_coal_raw","entry_gas_raw","entry_coal","entry_gas","fco","entry_cost","entry_cost_stock",...
+    "adopt_cost","rho_p","sigma_p","quantity_coal","quantity_gas","quantity",...
+    "expenditure","price","e0_raw","e0","p_E"];
+column_fields = ["grid_stock","prob_stock","grid_entry","prob_entry",...
+    "stock_mass_coal_by_grid","stock_mass_gas_by_grid",...
+    "entry_mass_coal_by_grid","entry_mass_gas_by_grid"];
+cell_fields = ["stock_map_coal","stock_map_gas","entry_map_coal","entry_map_gas"];
+for name=row_fields
+    if isfield(out,name), out.(name)=out.(name)(start_index:end); end
+end
+for name=column_fields
+    if isfield(out,name), out.(name)=out.(name)(:,start_index:end); end
+end
+for name=cell_fields
+    if isfield(out,name), out.(name)=out.(name)(start_index:end); end
+end
+if isfield(out,"dist"), out.dist=out.dist(start_index:end,:); end
+out.green_start_index = 1;
+end
+
+function out = extend_fossil_path(path,T)
+out = path;
+row_fields = ["measure_coal","measure_gas","stock_weight_coal","entry_weight_coal",...
+    "entry_coal_raw","entry_gas_raw","entry_coal","entry_gas","fco","entry_cost","entry_cost_stock",...
+    "adopt_cost","rho_p","sigma_p","quantity_coal","quantity_gas","quantity",...
+    "expenditure","price","e0_raw","e0","p_E"];
+column_fields = ["grid_stock","prob_stock","grid_entry","prob_entry",...
+    "stock_mass_coal_by_grid","stock_mass_gas_by_grid",...
+    "entry_mass_coal_by_grid","entry_mass_gas_by_grid"];
+cell_fields = ["stock_map_coal","stock_map_gas","entry_map_coal","entry_map_gas"];
+for name=row_fields
+    if isfield(out,name)
+        value = reshape(out.(name),1,[]);
+        out.(name) = [value(1:min(end,T)),repmat(value(end),1,max(T-numel(value),0))];
+    end
+end
+for name=column_fields
+    if isfield(out,name)
+        value = out.(name);
+        out.(name) = [value(:,1:min(size(value,2),T)),repmat(value(:,end),1,max(T-size(value,2),0))];
+    end
+end
+for name=cell_fields
+    if isfield(out,name)
+        value = out.(name);
+        out.(name) = [value(1:min(numel(value),T));repmat(value(end),max(T-numel(value),0),1)];
+    end
+end
+if isfield(out,"dist")
+    value = out.dist;
+    out.dist = [value(1:min(size(value,1),T),:);repmat(value(end,:),max(T-size(value,1),0),1)];
+end
+end
+
+function value = field_or(S,name,fallback)
+if isfield(S,name) && ~isempty(S.(name))
+    value = S.(name);
+else
+    value = fallback;
+end
 end

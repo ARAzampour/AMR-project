@@ -293,7 +293,8 @@ try
 catch
     [trans_prob_o_all1,v_new_resh_o_all1,dist_o_all1,measure_vec_o1,p_e_o_vec1,input_all_o1,...
         trans_prob_n_all1,v_new_resh_n_all1,dist_n_all1,measure_vec_n1,p_e_n_vec1,input_all_n1,...
-        age_g_mit1,a_grid_mit1,a_prob_mit1,a_grid_n_all1,a_prob_n_all1,p_E_vec1,cap_old1,cap_new1] =...
+        age_g_mit1,a_grid_mit1,a_prob_mit1,a_grid_n_all1,a_prob_n_all1,p_E_vec1,cap_old1,cap_new1,...
+        m_of_entry_n1,m_of_entry_o1] =...
         MIT_transition_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new_vec1,mu_old,sigma,...
         mu_vec1,sigma_vec1, a_num_g,age_num,max_iter,...
         v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0,rat*c_of_e,rat*c_e_new_vec1,dem_tol,dist_n_1st,dist_old,v_new_resh_o1,v_new_resh_n1,...
@@ -304,7 +305,13 @@ catch
         rho_p_n,sigma_p_n,rho_p_o,sigma_p_o,"checkpoint_ss_gas_coal_1stMIT",P_E_grid_norm);
     save ss_gas_coal_1stMIT trans_prob_o_all1 v_new_resh_o_all1 dist_o_all1 measure_vec_o1 p_e_o_vec1 input_all_o1 ...
         trans_prob_n_all1 v_new_resh_n_all1 dist_n_all1 measure_vec_n1 p_e_n_vec1 input_all_n1 ...
-        age_g_mit1 a_grid_mit1 a_prob_mit1 a_grid_n_all1 a_prob_n_all1 p_E_vec1 cap_old1 cap_new1
+        age_g_mit1 a_grid_mit1 a_prob_mit1 a_grid_n_all1 a_prob_n_all1 p_E_vec1 cap_old1 cap_new1 ...
+        m_of_entry_n1 m_of_entry_o1
+end
+if ~exist("m_of_entry_n1","var") || ~exist("m_of_entry_o1","var")
+    C = load("checkpoint_ss_gas_coal_1stMIT.mat","m_of_entry_n","m_of_entry_o");
+    m_of_entry_n1 = C.m_of_entry_n;
+    m_of_entry_o1 = C.m_of_entry_o;
 end
 %% MIT2: pure new-tech efficiency gain
 c_a_new_vec2 = c_a_new*ones(1,trans_t2);
@@ -329,7 +336,8 @@ try
 catch
     [trans_prob_o_all2,v_new_resh_o_all2,dist_o_all2,measure_vec_o2,p_e_o_vec2,input_all_o2,...
         trans_prob_n_all2,v_new_resh_n_all2,dist_n_all2,measure_vec_n2,p_e_n_vec2,input_all_n2,...
-        age_g_mit2,a_grid_mit2,a_prob_mit2,a_grid_n_all2,a_prob_n_all2,p_E_vec2,cap_old2,cap_new2] =...
+        age_g_mit2,a_grid_mit2,a_prob_mit2,a_grid_n_all2,a_prob_n_all2,p_E_vec2,cap_old2,cap_new2,...
+        m_of_entry_n2,m_of_entry_o2] =...
         MIT_transition_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new_vec2,mu,sigma,...
         mu_vec2,sigma_vec2,a_num_g,age_num,max_iter,...
         v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0*(1+d0_gr)^(sec_trans_t),rat*c_of_e,rat*c_e_new_vec2,...
@@ -341,7 +349,13 @@ catch
         rho_p_n,sigma_p_n,rho_p_o,sigma_p_o,"checkpoint_ss_gas_coal_2stMIT",P_E_grid_norm);
     save ss_gas_coal_2stMIT trans_prob_o_all2 v_new_resh_o_all2 dist_o_all2 measure_vec_o2 p_e_o_vec2 input_all_o2 ...
         trans_prob_n_all2 v_new_resh_n_all2 dist_n_all2 measure_vec_n2 p_e_n_vec2 input_all_n2 ...
-        age_g_mit2 a_grid_mit2 a_prob_mit2 a_grid_n_all2 a_prob_n_all2 p_E_vec2 cap_old2 cap_new2
+        age_g_mit2 a_grid_mit2 a_prob_mit2 a_grid_n_all2 a_prob_n_all2 p_E_vec2 cap_old2 cap_new2 ...
+        m_of_entry_n2 m_of_entry_o2
+end
+if ~exist("m_of_entry_n2","var") || ~exist("m_of_entry_o2","var")
+    C = load("checkpoint_ss_gas_coal_2stMIT.mat","m_of_entry_n","m_of_entry_o");
+    m_of_entry_n2 = C.m_of_entry_n;
+    m_of_entry_o2 = C.m_of_entry_o;
 end
 
 %% MIT3: shale gas input-cost shock
@@ -367,7 +381,8 @@ try
 catch
     [trans_prob_o_all3,v_new_resh_o_all3,dist_o_all3,measure_vec_o3,p_e_o_vec3,input_all_o3,...
         trans_prob_n_all3,v_new_resh_n_all3,dist_n_all3,measure_vec_n3,p_e_n_vec3,input_all_n3,...
-        age_g_mit3,a_grid_mit3,a_prob_mit3,a_grid_n_all3,a_prob_n_all3,p_E_vec3,cap_old3,cap_new3] =...
+        age_g_mit3,a_grid_mit3,a_prob_mit3,a_grid_n_all3,a_prob_n_all3,p_E_vec3,cap_old3,cap_new3,...
+        m_of_entry_n3,m_of_entry_o3] =...
         MIT_transition_AC(a_grow,alpha,a_bar,beta,rat*c_of_a,rat*c_a_new_vec3,mu,sigma,...
         mu_vec3,sigma_vec3,a_num_g,age_num,max_iter,...
         v_tol,dist_tol,rat*fco_o,rat*fco_n,e_p,d_0*(1+d0_gr)^(sec_trans_t+thi_trans_t),rat*c_of_e,rat*c_e_new_vec3,...
@@ -380,7 +395,13 @@ catch
 
     save ss_gas_coal_3rdMIT trans_prob_o_all3 v_new_resh_o_all3 dist_o_all3 measure_vec_o3 p_e_o_vec3 input_all_o3 ...
         trans_prob_n_all3 v_new_resh_n_all3 dist_n_all3 measure_vec_n3 p_e_n_vec3 input_all_n3 ...
-        age_g_mit3 a_grid_mit3 a_prob_mit3 a_grid_n_all3 a_prob_n_all3 p_E_vec3 cap_old3 cap_new3
+        age_g_mit3 a_grid_mit3 a_prob_mit3 a_grid_n_all3 a_prob_n_all3 p_E_vec3 cap_old3 cap_new3 ...
+        m_of_entry_n3 m_of_entry_o3
+end
+if ~exist("m_of_entry_n3","var") || ~exist("m_of_entry_o3","var")
+    C = load("checkpoint_ss_gas_coal_3rdMIT.mat","m_of_entry_n","m_of_entry_o");
+    m_of_entry_n3 = C.m_of_entry_n;
+    m_of_entry_o3 = C.m_of_entry_o;
 end
 %% Save and plot combined paths
 cap_share_path = [cap_new1(1:sec_trans_t)./(cap_old1(1:sec_trans_t)+cap_new1(1:sec_trans_t)), ...
@@ -389,92 +410,91 @@ cap_share_path = [cap_new1(1:sec_trans_t)./(cap_old1(1:sec_trans_t)+cap_new1(1:s
 p_E_path       = [p_E_vec1(1:sec_trans_t), p_E_vec2(2:thi_trans_t), p_E_vec3(2:end)];
 e0_n_path      = [e0_n_vec1(1:sec_trans_t), e0_n_vec2(2:thi_trans_t), e0_n_vec3(2:end)];
 
-%% Export aggregated fossil old tech for the fossil-to-green transition
-%%% Choose where the green transition starts. By default we use the midpoint
-%%% of the shale transition; change these two values to pick another point.
+%% Export time-varying aggregate fossil branch for the green transition
 green_aggregation_phase = 3;     % 1: MIT1, 2: MIT2, 3: MIT3
-green_aggregation_t     = 10; % "mid" or an integer index within the phase
+green_aggregation_t     = 10;
 
+idx1 = 1:sec_trans_t;
+idx2 = 2:thi_trans_t;
+idx3 = 2:trans_t3;
+growth_line1 = diff_gr_t1*ones(1,trans_t1);
+growth_line2 = diff_gr_t2*ones(1,trans_t2);
+growth_line3 = diff_gr_t3*ones(1,trans_t3);
+growth_line1(1:diff_gr_t1) = linspace(1,diff_gr_t1,diff_gr_t1);
+growth_line2(1:diff_gr_t2) = linspace(1,diff_gr_t2,diff_gr_t2);
+growth_line3(1:diff_gr_t3) = linspace(1,diff_gr_t3,diff_gr_t3);
+tech_path1 = (1+diff_gr1).^growth_line1*tech_dist_ss0;
+tech_path2 = (1+diff_gr2).^growth_line2*tech_dist_ss1;
+tech_path3 = (1+diff_gr3).^growth_line3*tech_dist_ss2;
+
+raw_fossil = struct;
+raw_fossil.dist_coal = [dist_o_all1(idx1,:);dist_o_all2(idx2,:);dist_o_all3(idx3,:)];
+raw_fossil.dist_gas = [dist_n_all1(idx1,:);dist_n_all2(idx2,:);dist_n_all3(idx3,:)];
+raw_fossil.measure_coal = [measure_vec_o1(idx1),measure_vec_o2(idx2),measure_vec_o3(idx3)];
+raw_fossil.measure_gas = [measure_vec_n1(idx1),measure_vec_n2(idx2),measure_vec_n3(idx3)];
+raw_fossil.entry_coal = [m_of_entry_o1(idx1),m_of_entry_o2(idx2),m_of_entry_o3(idx3)];
+raw_fossil.entry_gas = [m_of_entry_n1(idx1),m_of_entry_n2(idx2),m_of_entry_n3(idx3)];
+raw_fossil.grid_coal = [a_grid_mit1(:)./tech_path1(idx1),...
+    a_grid_mit2(:)./tech_path2(idx2),a_grid_mit3(:)./tech_path3(idx3)];
+raw_fossil.grid_gas = [a_grid_n_all1(:,idx1),a_grid_n_all2(:,idx2),a_grid_n_all3(:,idx3)];
+raw_fossil.prob_coal = [repmat(a_prob_mit1(:),1,numel(idx1)),...
+    repmat(a_prob_mit2(:),1,numel(idx2)),repmat(a_prob_mit3(:),1,numel(idx3))];
+raw_fossil.prob_gas = [a_prob_n_all1(:,idx1),a_prob_n_all2(:,idx2),a_prob_n_all3(:,idx3)];
+raw_fossil.price_coal = [p_e_o_vec1(idx1),p_e_o_vec2(idx2),p_e_o_vec3(idx3)];
+raw_fossil.price_gas = [p_e_n_vec1(idx1),p_e_n_vec2(idx2),p_e_n_vec3(idx3)];
+raw_fossil.quantity_coal = [input_all_o1(idx1+1);input_all_o2(idx2+1);input_all_o3(idx3+1)]';
+raw_fossil.quantity_gas = [input_all_n1(idx1+1);input_all_n2(idx2+1);input_all_n3(idx3+1)]';
+raw_fossil.p_E = p_E_path;
+raw_fossil.fco_coal = rat*fco_o;
+raw_fossil.fco_gas = rat*fco_n;
+raw_fossil.entry_cost_coal = rat*c_of_e;
+raw_fossil.entry_cost_gas = rat*[c_e_new_vec1(idx1),c_e_new_vec2(idx2),c_e_new_vec3(idx3)];
+raw_fossil.adopt_cost_coal = rat*c_of_a;
+raw_fossil.adopt_cost_gas = rat*[c_a_new_vec1(idx1),c_a_new_vec2(idx2),c_a_new_vec3(idx3)];
+raw_fossil.rho_p_coal = rho_p_o;
+raw_fossil.rho_p_gas = rho_p_n;
+raw_fossil.sigma_p_coal = sigma_p_o;
+raw_fossil.sigma_p_gas = sigma_p_n;
+raw_fossil.fuel_penalty = penalty_o;
+terminal_total_measure = raw_fossil.measure_coal(end)+raw_fossil.measure_gas(end);
+raw_fossil.fallback_elasticity = ...
+    (raw_fossil.measure_coal(end)*e_o_eps+raw_fossil.measure_gas(end)*e_n_eps)/max(terminal_total_measure,eps);
+raw_fossil.P_E_grid_norm = P_E_grid_norm;
 switch green_aggregation_phase
     case 1
-        agg_dist_boiler      = dist_o_all1;
-        agg_dist_combustion  = dist_n_all1;
-        agg_cap_boiler       = cap_old1;
-        agg_cap_combustion   = cap_new1;
-        agg_p_E_vec          = p_E_vec1;
-        agg_p_e_boiler_vec   = p_e_o_vec1;
-        agg_p_e_comb_vec     = p_e_n_vec1;
-        agg_age_g            = age_g_mit1;
-        a_grid_boiler        = a_grid_mit1;
-        a_grid_combustion    = a_grid_n_all1;
-        a_prob_boiler        = a_prob_mit1;
-        a_prob_combustion    = a_prob_n_all1;
+        raw_fossil.green_start_index = green_aggregation_t;
     case 2
-        agg_dist_boiler      = dist_o_all2;
-        agg_dist_combustion  = dist_n_all2;
-        agg_cap_boiler       = cap_old2;
-        agg_cap_combustion   = cap_new2;
-        agg_p_E_vec          = p_E_vec2;
-        agg_p_e_boiler_vec   = p_e_o_vec2;
-        agg_p_e_comb_vec     = p_e_n_vec2;
-        agg_age_g            = age_g_mit2;
-        a_grid_boiler        = a_grid_mit2;
-        a_grid_combustion    = a_grid_n_all2;
-        a_prob_boiler        = a_prob_mit2;
-        a_prob_combustion    = a_prob_n_all2;
+        raw_fossil.green_start_index = numel(idx1)+green_aggregation_t-1;
     case 3
-        agg_dist_boiler      = dist_o_all3;
-        agg_dist_combustion  = dist_n_all3;
-        agg_cap_boiler       = cap_old3;
-        agg_cap_combustion   = cap_new3;
-        agg_p_E_vec          = p_E_vec3;
-        agg_p_e_boiler_vec   = p_e_o_vec3;
-        agg_p_e_comb_vec     = p_e_n_vec3;
-        agg_age_g            = age_g_mit3;
-        a_grid_boiler        = a_grid_mit3;
-        a_grid_combustion    = a_grid_n_all3;
-        a_prob_boiler        = a_prob_mit3;
-        a_prob_combustion    = a_prob_n_all3;
+        raw_fossil.green_start_index = numel(idx1)+numel(idx2)+green_aggregation_t-1;
     otherwise
         error("green_aggregation_phase must be 1, 2, or 3.");
 end
 
-if isstring(green_aggregation_t) || ischar(green_aggregation_t)
-    agg_t = ceil(size(agg_dist_boiler,1)/2);
-else
-    agg_t = green_aggregation_t;
-end
-agg_t = max(1,min(agg_t,size(agg_dist_boiler,1)));
+fossil_paths = build_fossil_green_paths(raw_fossil);
+fossil_paths.alpha = alpha;
+fossil_paths.e_p = e_p;
+fossil_paths.rho = rho;
+fossil_paths.exo_exit = exo_exit;
+fossil_paths.d0_gr = d0_gr;
+agg_t = fossil_paths.green_start_index;
+dist_fossil_old = fossil_paths.dist(agg_t,:);
+a_grid_fossil_old = fossil_paths.grid_stock(:,agg_t)';
+a_prob_fossil_old = fossil_paths.prob_entry(:,agg_t)';
+age_g_fossil_old = age_g_mit3;
+p_E_fossil_old = fossil_paths.p_E(agg_t);
+p_e_fossil_old = fossil_paths.price(agg_t);
+fco_fossil_old = fossil_paths.fco(agg_t);
+c_e_fossil_old = fossil_paths.entry_cost(agg_t);
+c_a_fossil_old = fossil_paths.adopt_cost(agg_t);
+rho_p_fossil_old = fossil_paths.rho_p(agg_t);
+sigma_p_fossil_old = fossil_paths.sigma_p(agg_t);
+aggregation_weights = [fossil_paths.stock_weight_coal(agg_t),1-fossil_paths.stock_weight_coal(agg_t)];
 
-cap_boiler_at_t     = agg_cap_boiler(agg_t);
-cap_combustion_at_t = agg_cap_combustion(agg_t);
-cap_fossil_at_t     = cap_boiler_at_t + cap_combustion_at_t;
-if cap_fossil_at_t>0
-    weight_boiler     = cap_boiler_at_t/cap_fossil_at_t;
-    weight_combustion = cap_combustion_at_t/cap_fossil_at_t;
-else
-    weight_boiler     = 0.5;
-    weight_combustion = 0.5;
-end
-
-dist_fossil_old      = agg_dist_boiler(agg_t,:) + agg_dist_combustion(agg_t,:);
-a_grid_fossil_old    = a_grid_boiler;
-a_prob_fossil_old    = weight_boiler*a_prob_boiler(:) + weight_combustion*a_prob_combustion(:,agg_t);
-a_prob_fossil_old    = a_prob_fossil_old/sum(a_prob_fossil_old);
-age_g_fossil_old     = (agg_age_g*sum(agg_dist_boiler(agg_t,:)) + a_grid_combustion(:,agg_t)*sum(agg_dist_combustion(agg_t,:)))/...
-    (sum(dist_fossil_old));
-p_E_fossil_old       = agg_p_E_vec(agg_t);
-p_e_fossil_old       = weight_boiler*agg_p_e_boiler_vec(agg_t) + weight_combustion*agg_p_e_comb_vec(agg_t);
-fco_fossil_old       = weight_boiler*fco_o + weight_combustion*fco_n;
-c_e_fossil_old       = weight_boiler*c_of_e + weight_combustion*c_e_new;
-c_a_fossil_old       = weight_boiler*c_of_a + weight_combustion*c_a_new;
-rho_p_fossil_old     = weight_boiler*rho_p_o + weight_combustion*rho_p_n;
-sigma_p_fossil_old   = weight_boiler*sigma_p_o + weight_combustion*sigma_p_n;
-aggregation_weights  = [weight_boiler, weight_combustion];
-
+save fossil_paths_for_green fossil_paths
 save fossil_old_aggregated_for_green dist_fossil_old a_grid_fossil_old a_prob_fossil_old age_g_fossil_old ...
     p_E_fossil_old p_e_fossil_old fco_fossil_old c_e_fossil_old c_a_fossil_old ...
-    rho_p_fossil_old sigma_p_fossil_old aggregation_weights green_aggregation_phase agg_t
+    rho_p_fossil_old sigma_p_fossil_old aggregation_weights green_aggregation_phase agg_t fossil_paths
 
 save final_gas_coal_three_phase
 
