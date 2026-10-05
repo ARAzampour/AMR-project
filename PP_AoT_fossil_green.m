@@ -55,16 +55,20 @@ d_0 = sum(dist_fossil_old)*max(p_E_initial,1)^e_p;
 e0_o = fossil_path.e0(1);
 
 %% Green/solar parameters
-mu_green_initial    = 0.10;
-sigma_green_initial = 0.02;
-mu_green_final      = 0.10;
-sigma_green_final   = 0.02;
+mu_green_initial    = 1.0;
+sigma_green_initial = 0.12;
+mu_green_final      = 1.0;
+sigma_green_final   = 0.12;
 
-fco_green       = 0.2;
-c_e_green_high  = 60;
-c_e_green_low   = 15;
-c_a_green_high  = 8;
-c_a_green_low   = 2;
+%%% Coal-gas monetary costs were all multiplied by the calibrated `rat`.
+%%% Apply exactly the same unit conversion to green fixed, entry, and
+%%% adoption costs before comparing either technology's value.
+green_cost_scale = field_or(fossil_paths_full,"rat",1);
+fco_green       = green_cost_scale*1.0;
+c_e_green_high  = green_cost_scale*120;
+c_e_green_low   = green_cost_scale*30;
+c_a_green_high  = green_cost_scale*1.2;
+c_a_green_low   = green_cost_scale*0.3;
 
 solar_cap_mean   = 0.25;
 solar_price_corr = 0.6;
@@ -81,6 +85,9 @@ c_a_green_vec   = c_a_green_low + (c_a_green_high-c_a_green_low)*exp(linspace(0,
 %% Terminal steady state after green installation cost decline
 try
     load ss_fossil_green_final
+    if ~exist("green_ss_cost_scale_used","var") || green_ss_cost_scale_used~=green_cost_scale
+        error("Cached green steady state uses a different cost scale.");
+    end
 catch
     fossil_terminal = struct("grid",fossil_paths_full.terminal_grid,...
         "prob",fossil_paths_full.terminal_prob,"p_E",fossil_paths_full.p_E(end),...
@@ -97,6 +104,7 @@ catch
         fossil_path.e0(end),fossil_path.fuel_elasticity,fossil_path.rho_p(end),...
         fossil_path.sigma_p(end),rho,10,exo_exit,solar_cap_mean,solar_price_corr,...
         P_E_grid_norm,fossil_terminal);
+    green_ss_cost_scale_used = green_cost_scale;
     save ss_fossil_green_final
 end
 
@@ -107,6 +115,9 @@ init_input_o = max(fossil_path.quantity(1),sqrt(eps));
 
 try
     load transition_fossil_green_baseline
+    if ~exist("green_mit_cost_scale_used","var") || green_mit_cost_scale_used~=green_cost_scale
+        error("Cached green transition uses a different cost scale.");
+    end
 catch
     [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,input_all_o,...
         trans_prob_n_all,v_new_resh_n_all,dist_n_all,measure_vec_n,p_E_vec,cap_old,cap_new,...
@@ -120,6 +131,7 @@ catch
         rho,10,exit_n_final,exit_o_final,exo_exit,init_input_o,...
         1,1,d0_gr,rho_p_fossil,sigma_p_fossil,solar_cap_mean,solar_price_corr,...
         zeros(1,trans_t),fossil_path,P_E_grid_norm,"checkpoint_fossil_green_baseline");
+    green_mit_cost_scale_used = green_cost_scale;
     save transition_fossil_green_baseline
 end
 

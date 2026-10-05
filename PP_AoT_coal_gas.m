@@ -477,6 +477,7 @@ fossil_paths.e_p = e_p;
 fossil_paths.rho = rho;
 fossil_paths.exo_exit = exo_exit;
 fossil_paths.d0_gr = d0_gr;
+fossil_paths.rat = rat;
 agg_t = fossil_paths.green_start_index;
 dist_fossil_old = fossil_paths.dist(agg_t,:);
 a_grid_fossil_old = fossil_paths.grid_stock(:,agg_t)';
