@@ -75,7 +75,7 @@ solar_price_corr = 0.6;
 
 trans_t = 120;
 %%% Above 1 runs the static loop with parfor. Set to 0 for a serial loop.
-static_solver_workers = 4*(trans_t>=8);
+static_solver_workers = 1; %%%4*(trans_t>=8)
 d0_gr   = field_or(fossil_paths_full,"d0_gr",0.01);
 fossil_path = extend_fossil_path(fossil_path,trans_t);
 
