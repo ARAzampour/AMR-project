@@ -95,6 +95,7 @@ input_err_prev = ones(1,trans_t);
 output_adjust = 0.1/max(e_p,sqrt(eps))*ones(1,trans_t);
 input_adjust = 0.2*ones(1,trans_t);
 static_anchor_o = cell(trans_t,1);
+delta_p_thres = 0.02; %%% Price adjustment threshold for static anchor solver.
 
 checkpoint_file = checkpoint_filename(checkpoint_name);
 h_start = 1;
@@ -155,7 +156,7 @@ for h=h_start:max_iter
                 static_result_o{tt} = static_solver_anchor(a_eff_o,p_E_vec(tt),p_e_plant,...
                     P_E_grid_norm,p_e_grid_norm_all{tt},alpha,fco_o_vec(tt),...
                     1./a_grid_o_all(:,tt),dlog_weight_PE,dlog_weight_pe_all{tt},...
-                    static_anchor_o{tt},0.01);
+                    static_anchor_o{tt},delta_p_thres);
             end
         end
         static_anchor_o = static_result_o;
@@ -236,6 +237,10 @@ for h=h_start:max_iter
         p_e_o_vec = max(p_e_tentative,sqrt(eps));
         demand_err_prev = demand_err;
         input_err_prev = input_err;
+        if mod(k,50)==0
+            fprintf("green MIT h=%d, k=%d, mean |demand error|=%g, mean |fuel error|=%g\n",...
+                h,k,mean(abs(demand_err)),mean(abs(input_err)));
+        end
 
         if mean(abs(demand_err)<dem_tol | abs(p_E_vec-p_E_prev)<5*v_tol)>0.99 && ...
                 mean(abs(input_err)<dem_tol | abs(p_e_o_vec-p_e_o_prev)<5*v_tol)>0.99
@@ -260,6 +265,10 @@ for h=h_start:max_iter
     value_err_o(end) = entry_prob_o_all(:,end)'*final_val_o(1,:)'-c_of_e_vec(end);
 
     active = 1:max(trans_t-1,1);
+    if mod(h,10)==0
+        fprintf("green MIT h=%d complete after k=%d, mean |green entry error|=%g, mean |fossil entry error|=%g\n",...
+            h,k,mean(abs(value_err_n(active))),mean(abs(value_err_o(active))));
+    end
     if mean(abs(value_err_n(active))<5*dem_tol | m_entry_n(active)'<v_tol)>=0.95 && ...
             mean(abs(value_err_o(active))<5*dem_tol | m_entry_o(active)'<v_tol)>=0.95 && ...
             abs(sum(final_dist_n)-measure_vec_n(end))<dem_tol && ...
@@ -283,6 +292,15 @@ for h=h_start:max_iter
             measure_adjust_n,measure_adjust_o,demand_err_prev,input_err_prev,output_adjust,input_adjust);
     end
 end
+
+fprintf("green MIT finished at h=%d, k=%d\n",h,k);
+fprintf("demand error mean=%g max=%g; fuel error mean=%g max=%g\n",...
+    mean(abs(demand_err)),max(abs(demand_err)),mean(abs(input_err)),max(abs(input_err)));
+fprintf("green entry error mean=%g max=%g; fossil entry error mean=%g max=%g\n",...
+    mean(abs(value_err_n(active))),max(abs(value_err_n(active))),...
+    mean(abs(value_err_o(active))),max(abs(value_err_o(active))));
+fprintf("terminal measure gap green=%g, fossil=%g\n",...
+    sum(final_dist_n)-measure_vec_n(end),sum(final_dist_o)-measure_vec_o(end));
 
 entry_n_path = m_entry_n;
 entry_o_path = m_entry_o;
