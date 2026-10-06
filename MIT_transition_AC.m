@@ -654,15 +654,9 @@ for h=checkpoint_h_start:1:max_iter_measure
             trans_matrix_n    = sparse([state_if_adopt_y,state_if_naot_n_y],[state_if_adopt_x,state_if_naot_n_x]...
                 ,[values_of_adopt,values_of_naot],a_num_g*age_num,a_num_g*age_num);
 
-            %%% also those who are at the last period would die if they don't adopt to
-            %%% any technology and a new firm would enter with a random technology
-            %%% meaning for those states with the highest age the transition would be
-            %%% randomly to age 0 and tech in [0, a_max]
-            
-            trans_matrix_n((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = ...
-                repmat(a_prob_n_all(:,entry_prob_period)',a_num_g,1).*...
-                (1-exit_vec_n((age_num-1)*a_num_g+1:(age_num)*a_num_g));
-%             trans_matrix_n = sparse(trans_matrix_n);
+            %%% A plant that reaches the maximum age exits. Its mass is added
+            %%% to the exiting mass and is not replaced inside the transition.
+            trans_matrix_n((age_num-1)*a_num_g+1:age_num*a_num_g,:) = 0;
 
             p_conversion_o = p_conv_o_all_prev(:,j);
             
@@ -752,10 +746,10 @@ for h=checkpoint_h_start:1:max_iter_measure
             values_of_naot_o    = (p_of_naot_besideold_o.*stay_alive_besideold_o)';
             trans_matrix_o      = sparse([state_if_adopt_y,state_if_naot_o_y],[state_if_adopt_x,state_if_naot_o_x]...
                 ,[values_of_adopt_o,values_of_naot_o],a_num_g*age_num,a_num_g*age_num);
-    
-            trans_matrix_o((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = ...
-                repmat(a_prob_old,a_num_g,1).*(1-exit_vec_o((age_num-1)*a_num_g+1:(age_num)*a_num_g));
-%             trans_matrix_o = sparse(trans_matrix_o);
+
+            %%% A plant that reaches the maximum age exits. Its mass is added
+            %%% to the exiting mass and is not replaced inside the transition.
+            trans_matrix_o((age_num-1)*a_num_g+1:age_num*a_num_g,:) = 0;
             
             cap_old(j)    = dist_o * cap_contemp_old(:);
             conv_exit(j)  = sum(dist_o.*p_conversion_o');

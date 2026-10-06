@@ -64,8 +64,7 @@ policy_choice_n   = zeros(age_num*a_num_g,a_num_g);
 policy_choice_o   = zeros(age_num*a_num_g,a_num_g);
 
 
-newton_begin_h    = 10;     %%% from which h newton method should be used
-newton_end_h      = 40;     %%% till what h newton method should be used
+weight_adj_p      = 0.2;
 %%%%% these should be predefined for mex purposes
 
 trans_matrix_n   = sparse(age_num*a_num_g,age_num*a_num_g);
@@ -82,10 +81,6 @@ v_new_resh_o     = zeros(age_num,a_num_g);
 exit_vec_o       = zeros(age_num*a_num_g,'logical');
 
 
-p_E_prev_pre    = zeros(1,max_iter_measure);
-p_e_n_pre_pre   = zeros(1,max_iter_measure);
-p_e_o_pre_pre   = zeros(1,max_iter_measure);
-
 %%%%%
 
 %%%%%
@@ -99,6 +94,8 @@ p_e_o_pre_pre   = zeros(1,max_iter_measure);
 p_E         = 35;
 p_E_prev    = 35;
 dem_err_pre = 0;
+input_err_n_pre = 0;
+input_err_o_pre = 0;
 
 %%%% I think we need to have varying price of effort for the techs of
 %%%% course it can have an ifinite elasticity like the case of solar, 
@@ -137,44 +134,26 @@ v_of_old = pi_contemp_old;
 
 m_of_firms_new  = 1;
 m_of_firms_old  = 3;
-m_of_new_all    = zeros(max_iter_measure,1);
-m_of_old_all    = zeros(max_iter_measure,1);
 
 value_err_n_pre = 0;
 value_err_o_pre = 0;
-value_err_n_all = zeros(max_iter_measure,1);
-value_err_o_all = zeros(max_iter_measure,1);
-m_of_new_pre    = 0.9;
-m_of_old_pre    = 3.1;
+m_of_new_pre    = m_of_firms_new;
+m_of_old_pre    = m_of_firms_old;
 
-p_e_n_pre       = 1;
-p_e_o_pre       = 1;
-
-% price_ratio_n   = 0.9;  %%%% ratio of price of electricity to input
-% price_ratio_o   = 0.9;
-
-price_ratio_n_p = 0.9;  %%%% ratio of price of electricity to input in the previous period
-price_ratio_o_p = 0.9;
-price_ratio_n_q = 0.9;  %%%% ratio of price of electricity to input in the 2 previous period
-price_ratio_o_q = 0.9;
+p_e_n_pre       = p_e_n;
+p_e_o_pre       = p_e_o;
 
 
 %%%
-input_adjsut    = 0.3;         %%%% the maximum variation in input price
-output_adjsut   = 0.15/(max(e_n_eps,e_o_eps)); %%% max var in output prices
-measure_adj_n   = min(0.01/(e_n_eps),0.1); %%%% the maximum variation in newtech measure
-measure_adj_o   = min(0.01/(e_o_eps),0.1); %%%% the maximum variation in oldtech measure
-
-newton_m_find   = 0;
+measure_adj_n   = 0.1;
+measure_adj_o   = 0.1;
 
 %%
 for h=1:1:max_iter_measure
+    output_adjsut   = 0.2/(max(e_n_eps,e_o_eps));
+    input_adjsut_n  = 0.5;
+    input_adjsut_o  = 0.5;
     for k=1:1:max_iter_price
-        
-
-        
-        output_adjsut   = 0.15/(max(e_n_eps,e_o_eps))*(k<25) ...
-           + 1.5/(max(e_n_eps,e_o_eps))*(k>=25); %%% max var in output prices
         [eff_n_vec, cap_contemp_new, pi_n_mat] = static_solver(a_eff_new, p_E.*P_E_grid_norm, p_e_n.*p_e_n_grid_norm, alpha, fco_n, 1./a_grid_new(:));
         [eff_o_vec, cap_contemp_old, pi_o_mat] = static_solver(a_eff_old, p_E.*P_E_grid_norm, p_e_o.*p_e_o_grid_norm, alpha, fco_o, 1./a_grid_old(:));
         pi_contemp_new      = pi_n_mat';   % (age_num x a_num_g)
@@ -416,20 +395,15 @@ for h=1:1:max_iter_measure
             prob_of_naot_o(1:(age_num-1)*a_num_g)*(1-exo_exit);
         stay_alive_besideold_o              = (ones((age_num-1)*a_num_g,1)-temp_o);
         trans_matrix_o(state_if_naot_o)     = p_of_naot_besideold_o.*stay_alive_besideold_o;
-        
-        %%% also those who are at the last period would die if they don't adopt to
-        %%% any technology and a new firm would enter with a random technology
-        %%% meaning for those states with the highest age the transition would be
-        %%% randomly to age 0 and tech in [0, a_max]
-        
-        trans_matrix_n((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = ...
-                repmat(a_prob_new,a_num_g,1).*(1-exit_vec_n((age_num-1)*a_num_g+1:(age_num)*a_num_g,1));
 
-        trans_matrix_o((age_num-1)*a_num_g+1:age_num*a_num_g,1:a_num_g) = ...
-                repmat(a_prob_old,a_num_g,1).*(1-exit_vec_o((age_num-1)*a_num_g+1:(age_num)*a_num_g,1));
+        %%% A plant that reaches the maximum age exits. That mass is part of
+        %%% the exiting mass below; it is not replaced inside the transition.
+        %%% Steady-state replacement is the entrant distribution times the
+        %%% mass of every exit.
+        max_age_states = (age_num-1)*a_num_g+1:age_num*a_num_g;
+        trans_matrix_n(max_age_states,:) = 0;
+        trans_matrix_o(max_age_states,:) = 0;
         
-        dist_n          = m_of_firms_new*ones(1,age_num*a_num_g)/(age_num*a_num_g);
-        dist_o          = m_of_firms_old*ones(1,age_num*a_num_g)/(age_num*a_num_g);
         dist_ent_new    = zeros(1,age_num*a_num_g);
         dist_ent_new(1:a_num_g) = a_prob_new;
 
@@ -441,24 +415,8 @@ for h=1:1:max_iter_measure
             dist_n = zeros(1,age_num*a_num_g);
             exit_n = 0;
         else
-            for j=1:1:max_iter
-                dist_new_n    = dist_n *trans_matrix_n;
-                exit_n        = sum(dist_n-dist_new_n);
-                dist_new_n    = dist_new_n + (m_of_firms_new-sum(dist_new_n))*dist_ent_new;
-                error       = max(abs(dist_new_n-dist_n));
-                if error<dist_tol
-                    fprintf("distribution of new converged in %4.1f periods\n",j);
-                    break;
-                end
-                dist_n        = dist_new_n;
-
-                if sum(isnan(dist_n),"all")>1
-                    fprintf("there is nan\n at %2.1f",j);
-                    break;
-                    
-                end
-            
-            end
+            [dist_n,exit_n] = stationary_distribution(trans_matrix_n,...
+                m_of_firms_new,dist_ent_new,dist_tol,max_iter,"new");
         end
 
         if all_old_values_negative
@@ -466,24 +424,8 @@ for h=1:1:max_iter_measure
             dist_o = zeros(1,age_num*a_num_g);
             exit_o = 0;
         else
-            for j=1:1:max_iter
-                dist_new_o    = dist_o *trans_matrix_o;
-                exit_o        = sum(dist_o-dist_new_o);
-                dist_new_o    = dist_new_o + (m_of_firms_old-sum(dist_new_o))*dist_ent_old;
-                error       = max(abs(dist_new_o-dist_o));
-                if error<dist_tol
-                    fprintf("distribution of old converged in %4.1f periods\n",j);
-                    break;
-                end
-                dist_o        = dist_new_o;
-
-                if sum(isnan(dist_o),"all")>1
-                    fprintf("there is nan\n at %2.1f",j);
-                    break;
-                    
-                end
-            
-            end
+            [dist_o,exit_o] = stationary_distribution(trans_matrix_o,...
+                m_of_firms_old,dist_ent_old,dist_tol,max_iter,"old");
         end
         
         total_cap   = dist_n * cap_contemp_new(:) + dist_o * cap_contemp_old(:);
@@ -493,76 +435,25 @@ for h=1:1:max_iter_measure
             suply_price = p_E+100;
         end
         
-        demand_err  = suply_price - p_E;
+        fuel_n = (max(dist_n*eff_n_vec(:),0)/e0_n).^(1/e_n_eps);
+        fuel_o = (max(dist_o*eff_o_vec(:),0)/e0_o).^(1/e_o_eps);
+        [p_E,p_E_prev,dem_err_pre,output_adjsut,demand_err,step_E] = ...
+            transition_price_step(p_E,p_E_prev,suply_price,dem_err_pre,...
+            output_adjsut,weight_adj_p);
+        [p_e_n,p_e_n_pre,input_err_n_pre,input_adjsut_n,input_err_n,step_n] = ...
+            transition_price_step(p_e_n,p_e_n_pre,fuel_n,input_err_n_pre,...
+            input_adjsut_n,weight_adj_p);
+        [p_e_o,p_e_o_pre,input_err_o_pre,input_adjsut_o,input_err_o,step_o] = ...
+            transition_price_step(p_e_o,p_e_o_pre,fuel_o,input_err_o_pre,...
+            input_adjsut_o,weight_adj_p);
 
-        if abs(demand_err)>100
-            demand_err = sign(demand_err)*100;
-        end
-        
-        
-       
-        p_E     = p_E + 0.1*output_adjsut*demand_err/(min(ceil(k/10),20));
-
-        if sign(dem_err_pre)~=sign(demand_err)
-            p_E = (p_E_prev + p_E)/2;
-        end
-
-        price_ratio_n = p_E/p_e_n;
-        price_ratio_o = p_E/p_e_o;
-
-        
-        p_e_n   = (dist_n * eff_n_vec(:)/e0_n).^(1/e_n_eps);
-        
-
-        
-        p_e_o   = (dist_o * eff_o_vec(:)/e0_o).^(1/e_o_eps);
-        
-
-
-        % if abs(p_e_o_pre-p_e_o)>input_adjsut/(ceil(k/10))
-        kk      = k*(k<1000) + 1000*(k>=1000); 
-        input_adjsut_of_o   = 0.1*input_adjsut/(ceil(kk/10))*(-p_e_o_pre+p_e_o);
-        p_e_o   = p_e_o_pre*1+input_adjsut_of_o;
-        % end
-        % if abs(p_e_n_pre-p_e_n)>input_adjsut/(ceil(k/10))
-        input_adjsut_of_n   = 0.1*input_adjsut/(ceil(kk/10))*(-p_e_n_pre+p_e_n);
-        p_e_n   = p_e_n_pre*1+input_adjsut_of_n;
-        % end
-
-        if sign(price_ratio_n-price_ratio_n_p)~=sign(price_ratio_n_p-price_ratio_n_q)
-            p_e_n = (p_e_n_pre + p_e_n)/2;
-        end
-
-        if sign(price_ratio_o-price_ratio_o_p)~=sign(price_ratio_o_p-price_ratio_o_q)
-            p_e_o = (p_e_o_pre + p_e_o)/2;
-        end
-
-%         if (dist_n * eff_n_vec(:))<0
-%             p_e_n   = p_e_n*0.9;
-%         end
-% 
-%         if (dist_o * eff_o_vec(:))<0
-%             p_e_o   = p_e_o*0.9;
-%         end
-
-        if (abs(demand_err)<dem_tol || (abs(p_E_prev-p_E)/p_E<5*v_tol && k>max_iter_price/5))...
-                && (abs(input_adjsut_of_o/p_e_o)<5*v_tol) && (abs(input_adjsut_of_n/p_e_n)<5*v_tol)
+        if (abs(demand_err)<dem_tol || (step_E<5*v_tol && k>max_iter_price/5)) && ...
+                (abs(input_err_n)<dem_tol || (step_n<5*v_tol && k>max_iter_price/5)) && ...
+                (abs(input_err_o)<dem_tol || (step_o<5*v_tol && k>max_iter_price/5))
             fprintf("demand and supply has converged and the prices is ..." + ...
                 "%2.4f in %2.1f periods\n",p_E,k);
             break;
         end
-
-        p_E_prev    = p_E;
-        dem_err_pre = demand_err;
-
-        
-        p_e_o_pre           = p_e_o;
-        p_e_n_pre           = p_e_n;
-        price_ratio_n_q     = price_ratio_n_p;
-        price_ratio_o_q     = price_ratio_o_p;
-        price_ratio_n_p     = price_ratio_n;
-        price_ratio_o_p     = price_ratio_o;
-        
 
     end
 
@@ -573,93 +464,29 @@ for h=1:1:max_iter_measure
 %                                 %%%% different entry cost for techs
 %     value_err_o   = max(a_prob_old*(v_new_resh_o(1,:))'-c_of_e,-1/(0.5*measure_adj_o));
 
-    value_err_n   = a_prob_new*(v_new_resh_n(1,:))'-c_e_new; %%% let's try 
-                                %%%% different entry cost for techs
+    value_err_n   = a_prob_new*(v_new_resh_n(1,:))'-c_e_new;
     value_err_o   = a_prob_old*(v_new_resh_o(1,:))'-c_of_e;
 
-    if abs(value_err_n)>100
-        value_err_n = sign(value_err_n)*100;
-    end
-    if abs(value_err_o)>100
-        value_err_o = sign(value_err_o)*100;
-    end
-
-    hh = floor(log(h+2));
-
-    newton_m_find = 0;
-    if (h>newton_begin_h)&&(h<newton_end_h)
-        if ((sign(value_err_n)~=sign(value_err_n_pre))||(sign(value_err_n)~=sign(value_err_n_all(h-2)))) ...
-                &&((sign(value_err_o)~=sign(value_err_o_pre))||(sign(value_err_o)~=sign(value_err_o_all(h-2))))
-            newton_m_find = 1;
-        end
-    end
-
 
     
 
 
     
 
-    if ((abs(value_err_n)<dem_tol||m_of_firms_new<v_tol) && ...
-            (abs(value_err_o)<dem_tol||m_of_firms_old<v_tol))||...
-            (abs(1-m_of_new_pre/m_of_firms_new)<1*v_tol && ...
-            abs(1-m_of_old_pre/m_of_firms_old)<1*v_tol...
-            && h>max_iter_measure/10)
+    if (abs(value_err_n)<dem_tol || m_of_firms_new<v_tol) && ...
+            (abs(value_err_o)<dem_tol || m_of_firms_old<v_tol)
         fprintf("entry and exit have converged and E(v_new) and E(v_old) ..." + ...
             "is %2.4f and %2.4f in %2.1f periods \n"...
             ,value_err_n,value_err_o,h);
         break;
     end
-   
-    % save solar_gas_test
-    
-    if h>1
-        value_err_n_all(h-1) = value_err_n_pre;
-        value_err_o_all(h-1) = value_err_o_pre;
-        m_of_new_all(h-1)    = m_of_new_pre;
-        m_of_old_all(h-1)    = m_of_old_pre;
-    end
-    value_err_n_pre = value_err_n;
-    value_err_o_pre = value_err_o;
-    value_err_n_all(h) = value_err_n;
-    value_err_o_all(h) = value_err_o;
-    m_of_new_all(h)    = m_of_firms_new;
-    m_of_old_all(h)    = m_of_firms_old;
-    
-    m_of_new_pre    = m_of_firms_new;
-    m_of_old_pre    = m_of_firms_old;
-    p_E_prev_pre(h) = p_E_prev;
-    p_e_n_pre_pre(h)= p_e_n_pre;
-    p_e_o_pre_pre(h)= p_e_o_pre;
 
-    if newton_m_find==0
-        
-        m_of_firms_new = m_of_firms_new*(1+min(0.5*measure_adj_n*abs(value_err_n)/hh,0.2)/hh*sign(value_err_n));
-               
-        m_of_firms_old = m_of_firms_old*(1+min(0.5*measure_adj_o*abs(value_err_o)/hh,0.2)/hh*sign(value_err_o));
-        
-    else
-        val_err_n1 = value_err_n;
-        val_err_o1 = value_err_o;
-        if (sign(value_err_n)~=sign(value_err_n_all(h-1)))
-            val_err_n2  = value_err_n_all(h-1);
-            M_prev_n    = m_of_new_all(h-1);
-        else
-            val_err_n2  = value_err_n_all(h-2);
-            M_prev_n    = m_of_new_all(h-2);
-        end
-        if (sign(value_err_o)~=sign(value_err_o_all(h-1)))
-            val_err_o2  = value_err_o_all(h-1);
-            M_prev_o    = m_of_old_all(h-1);
-        else
-            val_err_o2  = value_err_o_all(h-2);
-            M_prev_o    = m_of_old_all(h-2);
-        end
-        m_of_firms_new  = abs(val_err_n1)/abs(val_err_n1-val_err_n2)*M_prev_n+...
-            abs(val_err_n2)/abs(val_err_n1-val_err_n2)*m_of_firms_new;
-        m_of_firms_old  = abs(val_err_o1)/abs(val_err_o1-val_err_o2)*M_prev_o+...
-            abs(val_err_o2)/abs(val_err_o1-val_err_o2)*m_of_firms_old;
-    end
+    [m_of_firms_new,m_of_new_pre,value_err_n_pre,measure_adj_n] = ...
+        transition_entry_step(m_of_firms_new,m_of_new_pre,value_err_n,...
+        value_err_n_pre,measure_adj_n,h,v_tol);
+    [m_of_firms_old,m_of_old_pre,value_err_o_pre,measure_adj_o] = ...
+        transition_entry_step(m_of_firms_old,m_of_old_pre,value_err_o,...
+        value_err_o_pre,measure_adj_o,h,v_tol);
 end
 
 trans_prob_n    = sum(policy_choice_n.*repmat(prob_matrix_new,age_num,1),2);
@@ -668,4 +495,150 @@ trans_prob_o    = sum(policy_choice_o.*repmat(prob_matrix_old,age_num,1),2);
 eff_n_final     = eff_n_vec(:);
 eff_o_final     = eff_o_vec(:);
 
+end
+
+function [price,previous,error_previous,adjust,err,step] = ...
+        transition_price_step(price,previous,implied,error_previous,adjust,weight)
+price_before = price;
+if price_before>0 && implied>0 && abs(implied-price_before)/price_before>0.5
+    implied = exp((1-weight)*log(price_before)+weight*log(implied));
+end
+err = max(min(implied-price_before,25),-25);
+tentative = price_before+0.1*adjust*err;
+oscill = sign(err)~=sign(error_previous);
+den = abs(err)+abs(error_previous);
+if oscill && den>0
+    price = (price_before*abs(error_previous)+previous*abs(err))/den;
+    adjust = adjust*0.95;
+else
+    price = tentative;
+end
+price = max(price,sqrt(eps));
+step = abs(price-price_before);
+previous = price;
+error_previous = err;
+end
+
+function [mass,previous,error_previous,adjust] = ...
+        transition_entry_step(mass,previous,err,error_previous,adjust,h,tol)
+lag = mass;
+if mass==0 && err>0
+    mass = max(10*tol,1e-8);
+end
+step = 0.1*(abs(err)>50)+0.2*(abs(err)<=50)+0.2*(abs(err)<=1);
+mass = mass*(1+step*adjust*err);
+if h>1 && sign(err)~=sign(error_previous)
+    den = abs(err)+abs(error_previous);
+    mass = (lag*abs(error_previous)+previous*abs(err))/max(den,sqrt(eps));
+    adjust = adjust*0.95;
+end
+mass = max(mass,0);
+previous = lag;
+error_previous = err;
+end
+
+function [dist,exit_mass] = stationary_distribution(transition,total_measure,entrant,tol,max_iter,tech_name)
+% Stationary distribution with every exit, including maximum age, replaced
+% by a draw from the entrant distribution. The direct solve is checked
+% against the transition; multiplication is used only when it is inaccurate.
+n_state = size(transition,2);
+dist = zeros(1,n_state);
+exit_mass = 0;
+if ~(total_measure>0)
+    return
+end
+row_deficit = 1-full(sum(transition,2));
+valid_transition = all(row_deficit>=-1e-10) && all(isfinite(row_deficit));
+if valid_transition
+    row_deficit = max(row_deficit,0);
+    kernel = transition+sparse(row_deficit)*sparse(entrant);
+    [unit,direct_ok] = invariant_from_transition(kernel,tol);
+else
+    direct_ok = false;
+    kernel = transition;
+end
+if direct_ok
+    fprintf("distribution of %s solved directly\n",tech_name);
+else
+    [unit,iter_ok,precision,iterations] = invariant_by_multiplication(...
+        kernel,entrant,tol,max_iter);
+    if iter_ok
+        fprintf("distribution of %s converged in %4.1f periods\n",tech_name,iterations);
+    else
+        fprintf("distribution of %s stopped at precision %g after %4.1f periods\n",...
+            tech_name,precision,iterations);
+    end
+end
+dist = total_measure*unit;
+exit_mass = sum(dist-dist*transition);
+end
+
+function [dis,ok] = invariant_from_transition(TMsp,tol)
+nstate = size(TMsp,1);
+dis = ones(1,nstate)/nstate;
+ok = false;
+if size(TMsp,2)~=nstate || any(~isfinite(nonzeros(TMsp)))
+    return
+end
+A = TMsp'-speye(nstate);
+A(end,:) = 1;
+b = zeros(nstate,1);
+b(end) = 1;
+try
+    pi_col = A\b;
+catch
+    return
+end
+if ~(isnumeric(pi_col) && isvector(pi_col) && numel(pi_col)==nstate) || ...
+        any(~isfinite(pi_col))
+    return
+end
+pi_col = real(pi_col);
+if any(pi_col<-1e-8)
+    return
+end
+pi_col = max(pi_col,0);
+mass = sum(pi_col);
+if ~(mass>0) || ~isfinite(mass)
+    return
+end
+dis = (pi_col/mass)';
+residual = max(abs(dis*TMsp-dis));
+row_error = max(abs(full(sum(TMsp,2))-1));
+ok = residual<=max(10*tol,1e-10) && row_error<=max(10*tol,1e-10);
+end
+
+function [dis,ok,precision,iterations] = invariant_by_multiplication(TMsp,entrant,tol,max_iter)
+nstate = size(TMsp,2);
+dis = ones(1,nstate)/nstate;
+if abs(sum(entrant)-1)<=sqrt(eps) && all(entrant>=0)
+    dis = entrant;
+end
+ok = false;
+precision = inf;
+iterations = max_iter;
+for ii=1:max_iter
+    survived = dis*TMsp;
+    if any(~isfinite(survived))
+        precision = inf;
+        iterations = ii;
+        return
+    end
+    dis_new = survived+(1-sum(survived))*entrant;
+    dis_new = max(dis_new,0);
+    mass = sum(dis_new);
+    if ~(mass>0) || ~isfinite(mass)
+        precision = inf;
+        iterations = ii;
+        return
+    end
+    dis_new = dis_new/mass;
+    precision = max(abs(dis_new-dis));
+    iterations = ii;
+    dis = dis_new;
+    if precision<tol
+        ok = true;
+        return
+    end
+end
 end
