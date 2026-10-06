@@ -14,8 +14,8 @@ function [trans_prob_o_all,v_new_resh_o_all,dist_o_all,measure_vec_o,p_e_o_vec,i
 % workers; 0 or 1 runs the static loop serially. Empty keeps the default.
 
 age_g = (0:age_num-1)';
-P_E_grid_norm = P_E_grid_norm(:);
-[solar_cap_norm,~] = solar_availability_grid(P_E_grid_norm,solar_cap_mean,solar_price_corr);
+P_E_grid_norm       = P_E_grid_norm(:);
+[solar_cap_norm,~]  = solar_availability_grid(P_E_grid_norm,solar_cap_mean,solar_price_corr);
 
 [a_grid_o_all,a_prob_o_all,a_grid_entry_o_all,a_prob_entry_o_all,...
     fco_o_vec,c_of_a_vec,c_of_e_vec,e0_o_vec,e_o_eps_vec,rho_p_o_vec,sigma_p_o_vec] = ...
@@ -28,95 +28,95 @@ a_grid_n_all = zeros(a_num_g,trans_t);
 a_prob_n_all = zeros(a_num_g,trans_t);
 for tt=1:trans_t
     x_new = norminv(linspace(0,1,a_num_g+2),mu_new_vec(tt),sigma_new_vec(tt));
-    a_grid_n_all(:,tt) = x_new(2:a_num_g+1)';
+    a_grid_n_all(:,tt)  = x_new(2:a_num_g+1)';
     cdf_new = normcdf(x_new,mu_new_vec(tt),sigma_new_vec(tt));
-    probability = (cdf_new(2:a_num_g+1)-cdf_new(1:a_num_g))';
-    a_prob_n_all(:,tt) = probability/sum(probability);
+    probability         = (cdf_new(2:a_num_g+1)-cdf_new(1:a_num_g))';
+    a_prob_n_all(:,tt)  = probability/sum(probability);
 end
 
-prob_mat_n_all = cell(trans_t,1);
-prob_mat_o_all = cell(trans_t,1);
+prob_mat_n_all  = cell(trans_t,1);
+prob_mat_o_all  = cell(trans_t,1);
 entry_prob_n_all = zeros(a_num_g,trans_t);
 entry_prob_o_all = zeros(a_num_g,trans_t);
 for tt=1:trans_t
     next = min(tt+1,trans_t);
-    prob_mat_n_all{tt} = auto_corr_prob_transition2(a_grid_n_all(:,tt),...
+    prob_mat_n_all{tt}      = auto_corr_prob_transition2(a_grid_n_all(:,tt),...
         a_prob_n_all(:,next),rho,a_grid_n_all(:,next));
-    prob_mat_o_all{tt} = auto_corr_prob_transition2(a_grid_o_all(:,tt),...
+    prob_mat_o_all{tt}      = auto_corr_prob_transition2(a_grid_o_all(:,tt),...
         a_prob_o_all(:,next),rho,a_grid_o_all(:,next));
-    entry_prob_n_all(:,tt) = a_prob_n_all(:,next);
-    entry_prob_o_all(:,tt) = map_distribution(a_grid_entry_o_all(:,next),...
+    entry_prob_n_all(:,tt)  = a_prob_n_all(:,next);
+    entry_prob_o_all(:,tt)  = map_distribution(a_grid_entry_o_all(:,next),...
         a_prob_entry_o_all(:,next),a_grid_o_all(:,next));
 end
 transition_address = precompute_transition_addresses(a_num_g,age_num);
 
-p_e_grid_norm_all = cell(trans_t,1);
-dlog_weight_pe_all = cell(trans_t,1);
+p_e_grid_norm_all   = cell(trans_t,1);
+dlog_weight_pe_all  = cell(trans_t,1);
 for tt=1:trans_t
     p_e_grid_norm_all{tt} = p_input_grid(10,1,sigma_p_o_vec(tt),rho_p_o_vec(tt));
     dlog_weight_pe_all{tt} = log_scale_weight_derivative(p_e_grid_norm_all{tt});
 end
 dlog_weight_PE = log_scale_weight_derivative(P_E_grid_norm);
 
-p_E_vec = linspace(init_p_E,final_p_E,trans_t);
-p_E_prev = p_E_vec;
-p_e_o_vec = linspace(init_p_e_o,fin_p_e_o,trans_t);
-p_e_o_prev = p_e_o_vec;
-d0_vec = d_0*(1+d0_gr).^(1:trans_t);
+p_E_vec     = linspace(init_p_E,final_p_E,trans_t);
+p_E_prev    = p_E_vec;
+p_e_o_vec   = linspace(init_p_e_o,fin_p_e_o,trans_t);
+p_e_o_prev  = p_e_o_vec;
+d0_vec      = d_0*(1+d0_gr).^(1:trans_t);
 
-dist_n_all = zeros(trans_t,age_num*a_num_g);
-dist_o_all = zeros(trans_t,age_num*a_num_g);
+dist_n_all  = zeros(trans_t,age_num*a_num_g);
+dist_o_all  = zeros(trans_t,age_num*a_num_g);
 measure_vec_n = zeros(1,trans_t);
 measure_vec_o = zeros(1,trans_t);
-v_new_resh_n_all = zeros(age_num,a_num_g,trans_t);
-v_new_resh_o_all = zeros(age_num,a_num_g,trans_t);
+v_new_resh_n_all    = zeros(age_num,a_num_g,trans_t);
+v_new_resh_o_all    = zeros(age_num,a_num_g,trans_t);
 policy_choice_n_all = zeros(age_num*a_num_g,a_num_g,trans_t);
 policy_choice_o_all = zeros(age_num*a_num_g,a_num_g,trans_t);
-exit_vec_n_all = zeros(age_num*a_num_g,trans_t);
-exit_vec_o_all = zeros(age_num*a_num_g,trans_t);
-trans_prob_n_all = zeros(age_num*a_num_g,trans_t);
-trans_prob_o_all = zeros(age_num*a_num_g,trans_t);
+exit_vec_n_all      = zeros(age_num*a_num_g,trans_t);
+exit_vec_o_all      = zeros(age_num*a_num_g,trans_t);
+trans_prob_n_all    = zeros(age_num*a_num_g,trans_t);
+trans_prob_o_all    = zeros(age_num*a_num_g,trans_t);
 input_all_o = init_input_o*ones(trans_t+1,1);
-cap_old = zeros(1,trans_t);
-cap_new = zeros(1,trans_t);
-adopt_n_path = zeros(1,trans_t);
-tax_revenue_path = zeros(1,trans_t);
+cap_old     = zeros(1,trans_t);
+cap_new     = zeros(1,trans_t);
+adopt_n_path        = zeros(1,trans_t);
+tax_revenue_path    = zeros(1,trans_t);
 
 m_entry_n = initial_entry_path(init_dist_n,final_dist_n,exit_n_final,trans_t);
 m_entry_o = initial_entry_path(init_dist_o,final_dist_o,exit_o_final,trans_t);
-m_entry_n_prev = m_entry_n;
-m_entry_o_prev = m_entry_o;
+m_entry_n_prev  = m_entry_n;
+m_entry_o_prev  = m_entry_o;
 value_err_n_prev = zeros(trans_t,1);
 value_err_o_prev = zeros(trans_t,1);
 measure_adjust_n = 0.02*ones(1,trans_t);
 measure_adjust_o = 0.02*ones(1,trans_t);
 demand_err_prev = ones(1,trans_t);
-input_err_prev = ones(1,trans_t);
-output_adjust = 0.1/max(e_p,sqrt(eps))*ones(1,trans_t);
-input_adjust = 0.2*ones(1,trans_t);
+input_err_prev  = ones(1,trans_t);
+output_adjust   = 0.1/max(e_p,sqrt(eps))*ones(1,trans_t);
+input_adjust    = 0.2*ones(1,trans_t);
 static_anchor_o = cell(trans_t,1);
-delta_p_thres = 0.02; %%% Price adjustment threshold for static anchor solver.
+delta_p_thres   = 0.02; %%% Price adjustment threshold for static anchor solver.
 
 checkpoint_file = checkpoint_filename(checkpoint_name);
 h_start = 1;
 if strlength(checkpoint_file)>0 && isfile(checkpoint_file)
-    S = load(checkpoint_file);
-    p_E_vec = checkpoint_value(S,"p_E_vec",p_E_vec);
-    p_E_prev = checkpoint_value(S,"p_E_prev",p_E_prev);
-    p_e_o_vec = checkpoint_value(S,"p_e_o_vec",p_e_o_vec);
-    p_e_o_prev = checkpoint_value(S,"p_e_o_prev",p_e_o_prev);
-    m_entry_n = checkpoint_value(S,"m_entry_n",m_entry_n);
-    m_entry_o = checkpoint_value(S,"m_entry_o",m_entry_o);
-    m_entry_n_prev = checkpoint_value(S,"m_entry_n_prev",m_entry_n_prev);
-    m_entry_o_prev = checkpoint_value(S,"m_entry_o_prev",m_entry_o_prev);
+    S           = load(checkpoint_file);
+    p_E_vec     = checkpoint_value(S,"p_E_vec",p_E_vec);
+    p_E_prev    = checkpoint_value(S,"p_E_prev",p_E_prev);
+    p_e_o_vec   = checkpoint_value(S,"p_e_o_vec",p_e_o_vec);
+    p_e_o_prev  = checkpoint_value(S,"p_e_o_prev",p_e_o_prev);
+    m_entry_n   = checkpoint_value(S,"m_entry_n",m_entry_n);
+    m_entry_o   = checkpoint_value(S,"m_entry_o",m_entry_o);
+    m_entry_n_prev  = checkpoint_value(S,"m_entry_n_prev",m_entry_n_prev);
+    m_entry_o_prev  = checkpoint_value(S,"m_entry_o_prev",m_entry_o_prev);
     value_err_n_prev = checkpoint_value(S,"value_err_n_prev",value_err_n_prev);
     value_err_o_prev = checkpoint_value(S,"value_err_o_prev",value_err_o_prev);
     measure_adjust_n = checkpoint_value(S,"measure_adjust_n",measure_adjust_n);
     measure_adjust_o = checkpoint_value(S,"measure_adjust_o",measure_adjust_o);
     demand_err_prev = checkpoint_value(S,"demand_err_prev",demand_err_prev);
-    input_err_prev = checkpoint_value(S,"input_err_prev",input_err_prev);
-    output_adjust = checkpoint_value(S,"output_adjust",output_adjust);
-    input_adjust = checkpoint_value(S,"input_adjust",input_adjust);
+    input_err_prev  = checkpoint_value(S,"input_err_prev",input_err_prev);
+    output_adjust   = checkpoint_value(S,"output_adjust",output_adjust);
+    input_adjust    = checkpoint_value(S,"input_adjust",input_adjust);
     if isfield(S,"h_start"), h_start = S.h_start; end
 end
 
@@ -125,6 +125,9 @@ if nargin<51 || isempty(static_solver_workers)
     static_solver_workers = 4*(trans_t>=8);
 end
 for h=h_start:max_iter
+    input_adjust    = 0.2*ones(1,trans_t);
+    output_adjust   = 0.1/max(e_p,sqrt(eps))*ones(1,trans_t);
+
     for k=1:max_iter_price
         static_result_n = cell(trans_t,1);
         static_result_o = cell(trans_t,1);
@@ -211,32 +214,32 @@ for h=h_start:max_iter
                 (max(input_old,0)/max(input_all_o(tt),sqrt(eps)))^penalty_o)^(1/e_o_eps_vec(tt));
         end
 
-        total_cap = cap_old+cap_new;
-        total_cap_lag = [d_0/(init_p_E^e_p),total_cap(1:end-1)];
-        supply_price = (d0_vec./max(total_cap.*...
+        total_cap       = cap_old+cap_new;
+        total_cap_lag   = [d_0/(init_p_E^e_p),total_cap(1:end-1)];
+        supply_price    = (d0_vec./max(total_cap.*...
             (total_cap./max(total_cap_lag,sqrt(eps))).^penalty_p,sqrt(eps))).^(1/e_p);
-        demand_err = max(min(supply_price-p_E_vec,25),-25);
-        p_E_tentative = p_E_vec+0.1*output_adjust.*demand_err;
-        oscill_E = sign(demand_err)~=sign(demand_err_prev);
-        den_E = max(abs(demand_err)+abs(demand_err_prev),sqrt(eps));
+        demand_err      = max(min(supply_price-p_E_vec,25),-25);
+        p_E_tentative   = p_E_vec+0.1*output_adjust.*demand_err;
+        oscill_E        = sign(demand_err)~=sign(demand_err_prev);
+        den_E           = max(abs(demand_err)+abs(demand_err_prev),sqrt(eps));
         p_E_tentative(oscill_E) = (p_E_vec(oscill_E).*abs(demand_err_prev(oscill_E))+...
             p_E_prev(oscill_E).*abs(demand_err(oscill_E)))./den_E(oscill_E);
-        output_adjust = output_adjust.*(0.95.^double(oscill_E));
+        output_adjust   = output_adjust.*(0.95.^double(oscill_E));
 
-        input_err = max(min(input_implied-p_e_o_vec,25),-25);
+        input_err   = max(min(input_implied-p_e_o_vec,25),-25);
         p_e_tentative = p_e_o_vec+0.1*input_adjust.*input_err;
-        oscill_e = sign(input_err)~=sign(input_err_prev);
-        den_e = max(abs(input_err)+abs(input_err_prev),sqrt(eps));
+        oscill_e    = sign(input_err)~=sign(input_err_prev);
+        den_e       = max(abs(input_err)+abs(input_err_prev),sqrt(eps));
         p_e_tentative(oscill_e) = (p_e_o_vec(oscill_e).*abs(input_err_prev(oscill_e))+...
             p_e_o_prev(oscill_e).*abs(input_err(oscill_e)))./den_e(oscill_e);
         input_adjust = input_adjust.*(0.95.^double(oscill_e));
 
-        p_E_prev = p_E_vec;
-        p_e_o_prev = p_e_o_vec;
-        p_E_vec = max(p_E_tentative,sqrt(eps));
-        p_e_o_vec = max(p_e_tentative,sqrt(eps));
+        p_E_prev    = p_E_vec;
+        p_e_o_prev  = p_e_o_vec;
+        p_E_vec     = max(p_E_tentative,sqrt(eps));
+        p_e_o_vec   = max(p_e_tentative,sqrt(eps));
         demand_err_prev = demand_err;
-        input_err_prev = input_err;
+        input_err_prev  = input_err;
         if mod(k,50)==0
             fprintf("green MIT h=%d, k=%d, mean |demand error|=%g, mean |fuel error|=%g\n",...
                 h,k,mean(abs(demand_err)),mean(abs(input_err)));
