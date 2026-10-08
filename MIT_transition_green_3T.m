@@ -94,8 +94,8 @@ for bb=1:3, tech{bb}.value_err = zeros(T,1); end
 
 for h=h_start:common.max_iter
     if ~(h==h_start && k_start>1)
-        output_adjust(:) = 0.1/max(common.e_p,sqrt(eps));
-        for bb=1:2, tech{bb}.input_adjust(:)=0.5; end
+        output_adjust(:) = 0.2/max(common.e_p,sqrt(eps));
+        for bb=1:2, tech{bb}.input_adjust(:)=0.25; end
     end
     k_first = 1;
     if h==h_start, k_first = k_start; end
@@ -455,7 +455,7 @@ den = max(abs(error(active)')+abs(error_previous(active)'),sqrt(eps));
 idx = active(oscill(active));
 path(idx) = (lag(idx).*abs(error_previous(idx)')+...
     previous(idx).*abs(error(idx)'))./den(oscill(active));
-adjust = adjust.*(0.95.^double(oscill));
+adjust = adjust.*(0.99.^double(oscill));
 path(active) = max(path(active),0);
 previous = lag;
 end
@@ -466,7 +466,7 @@ oscill = sign(error)~=sign(error_previous);
 den = max(abs(error)+abs(error_previous),sqrt(eps));
 tentative(oscill) = (path(oscill).*abs(error_previous(oscill))+...
     previous(oscill).*abs(error(oscill)))./den(oscill);
-adjust = adjust.*(0.95.^double(oscill));
+adjust = adjust.*(0.99.^double(oscill));
 previous = path;
 path = max(tentative,sqrt(eps));
 error_previous = error;
