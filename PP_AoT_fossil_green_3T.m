@@ -37,7 +37,8 @@ common_ss = struct("a_grow",C.a_grow,"alpha",C.alpha,"beta",C.beta,...
     "age_num",age_num,"max_iter",C.max_iter,"v_tol",C.v_tol,...
     "dist_tol",C.dist_tol,"dem_tol",C.dem_tol,"age_reduc",C.age_reduc,...
     "adoption_smoothing",C.adoption_smoothing,...
-    "P_E_grid_norm",C.P_E_grid_norm,"p_E_guess",C.p_E(end));
+    "P_E_grid_norm",C.P_E_grid_norm,"p_E_guess",C.p_E(end),...
+    "checkpoint_name","checkpoint_ss_coal_gas_green");
 
 coal_terminal = terminal_tech(coal_path);
 gas_terminal = terminal_tech(gas_path);
@@ -77,6 +78,7 @@ try
     load transition_coal_gas_green_baseline baseline_result three_tech_mit_version
     if three_tech_mit_version~=1, error("Outdated three-tech transition."); end
 catch
+    common.checkpoint_name = "checkpoint_coal_gas_green_baseline";
     baseline_result = MIT_transition_green_3T(coal,gas,green,common);
     three_tech_mit_version = 1;
     save transition_coal_gas_green_baseline baseline_result three_tech_mit_version
@@ -94,6 +96,7 @@ for pp=1:numel(subsidy_cases)
     green_policy = green;
     green_policy.entry_cost = max(green.entry_cost-subsidy,0);
     green_policy.adopt_cost = max(green.adopt_cost-subsidy,0);
+    common.checkpoint_name = "checkpoint_coal_gas_green_"+subsidy_cases(pp).name;
     policy = MIT_transition_green_3T(coal,gas,green_policy,common);
     summary = policy_summary(policy,common);
     subsidy_outlay = sum(subsidy.*(policy.green.entry+policy.green.adopt_path));
@@ -120,6 +123,7 @@ for pp=1:numel(tax_cases)
     active = 1:tax_cases(pp).duration;
     coal_policy.tax(active) = tax_cases(pp).rate*coal.init_price;
     gas_policy.tax(active) = tax_cases(pp).rate*gas.init_price;
+    common.checkpoint_name = "checkpoint_coal_gas_green_"+tax_cases(pp).name;
     policy = MIT_transition_green_3T(coal_policy,gas_policy,green,common);
     summary = policy_summary(policy,common);
     higher_electricity_cost = sum(max(summary.expenditure-baseline.expenditure,0));

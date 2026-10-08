@@ -47,9 +47,41 @@ value_err_prev = [0,0,0];
 entry_adjust = 0.02*ones(1,3);
 anchor_coal = [];
 anchor_gas = [];
+checkpoint_file = checkpoint_filename(field_or(common,"checkpoint_name",""));
+use_checkpoint = strlength(checkpoint_file)>0;
+checkpoint_freq = 50;
+h_start = 1;
+k_start = 1;
+if use_checkpoint && isfile(checkpoint_file)
+    try
+        loaded = load(checkpoint_file,"checkpoint");
+        [p_E,p_coal,p_gas,p_E_prev,p_coal_prev,p_gas_prev,price_err_prev,...
+            price_adjust,entry_coal,entry_gas,entry_green,entry_prev,...
+            value_err_prev,entry_adjust,anchor_coal,anchor_gas,h_start,k_start] = ...
+            restore_ss_checkpoint(loaded.checkpoint);
+        fprintf("Loaded three-tech SS checkpoint %s; resuming at h=%d, k=%d\n",...
+            checkpoint_file,h_start,k_start);
+    catch
+        fprintf("No usable three-tech SS checkpoint at %s; starting from scratch\n",...
+            checkpoint_file);
+    end
+elseif use_checkpoint
+    fprintf("No three-tech SS checkpoint found at %s; starting from scratch\n",...
+        checkpoint_file);
+end
+if h_start>common.max_iter
+    h_start = common.max_iter;
+    k_start = 1;
+elseif k_start>common.max_iter
+    k_start = 1;
+end
 
-for h=1:common.max_iter
-    for k=1:common.max_iter
+price_err = zeros(1,3);
+value_err = zeros(1,3);
+for h=h_start:common.max_iter
+    k_first = 1;
+    if h==h_start, k_first = k_start; end
+    for k=k_first:common.max_iter
         static_coal = static_solver_anchor(coal.a_eff,p_E,p_coal,PE,coal.pe_grid,...
             common.alpha,coal.fco,1./coal.grid(:),dlog_PE,coal.dlog_pe,...
             anchor_coal,0.01);
@@ -103,6 +135,12 @@ for h=1:common.max_iter
             fprintf("Three-tech SS h=%d, k=%d, market errors electricity=%g, coal fuel=%g, gas fuel=%g.\n",...
                 h,k,price_err(1),price_err(2),price_err(3));
         end
+        if use_checkpoint && mod(k,checkpoint_freq)==0
+            save_ss_checkpoint(checkpoint_file,h,k+1,p_E,p_coal,p_gas,...
+                p_E_prev,p_coal_prev,p_gas_prev,price_err_prev,price_adjust,...
+                entry_coal,entry_gas,entry_green,entry_prev,value_err_prev,...
+                entry_adjust,anchor_coal,anchor_gas);
+        end
         if all(abs(price_err)<common.dem_tol) && ...
                 max(abs(tentative-old_price))<5*common.v_tol
             break
@@ -132,6 +170,12 @@ for h=1:common.max_iter
     entry_coal = entry(1);
     entry_gas = entry(2);
     entry_green = entry(3);
+    if use_checkpoint
+        save_ss_checkpoint(checkpoint_file,h+1,1,p_E,p_coal,p_gas,...
+            p_E_prev,p_coal_prev,p_gas_prev,price_err_prev,price_adjust,...
+            entry_coal,entry_gas,entry_green,entry_prev,value_err_prev,...
+            entry_adjust,anchor_coal,anchor_gas);
+    end
 end
 
 result = struct;
@@ -375,4 +419,53 @@ end
 
 function value = field_or(S,name,fallback)
 if isfield(S,name)&&~isempty(S.(name)), value=S.(name); else, value=fallback; end
+end
+
+function file = checkpoint_filename(name)
+if ~(isstring(name) || ischar(name))
+    file = "";
+    return
+end
+file = string(name);
+if strlength(file)>0 && ~endsWith(file,".mat")
+    file = file+".mat";
+end
+end
+
+function save_ss_checkpoint(file,h_start,k_start,p_E,p_coal,p_gas,...
+        p_E_prev,p_coal_prev,p_gas_prev,price_err_prev,price_adjust,...
+        entry_coal,entry_gas,entry_green,entry_prev,value_err_prev,...
+        entry_adjust,anchor_coal,anchor_gas)
+checkpoint = struct("h_start",h_start,"k_start",k_start,"p_E",p_E,...
+    "p_coal",p_coal,"p_gas",p_gas,"p_E_prev",p_E_prev,...
+    "p_coal_prev",p_coal_prev,"p_gas_prev",p_gas_prev,...
+    "price_err_prev",price_err_prev,"price_adjust",price_adjust,...
+    "entry_coal",entry_coal,"entry_gas",entry_gas,"entry_green",entry_green,...
+    "entry_prev",entry_prev,"value_err_prev",value_err_prev,...
+    "entry_adjust",entry_adjust,"anchor_coal",anchor_coal,"anchor_gas",anchor_gas);
+save(file,"checkpoint");
+end
+
+function [p_E,p_coal,p_gas,p_E_prev,p_coal_prev,p_gas_prev,price_err_prev,...
+        price_adjust,entry_coal,entry_gas,entry_green,entry_prev,...
+        value_err_prev,entry_adjust,anchor_coal,anchor_gas,h_start,k_start] = ...
+        restore_ss_checkpoint(checkpoint)
+p_E = checkpoint.p_E;
+p_coal = checkpoint.p_coal;
+p_gas = checkpoint.p_gas;
+p_E_prev = checkpoint.p_E_prev;
+p_coal_prev = checkpoint.p_coal_prev;
+p_gas_prev = checkpoint.p_gas_prev;
+price_err_prev = checkpoint.price_err_prev;
+price_adjust = checkpoint.price_adjust;
+entry_coal = checkpoint.entry_coal;
+entry_gas = checkpoint.entry_gas;
+entry_green = checkpoint.entry_green;
+entry_prev = checkpoint.entry_prev;
+value_err_prev = checkpoint.value_err_prev;
+entry_adjust = checkpoint.entry_adjust;
+anchor_coal = checkpoint.anchor_coal;
+anchor_gas = checkpoint.anchor_gas;
+h_start = checkpoint.h_start;
+k_start = checkpoint.k_start;
 end

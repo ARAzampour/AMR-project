@@ -66,11 +66,40 @@ output_adjust = 0.1/max(common.e_p,sqrt(eps))*ones(1,T);
 d0_vec = common.d_0*(1+common.d0_gr).^(1:T);
 max_iter_price = max(1,floor(common.max_iter/10));
 workers = common.static_solver_workers;
+checkpoint_file = checkpoint_filename(field_or(common,"checkpoint_name",""));
+use_checkpoint = strlength(checkpoint_file)>0;
+checkpoint_freq = 50;
+h_start = 1;
+k_start = 1;
+if use_checkpoint && isfile(checkpoint_file)
+    try
+        loaded = load(checkpoint_file,"checkpoint");
+        [p_E,p_E_prev,demand_err_prev,output_adjust,tech,h_start,k_start] = ...
+            restore_checkpoint(loaded.checkpoint,tech);
+        fprintf("Loaded green 3T checkpoint %s; resuming at h=%d, k=%d\n",...
+            checkpoint_file,h_start,k_start);
+    catch
+        fprintf("No usable green 3T checkpoint at %s; starting from scratch\n",...
+            checkpoint_file);
+    end
+elseif use_checkpoint
+    fprintf("No green 3T checkpoint found at %s; starting from scratch\n",...
+        checkpoint_file);
+end
 
-for h=1:common.max_iter
-    output_adjust(:) = 0.1/max(common.e_p,sqrt(eps));
-    for bb=1:2, tech{bb}.input_adjust(:)=0.5; end
-    for k=1:max_iter_price
+demand_err = zeros(1,T);
+total_cap = zeros(1,T);
+for bb=1:2, tech{bb}.input_err = zeros(1,T); end
+for bb=1:3, tech{bb}.value_err = zeros(T,1); end
+
+for h=h_start:common.max_iter
+    if ~(h==h_start && k_start>1)
+        output_adjust(:) = 0.1/max(common.e_p,sqrt(eps));
+        for bb=1:2, tech{bb}.input_adjust(:)=0.5; end
+    end
+    k_first = 1;
+    if h==h_start, k_first = k_start; end
+    for k=k_first:max_iter_price
         static = cell(3,T);
         if workers>1
             parfor (tt=1:T,workers)
@@ -164,6 +193,10 @@ for h=1:common.max_iter
         end
         demand_converged = mean(abs(demand_err)<common.dem_tol |...
             (abs(p_E-p_E_prev)<5*common.v_tol & k>max_iter_price/5))>0.99;
+        if use_checkpoint && mod(k,checkpoint_freq)==0
+            save_3t_checkpoint(checkpoint_file,h,k+1,p_E,p_E_prev,...
+                demand_err_prev,output_adjust,tech);
+        end
         if demand_converged && fuel_converged, break; end
     end
 
@@ -203,6 +236,10 @@ for h=1:common.max_iter
             tech{bb}.entry(end) = sum(tech{bb}.final.dist)-...
                 (1-common.exo_exit)*tech{bb}.measure(end-1);
         end
+    end
+    if use_checkpoint
+        save_3t_checkpoint(checkpoint_file,h+1,1,p_E,p_E_prev,...
+            demand_err_prev,output_adjust,tech);
     end
 end
 
@@ -456,4 +493,57 @@ end
 
 function value = field_or(S,name,fallback)
 if isfield(S,name)&&~isempty(S.(name)), value=S.(name); else, value=fallback; end
+end
+
+function file = checkpoint_filename(name)
+if ~(isstring(name) || ischar(name))
+    file = "";
+    return
+end
+file = string(name);
+if strlength(file)>0 && ~endsWith(file,".mat")
+    file = file+".mat";
+end
+end
+
+function save_3t_checkpoint(file,h_start,k_start,p_E,p_E_prev,demand_err_prev,...
+        output_adjust,tech)
+checkpoint = struct("h_start",h_start,"k_start",k_start,"p_E",p_E,...
+    "p_E_prev",p_E_prev,"demand_err_prev",demand_err_prev,...
+    "output_adjust",output_adjust);
+for bb=1:3
+    checkpoint.tech(bb).entry = tech{bb}.entry;
+    checkpoint.tech(bb).entry_prev = tech{bb}.entry_prev;
+    checkpoint.tech(bb).value_err_prev = tech{bb}.value_err_prev;
+    checkpoint.tech(bb).entry_adjust = tech{bb}.entry_adjust;
+end
+for bb=1:2
+    checkpoint.tech(bb).p_e = tech{bb}.p_e;
+    checkpoint.tech(bb).p_e_prev = tech{bb}.p_e_prev;
+    checkpoint.tech(bb).input_err_prev = tech{bb}.input_err_prev;
+    checkpoint.tech(bb).input_adjust = tech{bb}.input_adjust;
+end
+save(file,"checkpoint");
+end
+
+function [p_E,p_E_prev,demand_err_prev,output_adjust,tech,h_start,k_start] = ...
+        restore_checkpoint(checkpoint,tech)
+p_E = checkpoint.p_E;
+p_E_prev = checkpoint.p_E_prev;
+demand_err_prev = checkpoint.demand_err_prev;
+output_adjust = checkpoint.output_adjust;
+h_start = checkpoint.h_start;
+k_start = checkpoint.k_start;
+for bb=1:3
+    tech{bb}.entry = checkpoint.tech(bb).entry;
+    tech{bb}.entry_prev = checkpoint.tech(bb).entry_prev;
+    tech{bb}.value_err_prev = checkpoint.tech(bb).value_err_prev;
+    tech{bb}.entry_adjust = checkpoint.tech(bb).entry_adjust;
+end
+for bb=1:2
+    tech{bb}.p_e = checkpoint.tech(bb).p_e;
+    tech{bb}.p_e_prev = checkpoint.tech(bb).p_e_prev;
+    tech{bb}.input_err_prev = checkpoint.tech(bb).input_err_prev;
+    tech{bb}.input_adjust = checkpoint.tech(bb).input_adjust;
+end
 end
