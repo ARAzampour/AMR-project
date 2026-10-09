@@ -71,20 +71,31 @@ use_checkpoint  = strlength(checkpoint_file)>0;
 checkpoint_freq = 50;
 h_start = 1;
 k_start = 1;
+loaded_checkpoint = false;
 if use_checkpoint && isfile(checkpoint_file)
     try
         loaded  = load(checkpoint_file,"checkpoint");
         [p_E,p_E_prev,demand_err_prev,output_adjust,tech,h_start,k_start] = ...
             restore_checkpoint(loaded.checkpoint,tech);
+        loaded_checkpoint = true;
         fprintf("Loaded green 3T checkpoint %s; resuming at h=%d, k=%d\n",...
             checkpoint_file,h_start,k_start);
     catch
-        fprintf("No usable green 3T checkpoint at %s; starting from scratch\n",...
+        fprintf("No usable green 3T checkpoint at %s\n",checkpoint_file);
+    end
+end
+if ~loaded_checkpoint
+    warm = field_or(common,"warm_start",[]);
+    if ~isempty(warm)
+        [p_E,p_E_prev,demand_err_prev,tech] = warm_start_from_baseline(...
+            warm,tech,names,T);
+        h_start = 1;
+        k_start = 1;
+        fprintf("Warm-started green 3T from the baseline transition at h=1, k=1\n");
+    elseif use_checkpoint
+        fprintf("No green 3T checkpoint found at %s; starting from scratch\n",...
             checkpoint_file);
     end
-elseif use_checkpoint
-    fprintf("No green 3T checkpoint found at %s; starting from scratch\n",...
-        checkpoint_file);
 end
 
 demand_err  = zeros(1,T);
@@ -206,6 +217,16 @@ for h=h_start:common.max_iter
             fprintf("green 3T MIT h=%d, k=%d, mean errors demand=%g coal fuel=%g gas fuel=%g\n",...
                 h,k,mean(abs(demand_err)),mean(abs(tech{1}.input_err)),...
                 mean(abs(tech{2}.input_err)));
+            [p_E,p_E_prev,notch_dates] = smooth_notched_price(p_E,p_E_prev,total_cap);
+            for bb=1:2
+                [tech{bb}.p_e,tech{bb}.p_e_prev,fuel_notches] = ...
+                    smooth_notched_price(tech{bb}.p_e,tech{bb}.p_e_prev,total_cap);
+                notch_dates = union(notch_dates,fuel_notches);
+            end
+            if ~isempty(notch_dates)
+                fprintf("green 3T MIT smoothed price notches at dates %s\n",...
+                    strjoin(string(notch_dates)," "));
+            end
         end
 
         demand_converged    = mean(abs(demand_err)<common.dem_tol |...
@@ -496,6 +517,33 @@ path(active) = max(path(active),0);
 previous    = lag;
 end
 
+function [price,previous,notch_dates] = smooth_notched_price(price,previous,total_cap)
+% A one-period capacity drop that reverses is not produced by entry. If the
+% price at that date is also away from its neighbors, replace it by their average.
+price       = reshape(price,1,[]);
+previous    = reshape(previous,1,[]);
+total_cap   = reshape(total_cap,1,[]);
+notch_dates = [];
+repaired    = price;
+for t=2:numel(total_cap)-1
+    reference   = total_cap(t-1);
+    if reference<=0, continue; end
+    
+    drop        = reference-total_cap(t);
+    if drop<=0.01*reference, continue; end
+
+    if total_cap(t+1)-total_cap(t)<0.5*drop, continue; end
+
+    neighbor    = 0.5*(price(t-1)+price(t+1));
+    if neighbor<=0 || abs(price(t)-neighbor)<=0.01*neighbor, continue; end
+
+    repaired(t) = neighbor;
+    notch_dates(end+1) = t; %
+end
+price = repaired;
+previous(notch_dates) = price(notch_dates);
+end
+
 function [path,previous,error_previous,adjust] = update_price(path,previous,error,error_previous,adjust)
 tentative   = path+0.1*adjust.*error;
 oscill      = sign(error)~=sign(error_previous);
@@ -560,6 +608,38 @@ for bb=1:2
     checkpoint.tech(bb).input_adjust = tech{bb}.input_adjust;
 end
 save(file,"checkpoint");
+end
+
+function [p_E,p_E_prev,demand_err_prev,tech] = warm_start_from_baseline(...
+        baseline,tech,names,T)
+% Copy solved prices and entry. Step sizes and the iteration counter stay at
+% their initial values so the policy shock can still move the path.
+p_E         = fit_row(baseline.p_E,T);
+p_E_prev    = p_E;
+demand_err_prev = zeros(1,T);
+if isfield(baseline,"errors") && isfield(baseline.errors,"demand")
+    demand_err_prev = fit_row(baseline.errors.demand,T);
+end
+fuel_err_name   = ["coal_fuel","gas_fuel"];
+entry_err_name  = ["coal_entry","gas_entry","green_entry"];
+for bb=1:3
+    tech{bb}.entry      = fit_row(baseline.(names(bb)).entry,T);
+    tech{bb}.entry_prev = tech{bb}.entry;
+    if isfield(baseline,"errors") && isfield(baseline.errors,entry_err_name(bb))
+        err = baseline.errors.(entry_err_name(bb));
+        tech{bb}.value_err_prev = reshape(err(1:min(end,T)),[],1);
+        if numel(tech{bb}.value_err_prev)<T
+            tech{bb}.value_err_prev(end+1:T,1) = tech{bb}.value_err_prev(end);
+        end
+    end
+end
+for bb=1:2
+    tech{bb}.p_e        = fit_row(baseline.(names(bb)).p_e,T);
+    tech{bb}.p_e_prev   = tech{bb}.p_e;
+    if isfield(baseline,"errors") && isfield(baseline.errors,fuel_err_name(bb))
+        tech{bb}.input_err_prev = fit_row(baseline.errors.(fuel_err_name(bb)),T);
+    end
+end
 end
 
 function [p_E,p_E_prev,demand_err_prev,output_adjust,tech,h_start,k_start] = ...
