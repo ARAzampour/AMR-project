@@ -98,6 +98,14 @@ if ~loaded_checkpoint
     end
 end
 
+policy_period = reshape(tech{1}.tax~=0 | tech{2}.tax~=0,1,T);
+extra_policy = reshape(field_or(common,"policy_period",false),1,[]);
+if numel(extra_policy)<T
+    extra_policy(T) = false;
+end
+notch_exempt = policy_window(policy_period | extra_policy(1:T)~=0);
+notch_hold   = [];
+
 demand_err  = zeros(1,T);
 total_cap   = zeros(1,T);
 for bb=1:2, tech{bb}.input_err = zeros(1,T); end
@@ -213,14 +221,28 @@ for h=h_start:common.max_iter
                 (abs(tech{bb}.p_e-tech{bb}.p_e_prev)<5*common.v_tol & ...
                 k>max_iter_price/5))>0.99;
         end
+        notch_dates = identify_price_notch(p_E,notch_exempt);
+        for bb=1:2
+            notch_dates = union(notch_dates,identify_price_notch(tech{bb}.p_e,notch_exempt));
+        end
+        if isempty(notch_dates)
+            notch_hold = [];
+        elseif ~isequal(reshape(notch_dates,1,[]),reshape(notch_hold,1,[]))
+            fprintf("green 3T MIT price notch, 2 percent below both neighbors, at dates %s. Pausing so it can be inspected.\n",...
+                strjoin(string(notch_dates)," "));
+            notch_hold = notch_dates;
+            keyboard
+        end
         if mod(k,50)==0
             fprintf("green 3T MIT h=%d, k=%d, mean errors demand=%g coal fuel=%g gas fuel=%g\n",...
                 h,k,mean(abs(demand_err)),mean(abs(tech{1}.input_err)),...
                 mean(abs(tech{2}.input_err)));
-            [p_E,p_E_prev,notch_dates] = smooth_notched_price(p_E,p_E_prev,total_cap);
+            [p_E,p_E_prev,notch_dates] = smooth_notched_price(p_E,p_E_prev,...
+                total_cap,notch_exempt);
             for bb=1:2
                 [tech{bb}.p_e,tech{bb}.p_e_prev,fuel_notches] = ...
-                    smooth_notched_price(tech{bb}.p_e,tech{bb}.p_e_prev,total_cap);
+                    smooth_notched_price(tech{bb}.p_e,tech{bb}.p_e_prev,...
+                    total_cap,notch_exempt);
                 notch_dates = union(notch_dates,fuel_notches);
             end
             if ~isempty(notch_dates)
@@ -274,6 +296,7 @@ for h=h_start:common.max_iter
             update_entry(tech{bb}.entry,tech{bb}.value_err,...
             tech{bb}.value_err_prev,tech{bb}.entry_prev,...
             tech{bb}.entry_adjust,common.v_tol);
+        tech{bb}.entry = smooth_entry_path(tech{bb}.entry,tech{bb}.value_err);
         tech{bb}.value_err_prev = tech{bb}.value_err;
         if T>1
             tech{bb}.entry(end) = sum(tech{bb}.final.dist)-...
@@ -517,15 +540,66 @@ path(active) = max(path(active),0);
 previous    = lag;
 end
 
-function [price,previous,notch_dates] = smooth_notched_price(price,previous,total_cap)
+function notch_dates = identify_price_notch(price,exempt)
+% A date is a notch when its price is at least 2 percent below both neighbors.
+% Policy dates, and the date before and after each of them, are not tested.
+price       = reshape(price,1,[]);
+exempt      = reshape(exempt,1,[]);
+notch_dates = [];
+for t=2:numel(price)-1
+    if exempt(t), continue; end
+    if price(t)<0.99*price(t-1) && price(t)<0.99*price(t+1)
+        notch_dates(end+1) = t; %#ok<AGROW>
+    end
+end
+end
+
+function exempt = policy_window(policy)
+policy = reshape(policy~=0,1,[]);
+exempt = policy;
+if numel(policy)<2, return; end
+exempt(2:end)   = exempt(2:end) | policy(1:end-1);
+exempt(1:end-1) = exempt(1:end-1) | policy(2:end);
+end
+
+function path = smooth_entry_path(path,error)
+% Remove one-period entry spikes and holes. The terminal date is the
+% accounting residual. A date whose entrant value is more than 0.1 below
+% the entry cost keeps a zero mass.
+path    = reshape(path,1,[]);
+error   = reshape(error,1,[]);
+T       = numel(path);
+keep_zero = false(1,T);
+if T>1
+    keep_zero(1:T-1) = error(1:T-1)<-0.1;
+end
+path(keep_zero) = 0;
+repaired = path;
+for t=2:T-1
+    if keep_zero(t), continue; end
+    left    = path(t-1);
+    right   = path(t+1);
+    middle  = 0.5*(left+right);
+    if path(t)>left && path(t)>right && path(t)>1.1*max(middle,sqrt(eps))
+        repaired(t) = middle;
+    elseif path(t)<left && path(t)<right && path(t)<0.9*max(middle,sqrt(eps))
+        repaired(t) = middle;
+    end
+end
+path = repaired;
+end
+
+function [price,previous,notch_dates] = smooth_notched_price(price,previous,total_cap,exempt)
 % A one-period capacity drop that reverses is not produced by entry. If the
 % price at that date is also away from its neighbors, replace it by their average.
 price       = reshape(price,1,[]);
 previous    = reshape(previous,1,[]);
 total_cap   = reshape(total_cap,1,[]);
+exempt      = reshape(exempt,1,[]);
 notch_dates = [];
 repaired    = price;
 for t=2:numel(total_cap)-1
+    if exempt(t), continue; end
     reference   = total_cap(t-1);
     if reference<=0, continue; end
     
@@ -538,7 +612,7 @@ for t=2:numel(total_cap)-1
     if neighbor<=0 || abs(price(t)-neighbor)<=0.01*neighbor, continue; end
 
     repaired(t) = neighbor;
-    notch_dates(end+1) = t; %
+    notch_dates(end+1) = t; %#ok<AGROW>
 end
 price = repaired;
 previous(notch_dates) = price(notch_dates);
