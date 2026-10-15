@@ -40,9 +40,9 @@ for bb=1:3
     tech{bb}.entry      = initial_entry_path(tech{bb},T);
     tech{bb}.entry_prev = tech{bb}.entry;
     tech{bb}.value_err_prev = zeros(T,1);
-    tech{bb}.entry_adjust   = 0.1*ones(1,T);
+    tech{bb}.entry_adjust   = 0.05*ones(1,T);
 end
-
+%min_adj_ent     = 0.005; %%% minum amount of entry adjustment 
 PE      = common.P_E_grid_norm(:);
 dlog_PE = log_scale_weight_derivative(PE);
 for bb=1:2
@@ -512,7 +512,7 @@ idx         = active(oscill(active));
 path(idx)   = (lag(idx).*abs(error_previous(idx)')+...
     previous(idx).*abs(error(idx)'))./den(oscill(active));
 
-adjust      = max(adjust.*(0.99.^double(oscill)),0.05);
+adjust      = max(adjust.*(0.975.^double(oscill)),0.001);
 path(active) = max(path(active),0);
 previous    = lag;
 end
