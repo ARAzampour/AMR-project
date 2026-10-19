@@ -563,8 +563,9 @@ exempt(1:end-1) = exempt(1:end-1) | policy(2:end);
 end
 
 function path = smooth_entry_path(path,error)
-% Remove one-period entry spikes and holes. The terminal date is the
-% accounting residual. A date whose entrant value is more than 0.1 below
+% Remove one-period entry spikes and holes. The last date is the bridge
+% from the last measure to the steady state, so it is neither smoothed nor
+% used as a neighbor. A date whose entrant value is more than 0.1 below
 % the entry cost keeps a zero mass.
 path    = reshape(path,1,[]);
 error   = reshape(error,1,[]);
@@ -575,7 +576,7 @@ if T>1
 end
 path(keep_zero) = 0;
 repaired = path;
-for t=2:T-1
+for t=2:T-2
     if keep_zero(t), continue; end
     left    = path(t-1);
     right   = path(t+1);
