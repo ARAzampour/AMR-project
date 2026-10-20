@@ -574,7 +574,7 @@ keep_zero = false(1,T);
 if T>1
     keep_zero(1:T-1) = error(1:T-1)<-0.1;
 end
-path(keep_zero) = 0;
+% path(keep_zero) = 0;
 repaired = path;
 for t=2:T-2
     if keep_zero(t), continue; end
