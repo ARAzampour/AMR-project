@@ -105,6 +105,7 @@ if numel(extra_policy)<T
 end
 notch_exempt = policy_window(policy_period | extra_policy(1:T)~=0);
 notch_hold   = [];
+entry_notch_hold = cell(1,3);
 
 demand_err  = zeros(1,T);
 total_cap   = zeros(1,T);
@@ -228,7 +229,7 @@ for h=h_start:common.max_iter
         if isempty(notch_dates)
             notch_hold = [];
         elseif ~isequal(reshape(notch_dates,1,[]),reshape(notch_hold,1,[]))
-            fprintf("green 3T MIT price notch, 2 percent below both neighbors, at dates %s. Pausing so it can be inspected.\n",...
+            fprintf("green 3T MIT price notch, 1 percent below both neighbors, at dates %s. Pausing so it can be inspected.\n",...
                 strjoin(string(notch_dates)," "));
             notch_hold = notch_dates;
             keyboard
@@ -301,6 +302,16 @@ for h=h_start:common.max_iter
         if T>1
             tech{bb}.entry(end) = sum(tech{bb}.final.dist)-...
                 (1-common.exo_exit)*tech{bb}.measure(end-1);
+        end
+        entry_notch = identify_price_notch(tech{bb}.entry(1:max(T-1,1)),...
+            notch_exempt(1:max(T-1,1)));
+        if isempty(entry_notch)
+            entry_notch_hold{bb} = [];
+        elseif ~isequal(reshape(entry_notch,1,[]),reshape(entry_notch_hold{bb},1,[]))
+            fprintf("green 3T MIT %s entry notch, 1 percent below both neighbors, at dates %s. Pausing so it can be inspected.\n",...
+                names(bb),strjoin(string(entry_notch)," "));
+            entry_notch_hold{bb} = entry_notch;
+            keyboard
         end
     end
     if use_checkpoint
@@ -542,7 +553,7 @@ previous    = lag;
 end
 
 function notch_dates = identify_price_notch(price,exempt)
-% A date is a notch when its price is at least 2 percent below both neighbors.
+% A date is a notch when it is at least 1 percent below both neighbors.
 % Policy dates, and the date before and after each of them, are not tested.
 price       = reshape(price,1,[]);
 exempt      = reshape(exempt,1,[]);
