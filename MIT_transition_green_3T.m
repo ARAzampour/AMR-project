@@ -313,6 +313,8 @@ for h=h_start:common.max_iter
             entry_notch_hold{bb} = entry_notch;
             keyboard
         end
+        [tech{bb}.entry,tech{bb}.entry_prev] = replace_notches_with_neighbors(...
+            tech{bb}.entry,tech{bb}.entry_prev,entry_notch);
     end
     if use_checkpoint
         save_3t_checkpoint(checkpoint_file,h+1,1,p_E,p_E_prev,...
@@ -610,7 +612,6 @@ previous    = reshape(previous,1,[]);
 total_cap   = reshape(total_cap,1,[]);
 exempt      = reshape(exempt,1,[]);
 notch_dates = [];
-repaired    = price;
 for t=2:numel(total_cap)-1
     if exempt(t), continue; end
     reference   = total_cap(t-1);
@@ -624,11 +625,21 @@ for t=2:numel(total_cap)-1
     neighbor    = 0.5*(price(t-1)+price(t+1));
     if neighbor<=0 || abs(price(t)-neighbor)<=0.01*neighbor, continue; end
 
-    repaired(t) = neighbor;
     notch_dates(end+1) = t; %#ok<AGROW>
 end
-price = repaired;
-previous(notch_dates) = price(notch_dates);
+[price,previous] = replace_notches_with_neighbors(price,previous,notch_dates);
+end
+
+function [series,previous] = replace_notches_with_neighbors(series,previous,notch_dates)
+% Replace each notched date by the average of its two neighbors, and store
+% that repaired value as the previous point so a sign flip cannot restore it.
+series      = reshape(series,1,[]);
+previous    = reshape(previous,1,[]);
+original    = series;
+for t=reshape(notch_dates,1,[])
+    series(t) = 0.5*(original(t-1)+original(t+1));
+end
+previous(notch_dates) = series(notch_dates);
 end
 
 function [path,previous,error_previous,adjust] = update_price(path,previous,error,error_previous,adjust)
