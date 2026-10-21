@@ -521,21 +521,22 @@ end
 function [path,previous,adjust] = update_entry(path,error,error_previous,previous,adjust,tol)
 lag     = path;
 active  = 1:max(numel(path)-1,1);
-restart = path(active)==0 & error(active)'>0;
+restart = path(active)<tol & error(active)'>0;
 path(active(restart)) = max(10*tol,1e-8);
 step    = 0.1*(abs(error(active)')>50)+0.2*(abs(error(active)')<=50)+...
-    0.2*(abs(error(active)')<=1);
+    0.2*(abs(error(active)')<=1)-0.2*(abs(error(active)')<=0.2)-0.1*(abs(error(active)')<=0.05)+...
+    1.0*(path(active)<100*tol)+4.0*(path(active)<10*tol);
 
 path(active)    = path(active).*(1+step.*adjust(active).*error(active)');
 oscill          = false(size(path));
 oscill(active)  = sign(error(active)')~=sign(error_previous(active)');
 
-den         = max(abs(error(active)')+abs(error_previous(active)'),sqrt(eps));
+den         = max(abs(error(active)')+abs(error_previous(active)'),(eps));
 idx         = active(oscill(active));
 path(idx)   = (lag(idx).*abs(error_previous(idx)')+...
     previous(idx).*abs(error(idx)'))./den(oscill(active));
 
-adjust      = max(adjust.*(0.975.^double(oscill)),0.001);
+adjust      = max(adjust.*(0.99.^double(oscill)),0.001);
 path(active) = max(path(active),0);
 previous    = lag;
 end
@@ -622,7 +623,7 @@ end
 function [path,previous,error_previous,adjust] = update_price(path,previous,error,error_previous,adjust)
 tentative   = path+0.1*adjust.*error;
 oscill      = sign(error)~=sign(error_previous);
-den         = max(abs(error)+abs(error_previous),sqrt(eps));
+den         = max(abs(error)+abs(error_previous),(eps));
 tentative(oscill) = (path(oscill).*abs(error_previous(oscill))+...
     previous(oscill).*abs(error(oscill)))./den(oscill);
 adjust      = max(adjust.*(0.99.^double(oscill)),0.05);
