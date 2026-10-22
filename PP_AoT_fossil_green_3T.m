@@ -156,15 +156,15 @@ catch
             summary                 = policy_summary(policy,common);
             higher_electricity_cost = sum(max(summary.expenditure-baseline.expenditure,0));
             tax_revenue             = sum(policy.tax_revenue);
-            tax_result.name    = tax_cases(pp).name;
+            tax_result.name     = tax_cases(pp).name;
             tax_result.coal_tax = coal_policy.tax;
-            tax_result.gas_tax = gas_policy.tax;
-            tax_result.result  = policy;
+            tax_result.gas_tax  = gas_policy.tax;
+            tax_result.result   = policy;
             tax_result.green_share_response    = summary.green_share-baseline.green_share;
             tax_result.higher_electricity_cost = higher_electricity_cost;
             tax_result.tax_revenue             = tax_revenue;
             tax_result.net_consumer_cost       = higher_electricity_cost-tax_revenue;
-            tax_results = store_case(tax_results,pp,tax_result);
+            tax_results                         = store_case(tax_results,pp,tax_result);
             save(case_file,"tax_result");
             fprintf("Saved tax %s\n",tax_cases(pp).name);
         end
