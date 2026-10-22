@@ -17,6 +17,13 @@ names   = ["coal","gas","green"];
 age_g   = (0:common.age_num-1)';
 age_factor = max(1-common.a_grow.*age_g',0);
 
+check_entry_notches = true;
+check_price_notches = true;
+check_entry_jumps   = true;
+entry_notch_threshold   = 0.02;
+price_notch_threshold   = 0.01;
+entry_jump_threshold    = 0.02;
+
 for bb=1:3
     [tech{bb}.grid,tech{bb}.prob] = normal_path(tech{bb}.mu,tech{bb}.sigma,...
         common.a_num_g,T);
@@ -222,13 +229,13 @@ for h=h_start:common.max_iter
                 (abs(tech{bb}.p_e-tech{bb}.p_e_prev)<5*common.v_tol & ...
                 k>max_iter_price/5))>0.99;
         end
-        notch_dates = identify_price_notch(p_E,notch_exempt);
+        notch_dates = identify_price_notch(p_E,notch_exempt,price_notch_threshold);
         for bb=1:2
-            notch_dates = union(notch_dates,identify_price_notch(tech{bb}.p_e,notch_exempt));
+            notch_dates = union(notch_dates,identify_price_notch(tech{bb}.p_e,notch_exempt,price_notch_threshold));
         end
         if isempty(notch_dates)
             notch_hold = [];
-        elseif ~isequal(reshape(notch_dates,1,[]),reshape(notch_hold,1,[]))
+        elseif (~isequal(reshape(notch_dates,1,[]),reshape(notch_hold,1,[])) && check_price_notches)
             fprintf("green 3T MIT price notch, 1 percent below both neighbors, at dates %s. Pausing so it can be inspected.\n",...
                 strjoin(string(notch_dates)," "));
             notch_hold = notch_dates;
@@ -267,6 +274,7 @@ for h=h_start:common.max_iter
     active          = 1:max(T-1,1);
     entry_converged = true;
     terminal_converged = true;
+    fossil_entry_share = zeros(1,2);
 
     for bb=1:3
         err = zeros(T,1);
@@ -278,8 +286,12 @@ for h=h_start:common.max_iter
         err(end)    = tech{bb}.entry_prob(:,end)'*tech{bb}.final.value(1,:)'-...
             tech{bb}.entry_cost(end);
         tech{bb}.value_err  = err;
-        entry_converged     = entry_converged && mean(abs(err(active))<common.dem_tol |...
-            tech{bb}.entry(active)'<common.v_tol)>=0.99;
+        entry_share = mean(abs(err(active))<common.dem_tol |...
+            tech{bb}.entry(active)'<common.v_tol);
+        if bb<=2
+            fossil_entry_share(bb) = entry_share;
+        end
+        entry_converged     = entry_converged && entry_share>=0.99;
         terminal_converged  = terminal_converged && ...
             abs(sum(tech{bb}.final.dist)-tech{bb}.measure(end))<common.dem_tol;
     end
@@ -293,6 +305,7 @@ for h=h_start:common.max_iter
 
     for bb=1:3
         %%% will update entry of each tech in each period
+        entry_before = tech{bb}.entry;
         [tech{bb}.entry,tech{bb}.entry_prev,tech{bb}.entry_adjust] = ...
             update_entry(tech{bb}.entry,tech{bb}.value_err,...
             tech{bb}.value_err_prev,tech{bb}.entry_prev,...
@@ -304,10 +317,10 @@ for h=h_start:common.max_iter
                 (1-common.exo_exit)*tech{bb}.measure(end-1);
         end
         entry_notch = identify_price_notch(tech{bb}.entry(1:max(T-1,1)),...
-            notch_exempt(1:max(T-1,1)));
+            notch_exempt(1:max(T-1,1)),entry_notch_threshold);
         if isempty(entry_notch)
             entry_notch_hold{bb} = [];
-        elseif ~isequal(reshape(entry_notch,1,[]),reshape(entry_notch_hold{bb},1,[]))
+        elseif (~isequal(reshape(entry_notch,1,[]),reshape(entry_notch_hold{bb},1,[])) && check_entry_notches)
             fprintf("green 3T MIT %s entry notch, 1 percent below both neighbors, at dates %s. Pausing so it can be inspected.\n",...
                 names(bb),strjoin(string(entry_notch)," "));
             entry_notch_hold{bb} = entry_notch;
@@ -315,6 +328,18 @@ for h=h_start:common.max_iter
         end
         [tech{bb}.entry,tech{bb}.entry_prev] = replace_notches_with_neighbors(...
             tech{bb}.entry,tech{bb}.entry_prev,entry_notch);
+        if all(fossil_entry_share>0.8)
+            before = reshape(entry_before,1,[]);
+            after = reshape(tech{bb}.entry,1,[]);
+            entry_jump = active(abs(after(active)-before(active))>entry_jump_threshold*before(active) & ...
+                before(active)>0);
+            if (~isempty(entry_jump) && check_entry_jumps)
+                fprintf("green 3T MIT h=%d %s entry moved more than 2 percent at dates %s while coal and gas entry shares are %g and %g. Pausing so it can be inspected.\n",...
+                    h,names(bb),strjoin(string(entry_jump)," "),...
+                    fossil_entry_share(1),fossil_entry_share(2));
+                keyboard
+            end
+        end
     end
     if use_checkpoint
         save_3t_checkpoint(checkpoint_file,h+1,1,p_E,p_E_prev,...
@@ -554,7 +579,7 @@ path(active) = max(path(active),0);
 previous    = lag;
 end
 
-function notch_dates = identify_price_notch(price,exempt)
+function notch_dates = identify_price_notch(price,exempt,threshold)
 % A date is a notch when it is at least 1 percent below both neighbors.
 % Policy dates, and the date before and after each of them, are not tested.
 price       = reshape(price,1,[]);
@@ -562,7 +587,7 @@ exempt      = reshape(exempt,1,[]);
 notch_dates = [];
 for t=2:numel(price)-1
     if exempt(t), continue; end
-    if price(t)<0.99*price(t-1) && price(t)<0.99*price(t+1)
+    if price(t)<(1-threshold)*price(t-1) && price(t)<(1-threshold)*price(t+1)
         notch_dates(end+1) = t; %#ok<AGROW>
     end
 end
