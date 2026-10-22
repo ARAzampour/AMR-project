@@ -311,7 +311,7 @@ for h=h_start:common.max_iter
             tech{bb}.value_err_prev,tech{bb}.entry_prev,...
             tech{bb}.entry_adjust,common.v_tol);
         tech{bb}.entry = smooth_entry_path(tech{bb}.entry,tech{bb}.value_err,...
-            entry_notch_threshold);
+            entry_notch_threshold*2.5);
         
         if T>1
             tech{bb}.entry(end) = sum(tech{bb}.final.dist)-...
@@ -621,9 +621,9 @@ for t=2:T-2
     left    = path(t-1);
     right   = path(t+1);
     middle  = 0.5*(left+right);
-    if path(t)>left && path(t)>right && path(t)>1.1*max(middle,sqrt(eps))
+    if path(t)>left && path(t)>right && path(t)>(1+relative_threshold)*max(middle,sqrt(eps))
         jump(t) = true;
-    elseif path(t)<left && path(t)<right && path(t)<0.9*max(middle,sqrt(eps))
+    elseif path(t)<left && path(t)<right && path(t)<(1-relative_threshold)*max(middle,sqrt(eps))
         jump(t) = true;
     end
 end
@@ -646,7 +646,7 @@ for i=1:numel(jump_t)
     if abs(path(t)-fitted(i))<=relative_threshold*scale
         continue
     end
-    repaired(t) = 0.5*(path(t-1)+path(t+1));
+    repaired(t) = scale*(1+relative_threshold*sign(path(t)-fitted(i)));
 end
 path = repaired;
 end
