@@ -92,29 +92,39 @@ subsidy_cases = struct(...
     "name",{"subsidy_small_once","subsidy_small_10period","subsidy_large_once"},...
     "amount",{0.05*green.entry_cost(end),0.05*green.entry_cost(end),...
     0.20*green.entry_cost(end)},"duration",{1,10,1});
-subsidy_results = struct([]);
 try
     load("transition_coal_gas_green_subsidies","subsidy_results","baseline","subsidy_cases")
 catch
+    subsidy_results = struct([]);
     for pp=1:numel(subsidy_cases)
-        subsidy     = zeros(1,trans_t);
-        subsidy(1:subsidy_cases(pp).duration) = subsidy_cases(pp).amount;
-        green_policy    = green;
-        green_policy.entry_cost = max(green.entry_cost-subsidy,0);
-        green_policy.adopt_cost = max(green.adopt_cost-subsidy,0);
-        common.policy_period    = subsidy>0;
-        common.checkpoint_name  = "checkpoint_coal_gas_green_"+subsidy_cases(pp).name;
-        policy          = MIT_transition_green_3T(coal,gas,green_policy,common);
-        summary         = policy_summary(policy,common);
-        subsidy_outlay  = sum(subsidy.*(policy.green.entry+policy.green.adopt_path));
-        lower_electricity_cost      = sum(max(baseline.expenditure-summary.expenditure,0));
-        subsidy_results(pp).name    = subsidy_cases(pp).name;
-        subsidy_results(pp).subsidy = subsidy;
-        subsidy_results(pp).result  = policy;
-        subsidy_results(pp).green_share_response    = summary.green_share-baseline.green_share;
-        subsidy_results(pp).subsidy_outlay          = subsidy_outlay;
-        subsidy_results(pp).lower_electricity_cost  = lower_electricity_cost;
-        subsidy_results(pp).net_consumer_cost       = subsidy_outlay-lower_electricity_cost;
+        case_file = "transition_coal_gas_green_"+subsidy_cases(pp).name+".mat";
+        try
+            loaded = load(case_file,"subsidy_result");
+            subsidy_results(pp) = loaded.subsidy_result;
+            fprintf("Loaded subsidy %s\n",subsidy_cases(pp).name);
+        catch
+            subsidy     = zeros(1,trans_t);
+            subsidy(1:subsidy_cases(pp).duration) = subsidy_cases(pp).amount;
+            green_policy    = green;
+            green_policy.entry_cost = max(green.entry_cost-subsidy,0);
+            green_policy.adopt_cost = max(green.adopt_cost-subsidy,0);
+            common.policy_period    = subsidy>0;
+            common.checkpoint_name  = "checkpoint_coal_gas_green_"+subsidy_cases(pp).name;
+            policy          = MIT_transition_green_3T(coal,gas,green_policy,common);
+            summary         = policy_summary(policy,common);
+            subsidy_outlay  = sum(subsidy.*(policy.green.entry+policy.green.adopt_path));
+            lower_electricity_cost      = sum(max(baseline.expenditure-summary.expenditure,0));
+            subsidy_result.name    = subsidy_cases(pp).name;
+            subsidy_result.subsidy = subsidy;
+            subsidy_result.result  = policy;
+            subsidy_result.green_share_response    = summary.green_share-baseline.green_share;
+            subsidy_result.subsidy_outlay          = subsidy_outlay;
+            subsidy_result.lower_electricity_cost  = lower_electricity_cost;
+            subsidy_result.net_consumer_cost       = subsidy_outlay-lower_electricity_cost;
+            subsidy_results(pp) = subsidy_result;
+            save(case_file,"subsidy_result");
+            fprintf("Saved subsidy %s\n",subsidy_cases(pp).name);
+        end
     end
     save transition_coal_gas_green_subsidies subsidy_results baseline subsidy_cases
 end
@@ -122,32 +132,42 @@ end
 tax_cases = struct(...
     "name",{"tax_small_once","tax_small_10period","tax_large_once"},...
     "rate",{0.05,0.05,0.20},"duration",{1,10,1});
-tax_results = struct([]);
 try
     load transition_coal_gas_green_taxes tax_results baseline tax_cases
 catch
+    tax_results = struct([]);
     for pp=1:numel(tax_cases)
-        coal_policy     = coal;
-        gas_policy      = gas;
-        coal_policy.tax = zeros(1,trans_t);
-        gas_policy.tax  = zeros(1,trans_t);
-        active          = 1:tax_cases(pp).duration;
-        coal_policy.tax(active) = tax_cases(pp).rate*coal.init_price;
-        gas_policy.tax(active)  = tax_cases(pp).rate*gas.init_price;
-        common.policy_period    = coal_policy.tax>0 | gas_policy.tax>0;
-        common.checkpoint_name  = "checkpoint_coal_gas_green_"+tax_cases(pp).name;
-        policy                  = MIT_transition_green_3T(coal_policy,gas_policy,green,common);
-        summary                 = policy_summary(policy,common);
-        higher_electricity_cost = sum(max(summary.expenditure-baseline.expenditure,0));
-        tax_revenue             = sum(policy.tax_revenue);
-        tax_results(pp).name    = tax_cases(pp).name;
-        tax_results(pp).coal_tax = coal_policy.tax;
-        tax_results(pp).gas_tax = gas_policy.tax;
-        tax_results(pp).result  = policy;
-        tax_results(pp).green_share_response    = summary.green_share-baseline.green_share;
-        tax_results(pp).higher_electricity_cost = higher_electricity_cost;
-        tax_results(pp).tax_revenue             = tax_revenue;
-        tax_results(pp).net_consumer_cost       = higher_electricity_cost-tax_revenue;
+        case_file = "transition_coal_gas_green_"+tax_cases(pp).name+".mat";
+        try
+            loaded = load(case_file,"tax_result");
+            tax_results(pp) = loaded.tax_result;
+            fprintf("Loaded tax %s\n",tax_cases(pp).name);
+        catch
+            coal_policy     = coal;
+            gas_policy      = gas;
+            coal_policy.tax = zeros(1,trans_t);
+            gas_policy.tax  = zeros(1,trans_t);
+            active          = 1:tax_cases(pp).duration;
+            coal_policy.tax(active) = tax_cases(pp).rate*coal.init_price;
+            gas_policy.tax(active)  = tax_cases(pp).rate*gas.init_price;
+            common.policy_period    = coal_policy.tax>0 | gas_policy.tax>0;
+            common.checkpoint_name  = "checkpoint_coal_gas_green_"+tax_cases(pp).name;
+            policy                  = MIT_transition_green_3T(coal_policy,gas_policy,green,common);
+            summary                 = policy_summary(policy,common);
+            higher_electricity_cost = sum(max(summary.expenditure-baseline.expenditure,0));
+            tax_revenue             = sum(policy.tax_revenue);
+            tax_result.name    = tax_cases(pp).name;
+            tax_result.coal_tax = coal_policy.tax;
+            tax_result.gas_tax = gas_policy.tax;
+            tax_result.result  = policy;
+            tax_result.green_share_response    = summary.green_share-baseline.green_share;
+            tax_result.higher_electricity_cost = higher_electricity_cost;
+            tax_result.tax_revenue             = tax_revenue;
+            tax_result.net_consumer_cost       = higher_electricity_cost-tax_revenue;
+            tax_results(pp) = tax_result;
+            save(case_file,"tax_result");
+            fprintf("Saved tax %s\n",tax_cases(pp).name);
+        end
     end
     save transition_coal_gas_green_taxes tax_results baseline tax_cases
 end
