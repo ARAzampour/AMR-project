@@ -311,7 +311,7 @@ for h=h_start:common.max_iter
             tech{bb}.value_err_prev,tech{bb}.entry_prev,...
             tech{bb}.entry_adjust,common.v_tol);
         tech{bb}.entry = smooth_entry_path(tech{bb}.entry,tech{bb}.value_err,...
-            entry_notch_threshold*2.5);
+            entry_notch_threshold*2.5,policy_period | extra_policy(1:T)~=0);
         
         if T>1
             tech{bb}.entry(end) = sum(tech{bb}.final.dist)-...
@@ -603,52 +603,83 @@ exempt(2:end)   = exempt(2:end) | policy(1:end-1);
 exempt(1:end-1) = exempt(1:end-1) | policy(2:end);
 end
 
-function path = smooth_entry_path(path,error,relative_threshold)
+function path = smooth_entry_path(path,error,relative_threshold,policy)
 % Remove one-period entry spikes and holes. A local jump is kept when it
 % lies within relative_threshold of a makima curve fit through the other
-% free-entry dates, since that jump is the curvature of the path. The last
-% date is the bridge to the steady state, so it is neither a knot nor a jump.
+% dates in the same policy block. Policy dates are not compared with dates
+% that have no policy, and the last date is the bridge to the steady state.
 path    = reshape(path,1,[]);
 error   = reshape(error,1,[]);
+policy  = reshape(policy~=0,1,[]);
 T       = numel(path);
+if numel(policy)<T
+    policy(T) = false;
+end
+policy  = policy(1:T);
 keep_zero = false(1,T);
 if T>1
     keep_zero(1:T-1) = error(1:T-1)<-0.1;
 end
-jump = false(1,T);
-for t=2:T-2
+segments = policy_segments(policy(1:max(T-1,0)));
+for s=1:numel(segments)
+    path = smooth_entry_segment(path,segments{s},keep_zero,relative_threshold);
+end
+end
+
+function path = smooth_entry_segment(path,idx,keep_zero,relative_threshold)
+% idx is one contiguous block. Its first date has no previous neighbor in
+% the block and its last date has no next neighbor in the block.
+n = numel(idx);
+if n<3
+    return
+end
+jump_at = [];
+for k=2:n-1
+    t = idx(k);
     if keep_zero(t), continue; end
-    left    = path(t-1);
-    right   = path(t+1);
+    left    = path(idx(k-1));
+    right   = path(idx(k+1));
     middle  = 0.5*(left+right);
-    if path(t)>left && path(t)>right && path(t)>(1+relative_threshold)*max(middle,sqrt(eps))
-        jump(t) = true;
-    elseif path(t)<left && path(t)<right && path(t)<(1-relative_threshold)*max(middle,sqrt(eps))
-        jump(t) = true;
+    above   = path(t)>left && path(t)>right && ...
+        path(t)>(1+relative_threshold)*max(middle,sqrt(eps));
+    below   = path(t)<left && path(t)<right && ...
+        path(t)<(1-relative_threshold)*max(middle,sqrt(eps));
+    if above || below
+        jump_at(end+1) = k; %#ok<AGROW>
     end
 end
-if ~any(jump)
+if isempty(jump_at)
     return
 end
-knot = true(1,T);
-knot(T) = false;
-knot(jump) = false;
-knot_t = find(knot);
-if numel(knot_t)<2
+knot_k = setdiff(1:n,jump_at);
+if numel(knot_k)<2
     return
 end
-jump_t  = find(jump);
-fitted  = makima(knot_t,path(knot_t),jump_t);
-repaired = path;
+jump_t = idx(jump_at);
+fitted = makima(idx(knot_k),path(idx(knot_k)),jump_t);
 for i=1:numel(jump_t)
     t = jump_t(i);
     scale = max(abs(fitted(i)),sqrt(eps));
     if abs(path(t)-fitted(i))<=relative_threshold*scale
         continue
     end
-    repaired(t) = scale*(1+relative_threshold*sign(path(t)-fitted(i)));
+    path(t) = scale*(1+relative_threshold*sign(path(t)-fitted(i)));
 end
-path = repaired;
+end
+
+function segments = policy_segments(policy)
+policy = reshape(policy~=0,1,[]);
+if isempty(policy)
+    segments = {};
+    return
+end
+change = [true,policy(2:end)~=policy(1:end-1)];
+starts = find(change);
+ends = [starts(2:end)-1,numel(policy)];
+segments = cell(1,numel(starts));
+for i=1:numel(starts)
+    segments{i} = starts(i):ends(i);
+end
 end
 
 function [price,previous,notch_dates] = smooth_notched_price(price,previous,total_cap,exempt)
