@@ -17,7 +17,7 @@ names   = ["coal","gas","green"];
 age_g   = (0:common.age_num-1)';
 age_factor = max(1-common.a_grow.*age_g',0);
 
-check_entry_notches = true;
+check_entry_notches = false;
 check_price_notches = true;
 check_entry_jumps   = true;
 entry_notch_threshold   = 0.02;
@@ -311,7 +311,7 @@ for h=h_start:common.max_iter
             tech{bb}.value_err_prev,tech{bb}.entry_prev,...
             tech{bb}.entry_adjust,common.v_tol);
         tech{bb}.entry = smooth_entry_path(tech{bb}.entry,tech{bb}.value_err);
-        tech{bb}.value_err_prev = tech{bb}.value_err;
+        
         if T>1
             tech{bb}.entry(end) = sum(tech{bb}.final.dist)-...
                 (1-common.exo_exit)*tech{bb}.measure(end-1);
@@ -332,7 +332,7 @@ for h=h_start:common.max_iter
             before = reshape(entry_before,1,[]);
             after = reshape(tech{bb}.entry,1,[]);
             entry_jump = active(abs(after(active)-before(active))>entry_jump_threshold*before(active) & ...
-                before(active)>0);
+                before(active)>1000*common.v_tol);
             if (~isempty(entry_jump) && check_entry_jumps)
                 fprintf("green 3T MIT h=%d %s entry moved more than 2 percent at dates %s while coal and gas entry shares are %g and %g. Pausing so it can be inspected.\n",...
                     h,names(bb),strjoin(string(entry_jump)," "),...
@@ -340,6 +340,7 @@ for h=h_start:common.max_iter
                 keyboard
             end
         end
+        tech{bb}.value_err_prev = tech{bb}.value_err;
     end
     if use_checkpoint
         save_3t_checkpoint(checkpoint_file,h+1,1,p_E,p_E_prev,...
