@@ -100,7 +100,7 @@ catch
         case_file = "transition_coal_gas_green_"+subsidy_cases(pp).name+".mat";
         try
             loaded = load(case_file,"subsidy_result");
-            subsidy_results(pp) = loaded.subsidy_result;
+            subsidy_results = store_case(subsidy_results,pp,loaded.subsidy_result);
             fprintf("Loaded subsidy %s\n",subsidy_cases(pp).name);
         catch
             subsidy     = zeros(1,trans_t);
@@ -121,7 +121,7 @@ catch
             subsidy_result.subsidy_outlay          = subsidy_outlay;
             subsidy_result.lower_electricity_cost  = lower_electricity_cost;
             subsidy_result.net_consumer_cost       = subsidy_outlay-lower_electricity_cost;
-            subsidy_results(pp) = subsidy_result;
+            subsidy_results = store_case(subsidy_results,pp,subsidy_result);
             save(case_file,"subsidy_result");
             fprintf("Saved subsidy %s\n",subsidy_cases(pp).name);
         end
@@ -140,7 +140,7 @@ catch
         case_file = "transition_coal_gas_green_"+tax_cases(pp).name+".mat";
         try
             loaded = load(case_file,"tax_result");
-            tax_results(pp) = loaded.tax_result;
+            tax_results = store_case(tax_results,pp,loaded.tax_result);
             fprintf("Loaded tax %s\n",tax_cases(pp).name);
         catch
             coal_policy     = coal;
@@ -164,7 +164,7 @@ catch
             tax_result.higher_electricity_cost = higher_electricity_cost;
             tax_result.tax_revenue             = tax_revenue;
             tax_result.net_consumer_cost       = higher_electricity_cost-tax_revenue;
-            tax_results(pp) = tax_result;
+            tax_results = store_case(tax_results,pp,tax_result);
             save(case_file,"tax_result");
             fprintf("Saved tax %s\n",tax_cases(pp).name);
         end
@@ -252,5 +252,16 @@ summary.green_share = result.green.cap_path./max(total,sqrt(eps));
 d0          = common.d_0*(1+common.d0_gr).^(1:common.trans_t);
 quantity    = d0./result.p_E.^common.e_p;
 summary.expenditure = result.p_E.*quantity;
+end
+
+function arr = store_case(arr,index,item)
+%  An empty array
+% that already carries item's fields accepts the assignment.
+if isempty(fieldnames(arr))
+    arr = repmat(item,1,0);
+else
+    item = orderfields(item,arr);
+end
+arr(index) = item;
 end
 
