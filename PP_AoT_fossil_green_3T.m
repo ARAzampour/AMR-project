@@ -28,8 +28,8 @@ green       = struct;
 green.mu    = ones(1,trans_t);
 green.sigma = 0.12*ones(1,trans_t);
 green.fco   = green_cost_scale*ones(1,trans_t);
-green.entry_cost = green_cost_scale*(30+90*exp(linspace(0,-20,trans_t)));
-green.adopt_cost = green_cost_scale*(0.3+0.9*exp(linspace(0,-20,trans_t)));
+green.entry_cost = green_cost_scale*(30+70*exp(linspace(0,-30,trans_t)));
+green.adopt_cost = green_cost_scale*(0.3+0.7*exp(linspace(0,-30,trans_t)));
 green.solar_cap_mean    = 0.25;
 green.solar_price_corr  = 0.6;
 
