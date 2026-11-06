@@ -327,8 +327,8 @@ for h=h_start:common.max_iter
             entry_notch_hold{bb} = entry_notch;
             keyboard
         end
-        [tech{bb}.entry,tech{bb}.entry_prev] = replace_notches_with_neighbors(...
-            tech{bb}.entry,tech{bb}.entry_prev,entry_notch);
+%         [tech{bb}.entry,tech{bb}.entry_prev] = replace_notches_with_neighbors(...
+%             tech{bb}.entry,tech{bb}.entry_prev,entry_notch);
         if all(fossil_entry_share>0.8)
             before = reshape(entry_before,1,[]);
             after = reshape(tech{bb}.entry,1,[]);
@@ -640,9 +640,9 @@ for k=2:n-1
     left    = path(idx(k-1));
     right   = path(idx(k+1));
     middle  = 0.5*(left+right);
-    above   = path(t)>left && path(t)>right && ...
+    above   = path(t)>((1+relative_threshold)*left) && path(t)>((1+relative_threshold)*right) && ...
         path(t)>(1+relative_threshold)*max(middle,sqrt(eps));
-    below   = path(t)<left && path(t)<right && ...
+    below   = path(t)<((1-relative_threshold)*left) && path(t)<((1-relative_threshold)*right) && ...
         path(t)<(1-relative_threshold)*max(middle,sqrt(eps));
     if above || below
         jump_at(end+1) = k; %#ok<AGROW>
