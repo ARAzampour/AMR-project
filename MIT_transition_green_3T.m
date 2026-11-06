@@ -310,9 +310,30 @@ for h=h_start:common.max_iter
             update_entry(tech{bb}.entry,tech{bb}.value_err,...
             tech{bb}.value_err_prev,tech{bb}.entry_prev,...
             tech{bb}.entry_adjust,common.v_tol);
-        tech{bb}.entry = smooth_entry_path(tech{bb}.entry,tech{bb}.value_err,...
+        entry_raw = tech{bb}.entry;
+        tech{bb}.entry = smooth_entry_path(entry_raw,tech{bb}.value_err,...
             entry_notch_threshold*2.5,policy_period | extra_policy(1:T)~=0);
-        
+        if all(fossil_entry_share>0.8)
+            before = reshape(entry_before,1,[]);
+            raw_jump = entry_change_dates(before,entry_raw,active,...
+                entry_jump_threshold,1000*common.v_tol);
+            smooth_jump = entry_change_dates(before,tech{bb}.entry,active,...
+                entry_jump_threshold,1000*common.v_tol);
+            smoothing_only = reshape(setdiff(smooth_jump,raw_jump),1,[]);
+            if ~isempty(smoothing_only)
+                raw = reshape(entry_raw,1,[]);
+                tech{bb}.entry(smoothing_only) = raw(smoothing_only);
+            end
+            entry_jump = entry_change_dates(before,tech{bb}.entry,active,...
+                entry_jump_threshold,1000*common.v_tol);
+            if (~isempty(entry_jump) && check_entry_jumps)
+                fprintf("green 3T MIT h=%d %s entry moved more than 2 percent at dates %s while coal and gas entry shares are %g and %g. Pausing so it can be inspected.\n",...
+                    h,names(bb),strjoin(string(entry_jump)," "),...
+                    fossil_entry_share(1),fossil_entry_share(2));
+                keyboard
+            end
+        end
+
         if T>1
             tech{bb}.entry(end) = sum(tech{bb}.final.dist)-...
                 (1-common.exo_exit)*tech{bb}.measure(end-1);
@@ -329,18 +350,6 @@ for h=h_start:common.max_iter
         end
 %         [tech{bb}.entry,tech{bb}.entry_prev] = replace_notches_with_neighbors(...
 %             tech{bb}.entry,tech{bb}.entry_prev,entry_notch);
-        if all(fossil_entry_share>0.8)
-            before = reshape(entry_before,1,[]);
-            after = reshape(tech{bb}.entry,1,[]);
-            entry_jump = active(abs(after(active)-before(active))>entry_jump_threshold*before(active) & ...
-                before(active)>1000*common.v_tol);
-            if (~isempty(entry_jump) && check_entry_jumps)
-                fprintf("green 3T MIT h=%d %s entry moved more than 2 percent at dates %s while coal and gas entry shares are %g and %g. Pausing so it can be inspected.\n",...
-                    h,names(bb),strjoin(string(entry_jump)," "),...
-                    fossil_entry_share(1),fossil_entry_share(2));
-                keyboard
-            end
-        end
         tech{bb}.value_err_prev = tech{bb}.value_err;
     end
     if use_checkpoint
@@ -838,4 +847,11 @@ for bb=1:2
     tech{bb}.input_err_prev = checkpoint.tech(bb).input_err_prev;
     tech{bb}.input_adjust   = checkpoint.tech(bb).input_adjust;
 end
+end
+
+function dates = entry_change_dates(before,after,active,threshold,floor_level)
+before = reshape(before,1,[]);
+after = reshape(after,1,[]);
+dates = active(abs(after(active)-before(active))>threshold*before(active) & ...
+    before(active)>floor_level);
 end
