@@ -196,6 +196,43 @@ plot(baseline_result.p_E,LineWidth=2)
 xlabel("periods into transition"), ylabel("electricity price")
 title("electricity price path")
 
+figure(3)
+plot(baseline_result.coal.cap_path+baseline_result.gas.cap_path,LineWidth=2)
+xlabel("periods into transition"), ylabel("capacity")
+title("fossil capacity")
+figure(4)
+plot(baseline_result.coal.p_e,LineWidth=2)
+hold on
+plot(baseline_result.coal.p_e,LineWidth=2)
+xlabel("periods into transition"), ylabel("price")
+legend("coal","gas")
+title("fossil prices")
+figure(4)
+plot(baseline_result.coal.p_e,LineWidth=2)
+hold on
+plot(baseline_result.gas.p_e,LineWidth=2)
+xlabel("periods into transition"), ylabel("price")
+legend("coal","gas")
+title("fossil prices")
+figure(5)
+plot(baseline_result.coal.input_path,LineWidth=2)
+hold on
+plot(baseline_result.gas.input_path,LineWidth=2)
+xlabel("periods into transition"), ylabel("enery use")
+legend("coal","gas")
+title("fossil intake")
+figure(6)
+plot(baseline_result.green.entry_cost,LineWidth=2)
+xlabel("periods into transition"), ylabel("cost")
+title("green entry cost")
+figure(7)
+plot(baseline_result.gas.e0,LineWidth=2)
+xlabel("periods into transition"), ylabel("energy")
+title("gas basline supply")
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%% Auxillery Functions %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function out = slice_branch(branch,start)
 out = branch;
 row_fields = ["measure","entry","mu","sigma","price","quantity","e0",...
