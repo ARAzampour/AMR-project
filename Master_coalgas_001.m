@@ -98,7 +98,7 @@ nfiles      = 300;
 
 
 %%% calibration targets
-p_E_m = 35; p_e_n_m = 12; p_e_o_m = 3.4;  %%% these numbers come from the papers
+p_E_m = 33; p_e_n_m = 12; p_e_o_m = 3.4;  %%% 33 is the 1985 industrial price net of wires and losses
 %%% in the literature (cited withthe help of gpt)
 inp_ratio = 7; m_ratio = 3;
 mean_eff = 0.37; tech_dist   = 1; feul_ce_ratio = 0.085; M_cap_age = 6.1;

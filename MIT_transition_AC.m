@@ -23,6 +23,15 @@ checkpoint_file = checkpoint_filename(checkpoint_name);
 use_checkpoint = strlength(checkpoint_file)>0;
 checkpoint_freq = 50;
 
+if isscalar(e0_o)
+    e0_o = e0_o*ones(1,trans_t);
+else
+    e0_o = reshape(e0_o,1,[]);
+end
+if numel(e0_o) ~= trans_t
+    error("The old-technology baseline supply must be a scalar or a vector of length trans_t.");
+end
+
 %%% conv_rate is used to make the conversion slower, the reason is that
 %%% sudden conversion creates swinging features
 x_old = norminv(linspace(0,1,a_num_g+2),mu_old,sigma_old); %%% looking at the entrants, 
@@ -756,7 +765,7 @@ for h=checkpoint_h_start:1:max_iter_measure
 
             input_use_o   = dist_o * eff_o_vec(:);
             
-            p_e_o_implied(j)  = (input_use_o/(e0_o/tech_dist_vec(j).^(1/(1-alpha)))*...
+            p_e_o_implied(j)  = (input_use_o/(e0_o(j)/tech_dist_vec(j).^(1/(1-alpha)))*...
                 (input_use_o/input_all_o(j))^penalty_o).^(1/e_o_eps);
             dist_new_o    = (dist_o.*(1-p_conversion_o')) *trans_matrix_o;
             exit_o(j)     = sum(dist_o-dist_new_o);
