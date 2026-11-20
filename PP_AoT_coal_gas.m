@@ -154,7 +154,7 @@ c_e_new     = c_e_new_pre_cc*0.5;  %%% the drop in the installation cost of the
 %%% Fuel use rose as well, and matching that rise would scale the coal
 %%% factor by about 1.42 and the gas factor by about 1.53. Those larger
 %%% shifts are not used. The gas increase is the price-only factor.
-e0_o_post       = e0_o*(1.648/0.750)^e_o_eps;
+e0_o_post       = e0_o*(2.25/0.750)^e_o_eps;%%%1.648
 e0_n_post_1990s = e0_n_1st*(3.444/1.662)^e_n_eps;
 e0_n_post_shale = e0_n_post_1990s*1.75; %%% shale boom, on top of the 1990s baseline
 

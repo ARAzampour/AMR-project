@@ -525,8 +525,10 @@ lag = mass;
 if mass==0 && err>0
     mass = max(10*tol,1e-8);
 end
-step = 0.1*(abs(err)>50)+0.2*(abs(err)<=50)+0.2*(abs(err)<=1);
-mass = mass*(1+step*adjust*err);
+step    = 0.1*(abs(err)>50)+0.2*(abs(err)<=50)+0.2*(abs(err)<=1);
+change  = step*adjust*err;
+change(abs(change)>=0.9) = 0.9*sign(change);
+mass    = mass*(1+change);
 if h>1 && sign(err)~=sign(error_previous)
     den = abs(err)+abs(error_previous);
     mass = (lag*abs(error_previous)+previous*abs(err))/max(den,sqrt(eps));
